@@ -1025,6 +1025,8 @@ Options:    (a) Rex as a session backend beside Zellij, chosen per machine, with
                 Rex's own sessions, its native remote connection and its status display go unused.
             (c) Replace Zellij outright: rejected for now, as Rex is in testing and not
                 available to everyone.
-Decision:   proposed, not yet agreed: see .claude/local/plans/rex-option.md for the units, and
-            the open questions put to the architect.
+Decision:   proposed, not yet agreed. The design, written from Rex's CLI and server API
+            documentation before Rex has been run here, is docs/rex.md: each operation as Rex
+            commands, how a client reaches the engine's Rex, errors, naming by ID, and what is
+            still to confirm, which scripts/rex-probe.sh records on a machine with Rex.
 Status:     proposed
