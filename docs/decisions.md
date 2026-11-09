@@ -1007,7 +1007,7 @@ Decision:   - The program's own keys are ENGINEROOM_SLOT, ENGINEROOM_WORKTREEROO
               every [[slot]] row is one key. The error names the file and both keys.
 Status:     accepted
 
-## D-029  2026-11-10  Rex as an alternative to Zellij and Ghostty (proposed)
+## D-029  2026-11-10  Rex as an alternative to Zellij and Ghostty
 Context:    Every session lives in Zellij on the engine and is joined through a terminal app
             (Ghostty by default), locally or with `ssh -t`. Rex is a terminal app and session
             server in one: its server keeps sessions running whether or not a window shows them
@@ -1029,8 +1029,16 @@ Decision:   - Agreed by the architect, 2026-11-10: Rex's own Tailscale support i
               client reaches the engine; Rex is installed on the engine and on each client, but
               only the engine's Rex server holds sessions; a session has two windows, Claude and a
               plain terminal.
-            - The rest is proposed, not yet agreed. The design, written from Rex's CLI and server API
-            documentation before Rex has been run here, is docs/rex.md: each operation as Rex
-            commands, how a client reaches the engine's Rex, errors, naming by ID, and what is
-            still to confirm, which scripts/rex-probe.sh records on a machine with Rex.
-Status:     proposed
+            - The architect, 2026-11-10: build what can be built and keep it on its branch until
+              Rex is available. The design, written from Rex's CLI and server API documentation
+              before Rex has been run here, is docs/rex.md: each operation as Rex commands, how a
+              client reaches the engine's Rex, errors, naming, and what is still to confirm,
+              which scripts/rex-probe.sh records on a machine with Rex.
+            - Built on that branch: one session backend (internal/mux) with Zellij and Rex behind
+              it, chosen by `multiplexer`; ENGINEROOM_SESSION set on every session, Zellij's too,
+              and read first wherever a session's name is needed; a client runs the one step that
+              shows a session on its own machine (a viewer command, `engineroom rex show`) and
+              every other step on the engine. Sessions are addressed by label, not by a recorded
+              ID: engineroom never creates a second session under a name in use, and Rex refuses
+              a label two sessions share, so recording IDs would add state for no open case.
+Status:     built on the rex-option branch, kept aside until Rex is available

@@ -6,6 +6,18 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Rex as a session backend, for testing.** With `multiplexer = "rex"`, a machine keeps its
+  sessions in Rex and shows them in the Rex app instead of Zellij and a terminal app; a client
+  reaches the engine's Rex over Tailscale (`rex.host`). Built from Rex's documentation and not yet
+  run against a real Rex: see docs/rex.md for what is still to confirm.
+
+### Changed
+
+- Every session engineroom starts carries `ENGINEROOM_SESSION` set to its name, and that is the
+  name read first inside a session, whichever multiplexer keeps it.
+
 ## [0.1.0] - 2026-11-10
 
 The first release.

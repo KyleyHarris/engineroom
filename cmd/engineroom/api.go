@@ -19,6 +19,7 @@ import (
 	"github.com/KyleyHarris/engineroom/internal/forward"
 	"github.com/KyleyHarris/engineroom/internal/handoff"
 	"github.com/KyleyHarris/engineroom/internal/history"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/ops"
 	"github.com/KyleyHarris/engineroom/internal/roots"
 	"github.com/KyleyHarris/engineroom/internal/source"
@@ -747,7 +748,17 @@ func startPlan(ctx context.Context, cfg *config.Config, src source.Source, act s
 // which joins it here or over SSH as this machine's actions are done (APP-JOIN, APP-TERM-001).
 // engineroom is named by its full path because a new terminal window's shell may not have it on PATH.
 // here joins the session on this machine, for one listed as here (CONN-HANDOFF-006).
+//
+// When sessions are kept in Rex there is no terminal window to open: the Rex app is the terminal,
+// and `engineroom rex show` brings the session up in it (D-029).
 func joinCommand(cfg *config.Config, session string, here bool) (action.Command, error) {
+	if !mux.Active().InTerminal() {
+		argv := []string{"engineroom", "rex", "show", session}
+		if here {
+			argv = append(argv, "--here")
+		}
+		return action.Command{Argv: argv, Why: "show the session in the Rex app"}, nil
+	}
 	t, err := terminal.Choose(cfg.App.Terminal)
 	if err != nil {
 		return action.Command{}, err

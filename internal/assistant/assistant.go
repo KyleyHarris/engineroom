@@ -98,12 +98,7 @@ func orNone(s string) string {
 // opening as a folder whenever Remote Control was off, and the session would sit at an empty
 // prompt. The options after it each take one value, so the opening is the command's prompt.
 func Layout(agentCommand, contextFile, settingsRoot, opening string, remoteControl bool) string {
-	cmd := agentCommand + " --add-dir " + shQuote(settingsRoot) + " --append-system-prompt-file " + shQuote(contextFile)
-	if remoteControl {
-		// Named as well, so it shows under the session's name (as zj.Layout).
-		cmd += ` --name "$ZELLIJ_SESSION_NAME" --remote-control "$ZELLIJ_SESSION_NAME"`
-	}
-	cmd += " " + shQuote(opening)
+	cmd := Agent(agentCommand, contextFile, settingsRoot, opening, remoteControl)
 	return fmt.Sprintf(`layout {
     default_tab_template {
         pane size=1 borderless=true {
@@ -123,6 +118,18 @@ func Layout(agentCommand, contextFile, settingsRoot, opening string, remoteContr
 `, kdl(cmd))
 }
 
+// Agent is the shell command that starts the assistant's agent: Layout's one tab, and the script
+// a Rex session's claude window runs (D-029). With remoteControl it is named by the session's own
+// name from its environment (zj.SessionNameRef), as a checkout's agent is.
+func Agent(agentCommand, contextFile, settingsRoot, opening string, remoteControl bool) string {
+	cmd := agentCommand + " --add-dir " + shQuote(settingsRoot) + " --append-system-prompt-file " + shQuote(contextFile)
+	if remoteControl {
+		// Named as well, so it shows under the session's name (as zj.Layout).
+		cmd += " --name " + zj.SessionNameRef + " --remote-control " + zj.SessionNameRef
+	}
+	return cmd + " " + shQuote(opening)
+}
+
 // Opening is the first thing the assistant is asked, so it says what it is looking at and asks
 // what to do.
 func Opening(page ops.ProjectPage, c ops.CheckoutView) string {
@@ -133,14 +140,19 @@ func Opening(page ops.ProjectPage, c ops.CheckoutView) string {
 	return fmt.Sprintf("I opened %s, %s, from the engineroom app. Say in one line what you can see, then ask me what I want to do.", page.Name, where)
 }
 
-// Write puts the context and the layout for a checkout's assistant in dir, returning their paths.
-func Write(dir, name, context, layout string) (contextFile, layoutFile string, err error) {
+// Write puts the context, the layout and the agent's start script (Agent, for Rex) for an
+// assistant in dir, returning the context's and the layout's paths. The script is the layout's
+// name with .sh (mux.AgentScript).
+func Write(dir, name, context, layout, agent string) (contextFile, layoutFile string, err error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", "", err
 	}
 	contextFile = filepath.Join(dir, name+".md")
 	layoutFile = filepath.Join(dir, name+".kdl")
 	if err := os.WriteFile(contextFile, []byte(context), 0o644); err != nil {
+		return "", "", err
+	}
+	if err := os.WriteFile(filepath.Join(dir, name+".sh"), []byte(agent+"\n"), 0o644); err != nil {
 		return "", "", err
 	}
 	return contextFile, layoutFile, os.WriteFile(layoutFile, []byte(layout), 0o644)

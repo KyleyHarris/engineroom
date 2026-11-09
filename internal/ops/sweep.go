@@ -9,9 +9,9 @@ import (
 
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/config"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/paths"
 	"github.com/KyleyHarris/engineroom/internal/procs"
-	"github.com/KyleyHarris/engineroom/internal/zj"
 )
 
 // SweepGrace is how long a checkout's session must have been gone before what was started for
@@ -59,7 +59,7 @@ func saveSweepState(s sweepState) {
 // run does not).
 func FindSweep(cfg *config.Config, now time.Time, record bool) (Sweep, error) {
 	sw := Sweep{Waiting: map[string]time.Duration{}}
-	sessions, err := zj.List()
+	sessions, err := mux.Active().List()
 	if err != nil {
 		return sw, err
 	}
@@ -72,12 +72,13 @@ func FindSweep(cfg *config.Config, now time.Time, record bool) (Sweep, error) {
 		}
 		_, isCheckout := known[s.Name]
 		_, isAssistant := assistantOf(s.Name, known)
-		if isCheckout || isAssistant {
+		// Only a backend that keeps ended sessions lists one (Zellij); Forget is its command.
+		if forget := mux.Active().Forget(s.Name); (isCheckout || isAssistant) && forget != nil {
 			sw.Plans = append(sw.Plans, action.Plan{
 				Title:   "Forget the ended session " + s.Name,
 				Machine: "this machine",
 				Commands: []action.Command{{
-					Argv: []string{"zellij", "delete-session", s.Name},
+					Argv: forget,
 					Why:  "delete what Zellij kept of a session that ended: it is never brought back (D-015)",
 				}},
 			})

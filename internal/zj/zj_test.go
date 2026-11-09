@@ -77,10 +77,11 @@ func TestLayoutCarriesTheAgentAndQuotesIt(t *testing.T) {
 // With Remote Control on, both starts carry it under the session's own name (SESS-REMOTE-002),
 // and name the session so (--name), so a session that continues a conversation shows the session's
 // name rather than the old conversation's. Fails if either start lacks either flag, or the name is
-// anything but Zellij's session name variable.
+// anything but the session's name from its environment: engineroom's ENGINEROOM_SESSION, else
+// Zellij's own.
 func TestLayoutWithRemoteControlNamesTheSession(t *testing.T) {
 	l := Layout("my-agent", true, "")
-	want := `my-agent --continue --name \"$ZELLIJ_SESSION_NAME\" --remote-control \"$ZELLIJ_SESSION_NAME\" || my-agent --name \"$ZELLIJ_SESSION_NAME\" --remote-control \"$ZELLIJ_SESSION_NAME\"`
+	want := `my-agent --continue --name \"${ENGINEROOM_SESSION:-$ZELLIJ_SESSION_NAME}\" --remote-control \"${ENGINEROOM_SESSION:-$ZELLIJ_SESSION_NAME}\" || my-agent --name \"${ENGINEROOM_SESSION:-$ZELLIJ_SESSION_NAME}\" --remote-control \"${ENGINEROOM_SESSION:-$ZELLIJ_SESSION_NAME}\"`
 	if !strings.Contains(l, want) {
 		t.Fatalf("layout lacks %s:\n%s", want, l)
 	}
@@ -156,10 +157,31 @@ func TestASessionStartsWithoutAnotherSessionsMarkers(t *testing.T) {
 	if !strings.Contains(string(out), "CLAUDE_CODE_MAX_OUTPUT_TOKENS=kept") {
 		t.Error("the developer's own Claude Code setting was taken away")
 	}
-	prefix := strings.Join(withoutAgentSession(), " ") + " zellij attach "
+	prefix := strings.Join(withoutAgentSession(), " ") + " "
 	for name, c := range map[string]action.Command{"Create": Create("project-a", "/tmp/l.kdl", "/tmp"), "Resurrect": Resurrect("project-a")} {
-		if !strings.HasPrefix(strings.Join(c.Argv, " "), prefix) {
+		line := strings.Join(c.Argv, " ")
+		if !strings.HasPrefix(line, prefix) || !strings.Contains(line, " zellij attach ") {
 			t.Errorf("%s starts Zellij with the markers: %v", name, c.Argv)
 		}
+	}
+}
+
+// A session is created with engineroom's own name for it in its environment, which Zellij hands to
+// every pane, so the layout's Remote Control name, the waiting mark and process ownership read the
+// same variable as under Rex (D-029). Fails if the variable is missing, names anything but the
+// session, or is set after zellij on the command line (where env would not apply it).
+func TestCreateNamesTheSessionInItsEnvironment(t *testing.T) {
+	argv := Create("project-a", "/tmp/l.kdl", "/tmp").Argv
+	set, run := -1, -1
+	for i, a := range argv {
+		if a == "ENGINEROOM_SESSION=project-a" {
+			set = i
+		}
+		if a == "zellij" && run < 0 {
+			run = i
+		}
+	}
+	if set < 0 || run < 0 || set > run {
+		t.Fatalf("Create does not set ENGINEROOM_SESSION=project-a before zellij: %v", argv)
 	}
 }

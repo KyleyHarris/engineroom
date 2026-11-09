@@ -53,6 +53,27 @@ type Config struct {
 	// Hiding is for repositories, never registered projects: only the list of GitHub's
 	// repositories not here hides them; nothing is changed on GitHub or on disk.
 	Hidden []string `toml:"hidden,omitempty"`
+	// Multiplexer is what keeps this machine's sessions and shows them (D-029, docs/rex.md):
+	// "zellij", the default, joined through a terminal app; or "rex", whose app is the terminal.
+	// The engine's choice decides where its sessions live; a client is set the same, so it joins
+	// them the same way.
+	Multiplexer string `toml:"multiplexer,omitempty"`
+	// Rex is where this machine's Rex is and, on a client, how it names the engine's.
+	Rex Rex `toml:"rex,omitempty"`
+}
+
+// Multiplexers are the values Multiplexer may take; "" is Zellij.
+var Multiplexers = []string{"zellij", "rex"}
+
+// Rex is this machine's Rex (docs/rex.md), read only when Multiplexer is "rex".
+type Rex struct {
+	// Path is Rex's command line, when it is not on PATH (Rex puts it there only inside its own
+	// terminals, and engineroom also runs from its app and over SSH).
+	Path string `toml:"path,omitempty"`
+	// Host is, on a client, the label of the engine's Rex server among this machine's Rex hosts
+	// (added once with `rex hosts add <label> <tailnet endpoint>`). Joining switches this machine's
+	// Rex app to it before showing the session.
+	Host string `toml:"host,omitempty"`
 }
 
 // IsHidden reports whether a root's repository is hidden from the list.
@@ -321,6 +342,15 @@ func (c *Config) Validate() error {
 		}
 		if !ok {
 			return fmt.Errorf(`app.start %q is not one of "zellij", "remote" or "both"`, c.App.Start)
+		}
+	}
+	if c.Multiplexer != "" {
+		ok := false
+		for _, m := range Multiplexers {
+			ok = ok || m == c.Multiplexer
+		}
+		if !ok {
+			return fmt.Errorf(`multiplexer %q is not one of "zellij" or "rex"`, c.Multiplexer)
 		}
 	}
 	roots := map[string]bool{}

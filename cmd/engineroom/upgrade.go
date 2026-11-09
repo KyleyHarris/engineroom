@@ -15,6 +15,7 @@ import (
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/assistant"
 	"github.com/KyleyHarris/engineroom/internal/config"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/settings"
 	"github.com/KyleyHarris/engineroom/internal/upgrade"
 	"github.com/KyleyHarris/engineroom/internal/zj"
@@ -63,8 +64,10 @@ func runUpgrade(args []string, stdout, stderr io.Writer) int {
 	}
 	f := upgradeFacts(cfg)
 	contextFile := filepath.Join(assistantDir(), upgrade.SessionName+".md")
-	layout := assistant.Layout(cfg.Agent.Command, contextFile, settings.Root(), upgrade.Opening(f), remote)
-	contextFile, layoutFile, err := assistant.Write(assistantDir(), upgrade.SessionName, upgrade.Context(f), layout)
+	opening := upgrade.Opening(f)
+	layout := assistant.Layout(cfg.Agent.Command, contextFile, settings.Root(), opening, remote)
+	agent := assistant.Agent(cfg.Agent.Command, contextFile, settings.Root(), opening, remote)
+	contextFile, layoutFile, err := assistant.Write(assistantDir(), upgrade.SessionName, upgrade.Context(f), layout, agent)
 	if err != nil {
 		fmt.Fprintf(stderr, "engineroom: %v\n", err)
 		return 1
@@ -81,7 +84,7 @@ func runUpgrade(args []string, stdout, stderr io.Writer) int {
 func upgradePlan(cfg *config.Config, remote bool) action.Plan {
 	name := upgrade.SessionName
 	plan := action.Plan{Title: "Upgrade engineroom on " + machineName() + ", with Claude", Machine: "this machine"}
-	if list, err := zj.List(); err == nil {
+	if list, err := mux.Active().List(); err == nil {
 		for _, s := range list {
 			if s.Name != name {
 				continue
@@ -89,7 +92,7 @@ func upgradePlan(cfg *config.Config, remote bool) action.Plan {
 			if !s.Ended {
 				plan.Notes = append(plan.Notes, "An upgrade session from before is still here: it is ended, and a new one starts from the build now installed.")
 			}
-			plan.Commands = append(plan.Commands, zj.End(name))
+			plan.Commands = append(plan.Commands, mux.End(name))
 		}
 	}
 	dir := built
@@ -102,7 +105,9 @@ func upgradePlan(cfg *config.Config, remote bool) action.Plan {
 	}
 	plan.Commands = append(plan.Commands,
 		action.Command{Argv: prepare, Why: "write the upgrade session's brief (the steps, and what it may fix or must ask about) and its layout"},
-		zj.Create(name, filepath.Join(assistantDir(), name+".kdl"), dir),
+	)
+	plan.Commands = append(plan.Commands, mux.Active().Create(name, dir, mux.AgentOnly(filepath.Join(assistantDir(), name+".kdl")))...)
+	plan.Commands = append(plan.Commands,
 		action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the upgrade session is ready"},
 	)
 	plan.Notes = append(plan.Notes, "Claude pulls the clone, installs the new build, restarts the app and says what changed, in the session "+name+". It asks before anything that could lose work.")

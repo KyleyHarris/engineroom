@@ -7,8 +7,8 @@ import (
 
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/config"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/procs"
-	"github.com/KyleyHarris/engineroom/internal/zj"
 )
 
 // What runs for a session lives only as long as the session (docs/decisions.md D-020). A
@@ -136,7 +136,7 @@ func reapCommand(name string) action.Command {
 func endCheckoutSession(cfg *config.Config, name string) []action.Command {
 	c, ok := checkouts(cfg)[name]
 	if !ok {
-		return []action.Command{zj.End(name)}
+		return []action.Command{mux.End(name)}
 	}
 	var cmds []action.Command
 	p, _ := cfg.Project(c.project)
@@ -144,5 +144,5 @@ func endCheckoutSession(cfg *config.Config, name string) []action.Command {
 		down.OnFail = "The down script failed, so the session was left running. Fix the script and stop the session again."
 		cmds = append(cmds, down)
 	}
-	return append(cmds, zj.End(name), reapCommand(name))
+	return append(cmds, mux.End(name), reapCommand(name))
 }

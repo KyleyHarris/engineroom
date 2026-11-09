@@ -149,12 +149,15 @@ func withoutAgentSession(argv ...string) []string {
 // Create starts a session in the background from a layout, in a directory. The command runs
 // from that directory as well as naming it: Zellij starts a background session's panes in the
 // directory the command was run from, and --default-cwd alone does not reach them. It starts
-// without another Claude Code session's markers (AgentSessionVars).
+// without another Claude Code session's markers (AgentSessionVars), and with ENGINEROOM_SESSION
+// set to its name, which Zellij gives every pane as it gives the rest of the starting environment:
+// engineroom's own name for the session, read the same way whichever multiplexer keeps it
+// (D-029), and never one inherited from a session it was started from.
 func Create(name, layout, dir string) action.Command {
 	return action.Command{
-		Argv: withoutAgentSession("zellij", "attach", "--create-background", name, "options", "--default-layout", layout, "--default-cwd", dir),
+		Argv: withoutAgentSession("ENGINEROOM_SESSION="+name, "zellij", "attach", "--create-background", name, "options", "--default-layout", layout, "--default-cwd", dir),
 		Dir:  dir,
-		Why:  "start the session in the background, without the markers of any Claude Code session it was started from",
+		Why:  "start the session in the background, named in its own environment, without the markers of any Claude Code session it was started from",
 	}
 }
 
@@ -182,6 +185,29 @@ func Switch(name string) action.Command {
 	return action.Command{Argv: []string{"zellij", "action", "switch-session", name}, Why: "move this window to the other session"}
 }
 
+// SessionNameRef is how a session's commands name their session: ENGINEROOM_SESSION, which
+// engineroom sets on every session it starts (Create, and Rex's in the mux package), else Zellij's
+// own ZELLIJ_SESSION_NAME for a session started before it did.
+const SessionNameRef = `"${ENGINEROOM_SESSION:-$ZELLIJ_SESSION_NAME}"`
+
+// Agent is the shell command that starts a checkout's agent (Layout's agent tab, and the script a
+// Rex session's claude window runs): continuing its last conversation in this folder when there
+// is one, with Remote Control under the session's name when asked, and with the clipboard shim
+// first on its PATH when shims is set.
+func Agent(agentCommand string, remoteControl bool, shims string) string {
+	start := agentCommand
+	if remoteControl {
+		start += " --name " + SessionNameRef + " --remote-control " + SessionNameRef
+	}
+	// --continue comes first because the agent refuses it when this folder has no earlier
+	// conversation; the plain start after || is what a first session gets.
+	agent := agentCommand + " --continue" + strings.TrimPrefix(start, agentCommand) + " || " + start
+	if shims != "" {
+		agent = "PATH=" + shell.Quote(shims) + `:"$PATH"; export PATH; ` + agent
+	}
+	return agent
+}
+
 // kdlString quotes a value for a KDL string.
 func kdlString(s string) string {
 	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`).Replace(s) + `"`
@@ -196,23 +222,15 @@ func kdlString(s string) string {
 // With remoteControl, the agent starts with Remote Control under the session's own name
 // (SESS-REMOTE-002), and with the session's name as its display name (--name) too. A session that
 // continues a conversation came back in the Claude app under that conversation's old name, not the
-// session's, with --remote-control's name alone; --name sets the name the session shows. The name is read from ZELLIJ_SESSION_NAME, which
-// Zellij sets in every pane, so one layout file serves every session.
+// session's, with --remote-control's name alone; --name sets the name the session shows. The
+// name is read from the session's environment (SessionNameRef), so one layout file serves every
+// session.
 //
 // With shims, the agent runs with that folder first on its PATH: it holds a pbcopy that copies to
 // the clipboard of the terminal the session is viewed through (ClipboardShim), so the agent's
 // copies reach the Mac the developer is working on, over SSH too.
 func Layout(agentCommand string, remoteControl bool, shims string) string {
-	start := agentCommand
-	if remoteControl {
-		start += ` --name "$ZELLIJ_SESSION_NAME" --remote-control "$ZELLIJ_SESSION_NAME"`
-	}
-	// --continue comes first because the agent refuses it when this folder has no earlier
-	// conversation; the plain start after || is what a first session gets.
-	agent := agentCommand + " --continue" + strings.TrimPrefix(start, agentCommand) + " || " + start
-	if shims != "" {
-		agent = "PATH=" + shell.Quote(shims) + `:"$PATH"; export PATH; ` + agent
-	}
+	agent := Agent(agentCommand, remoteControl, shims)
 	git := `if command -v lazygit >/dev/null 2>&1; then lazygit; else git status; fi; exec "${SHELL:-sh}"`
 	return fmt.Sprintf(`layout {
     default_tab_template {

@@ -47,6 +47,7 @@ func TestInvalidConfigurationsAreRefusedNamingTheProblem(t *testing.T) {
 		{"project name starting with a dash", "role = \"engine\"\n[[project]]\nname = \"-rf\"\npath = \"/srv/a\"", "may only contain"},
 		{"duplicate project", "role = \"engine\"\n[[project]]\nname = \"a\"\npath = \"/srv/a\"\n[[project]]\nname = \"a\"\npath = \"/srv/b\"", `project "a" is registered twice`},
 		{"project without a path", "role = \"engine\"\n[[project]]\nname = \"a\"", `project "a" has no path`},
+		{"unknown multiplexer", "role = \"engine\"\nmultiplexer = \"tmux\"", `multiplexer "tmux" is not one of`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -108,6 +109,36 @@ func TestSaveKeepsEverythingAndRoundTrips(t *testing.T) {
 	if again.Role != RoleClient || again.Engine.Host != "engine.example" || again.Agent.Command != "my-agent --flag" ||
 		len(again.Projects) != 1 || again.Projects[0].Path != "/srv/project-a" || again.Waiting.Duration != 2*time.Hour {
 		t.Fatalf("round trip lost something: %+v", again)
+	}
+}
+
+// The multiplexer and Rex's settings survive a save (D-029), and a machine that never chose one
+// gets no empty [rex] table written into its file. Fails if either is lost, or a Zellij machine's
+// file grows a Rex section it never asked for.
+func TestSaveKeepsTheMultiplexer(t *testing.T) {
+	writeConfig(t, "role = \"client\"\nmultiplexer = \"rex\"\n[engine]\nhost = \"engine.example\"\n[rex]\npath = \"/opt/rex/rex\"\nhost = \"engine\"\n")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Save(); err != nil {
+		t.Fatal(err)
+	}
+	again, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Multiplexer != "rex" || again.Rex.Path != "/opt/rex/rex" || again.Rex.Host != "engine" {
+		t.Fatalf("round trip lost the multiplexer: %+v", again)
+	}
+	path := writeConfig(t, "role = \"engine\"\n")
+	plain, _ := Load()
+	if err := plain.Save(); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(path)
+	if strings.Contains(string(b), "rex") || strings.Contains(string(b), "multiplexer") {
+		t.Fatalf("a machine without Rex had it written:\n%s", b)
 	}
 }
 

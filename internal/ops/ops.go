@@ -18,6 +18,7 @@ import (
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/config"
 	"github.com/KyleyHarris/engineroom/internal/engineroomfile"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/paths"
 	"github.com/KyleyHarris/engineroom/internal/settings"
 	"github.com/KyleyHarris/engineroom/internal/signal"
@@ -172,7 +173,7 @@ func gitHubOf(main string) *gitHubClone {
 // sessions lists the sessions; github, when given, is how a project's GitHub links are found, and
 // a running session in a project's checkout is given its branch's links from it.
 func sessions(cfg *config.Config, github func(config.Project) *gitHubClone) ([]SessionView, error) {
-	raw, err := zj.List()
+	raw, err := mux.Active().List()
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +324,7 @@ func Open(cfg *config.Config, project string, start Start) (action.Plan, error) 
 }
 
 func find(name string) (*zj.Session, error) {
-	all, err := zj.List()
+	all, err := mux.Active().List()
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +360,7 @@ func OnSession(cfg *config.Config, kind, name string, start Start) (action.Plan,
 		if !ok {
 			return action.Plan{}, fmt.Errorf("%q is not the session of a registered project's checkout, so engineroom does not know where to start it; end it with: zellij delete-session %s", name, name)
 		}
-		return action.Plan{Title: title, Commands: append([]action.Command{zj.End(name)}, createCommands(name, c.path, start)...)}, nil
+		return action.Plan{Title: title, Commands: append([]action.Command{mux.End(name)}, createCommands(name, c.path, start)...)}, nil
 	}
 	switch kind {
 	case "join", "back":
@@ -369,7 +370,7 @@ func OnSession(cfg *config.Config, kind, name string, start Start) (action.Plan,
 		if kind == "back" {
 			return action.Plan{}, fmt.Errorf("%q is running; join it instead", name)
 		}
-		return action.Plan{Title: "Join " + name, Commands: []action.Command{zj.Attach(name)}}, nil
+		return action.Plan{Title: "Join " + name, Commands: []action.Command{mux.Active().Join(name)}}, nil
 	case "restart":
 		return fresh("Restart " + name + " with the current layout")
 	case "stop":
@@ -380,7 +381,7 @@ func OnSession(cfg *config.Config, kind, name string, start Start) (action.Plan,
 		if s.Ended {
 			return action.Plan{}, fmt.Errorf("%q has ended; bring it back first", name)
 		}
-		return action.Plan{Title: "Switch to " + name, Commands: []action.Command{zj.Switch(name)}}, nil
+		return action.Plan{Title: "Switch to " + name, Commands: []action.Command{mux.Active().Switch(name)}}, nil
 	}
 	return action.Plan{}, fmt.Errorf("unknown action %q", kind)
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/config"
 	"github.com/KyleyHarris/engineroom/internal/history"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/ops"
 	"github.com/KyleyHarris/engineroom/internal/paths"
 	"github.com/KyleyHarris/engineroom/internal/projects"
@@ -57,6 +58,7 @@ func main() {
 // run dispatches a command line and returns the exit code, so it can be tested without
 // exiting the test process.
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	useMultiplexer()
 	if len(args) == 0 {
 		return runTUI(tui.Intent{}, stderr)
 	}
@@ -94,8 +96,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		}
 		return runTUI(tui.Intent{Edit: args[1]}, stderr)
 	case "switch":
-		if os.Getenv("ZELLIJ") == "" && os.Getenv("ZELLIJ_SESSION_NAME") == "" {
-			fmt.Fprintln(stderr, "engineroom switch moves the current Zellij window to another session, so it only works inside a session.")
+		if os.Getenv("ZELLIJ") == "" && mux.Current() == "" {
+			fmt.Fprintln(stderr, "engineroom switch moves the current window to another session, so it only works inside a session.")
 			return 2
 		}
 		return runTUI(tui.Intent{Switch: true}, stderr)
@@ -194,6 +196,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runProcess(args[1:], stdout, stderr)
 	case "session":
 		return runSession(args[1:], stdout, stderr)
+	case "rex":
+		return runRex(args[1:], stdout, stderr)
 	case "role":
 		return runRole(args[1:], stdout, stderr)
 	case "version", "--version":
@@ -668,7 +672,15 @@ func runLayout(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "engineroom: %v\n", err)
 		return 1
 	}
+	// The same agent start as a script beside it, which a Rex session's claude window runs
+	// (mux.AgentScript, D-029); Zellij reads the layout alone.
+	script := mux.AgentScript(*out)
+	if err := os.WriteFile(script, []byte(zj.Agent(cfg.Agent.Command, *remote, shims)+"\n"), 0o644); err != nil {
+		fmt.Fprintf(stderr, "engineroom: %v\n", err)
+		return 1
+	}
 	fmt.Fprintln(stdout, "wrote", *out)
+	fmt.Fprintln(stdout, "wrote", script)
 	return 0
 }
 
@@ -684,12 +696,12 @@ func runSignal(args []string, stdin io.Reader, stderr io.Writer) int {
 	fs.SetOutput(stderr)
 	message := fs.String("message", "", "what the session is asking")
 	fromHook := fs.Bool("from-hook", false, "read the message from the hook's JSON on standard input")
-	session := fs.String("session", os.Getenv("ZELLIJ_SESSION_NAME"), "session name (default: the current Zellij session)")
+	session := fs.String("session", mux.Current(), "session name (default: the session this runs in)")
 	if err := fs.Parse(args[1:]); err != nil {
 		return 0
 	}
 	if *session == "" {
-		fmt.Fprintln(stderr, "engineroom signal: not inside a Zellij session; nothing recorded")
+		fmt.Fprintln(stderr, "engineroom signal: not inside a session; nothing recorded")
 		return 0
 	}
 	var err error
@@ -948,14 +960,16 @@ func runProject(args []string, stdout, stderr io.Writer) int {
 	return 2
 }
 
-// endSession ends a session fully (D-015): stops it if it runs, then deletes what Zellij kept of
-// it, and returns once Zellij no longer lists it. Zellij's own `delete-session --force` reports a
-// failure when stopping a session leaves no snapshot to delete, so each step is taken only for
-// the state the session is in, and the outcome is checked rather than the exit code believed.
-// Each zellij command it runs is printed, so the step's output shows it.
+// endSession ends a session fully (D-015): stops it if it runs, then deletes what the backend kept
+// of it (Zellij keeps an ended session; Rex keeps none), and returns once it is no longer listed.
+// Zellij's own `delete-session --force` reports a failure when stopping a session leaves no
+// snapshot to delete, so each step is taken only for the state the session is in, and the outcome
+// is checked rather than the exit code believed. Each command it runs is printed, so the step's
+// output shows it.
 func endSession(name string, stderr io.Writer) int {
+	backend := mux.Active()
 	state := func() string {
-		list, err := zj.List()
+		list, err := backend.List()
 		if err != nil {
 			return "unknown"
 		}
@@ -981,9 +995,11 @@ func endSession(name string, stderr io.Writer) int {
 		case "":
 			return 0
 		case "running":
-			run("zellij", "kill-session", name)
+			run(backend.Stop(name)...)
 		case "ended":
-			run("zellij", "delete-session", name)
+			if forget := backend.Forget(name); forget != nil {
+				run(forget...)
+			}
 		}
 		if time.Now().After(deadline) {
 			fmt.Fprintf(stderr, "engineroom: session %s is still listed after 10 seconds (%s)\n", name, state())
@@ -991,6 +1007,68 @@ func endSession(name string, stderr io.Writer) int {
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
+}
+
+// useMultiplexer makes the configured multiplexer the one this run uses (D-029), before any
+// command reads a session. Without a readable configuration it stays Zellij, the default; a
+// command that needs the configuration says why it could not read it.
+func useMultiplexer() {
+	kind, path := "", ""
+	if cfg, err := config.Load(); err == nil {
+		kind, path = cfg.Multiplexer, cfg.Rex.Path
+	}
+	if err := mux.Use(kind, path); err != nil {
+		_ = mux.Use("", "")
+	}
+}
+
+// runRex is `engineroom rex show <session> [--here]`: brings a session up in the Rex app on this
+// machine (mux.Rex.ShowArgv), the step a join ends with when sessions are kept in Rex. On a
+// client working on the engine, the app is first switched to the engine's Rex server, named by
+// rex.host; --here, or a client working offline, shows one of this machine's own sessions. Each
+// rex command is printed before it runs, and a failure is said by what Rex's exit status means.
+func runRex(args []string, stdout, stderr io.Writer) int {
+	here := len(args) == 3 && args[2] == "--here"
+	if len(args) < 2 || args[0] != "show" || args[1] == "" || (len(args) == 3 && !here) || len(args) > 3 {
+		fmt.Fprintln(stderr, "usage: engineroom rex show <session> [--here]")
+		return 2
+	}
+	cfg, ok := engineConfig(stderr)
+	if !ok {
+		return 1
+	}
+	if cfg.Multiplexer != "rex" {
+		fmt.Fprintln(stderr, `engineroom: this machine does not keep its sessions in Rex (set multiplexer = "rex" in its configuration)`)
+		return 1
+	}
+	host := ""
+	if cfg.Role == config.RoleClient && !cfg.Offline && !here {
+		host = cfg.Rex.Host
+		if host == "" {
+			fmt.Fprintln(stderr, "engineroom: set rex.host to the label of the engine's Rex server among this machine's Rex hosts (added with: rex hosts add <label> <tailnet endpoint>)")
+			return 1
+		}
+	}
+	for _, argv := range (mux.Rex{Bin: cfg.Rex.Path}).ShowArgv(args[1], host) {
+		fmt.Fprintln(stderr, "+ "+strings.Join(argv, " "))
+		out, err := exec.Command(argv[0], argv[1:]...).CombinedOutput()
+		if len(out) > 0 {
+			fmt.Fprint(stderr, string(out))
+		}
+		if err != nil {
+			code := 1
+			if ee, ok := err.(*exec.ExitError); ok {
+				code = ee.ExitCode()
+			}
+			if why := mux.RexExit(code, host); why != "" {
+				fmt.Fprintln(stderr, "engineroom: "+why)
+			} else {
+				fmt.Fprintf(stderr, "engineroom: %v\n", err)
+			}
+			return 1
+		}
+	}
+	return 0
 }
 
 // runSession holds small session commands used inside plans. "wait" returns once Zellij lists
@@ -1018,10 +1096,10 @@ func runSession(args []string, stdout, stderr io.Writer) int {
 	}
 	deadline := time.Now().Add(10 * time.Second)
 	for {
-		list, err := zj.List()
+		list, err := mux.Active().List()
 		if err == nil {
 			for _, s := range list {
-				if s.Name == args[1] && !s.Ended && zj.Answers(args[1]) {
+				if s.Name == args[1] && !s.Ended && mux.Active().Ready(args[1]) {
 					return 0
 				}
 			}

@@ -29,6 +29,16 @@ type Command struct {
 	// OnFail, when set, is what the developer is told if this command fails: what state the
 	// action has left behind and how to go on, so a partial action is never left unexplained.
 	OnFail string `json:"onFail,omitempty"`
+	// Viewer marks a command that runs on the machine the developer is at rather than on the
+	// engine: showing a session in the Rex app there (D-029). A client runs it as it is, never over
+	// SSH, and only in the one shape that does this (IsShow); any other is run on the engine.
+	Viewer bool `json:"viewer,omitempty"`
+}
+
+// IsShow reports whether argv is `engineroom rex show <session>`, the one command an engine's plan
+// may have a client run on its own machine (Viewer).
+func IsShow(argv []string) bool {
+	return len(argv) == 4 && argv[0] == "engineroom" && argv[1] == "rex" && argv[2] == "show" && argv[3] != ""
 }
 
 // Display is the command as text a person can paste into a shell: a cd into its directory
@@ -110,7 +120,13 @@ func (r Remote) sshArgs(tty bool) []string {
 // Wrap turns a command meant for the engine into the ssh command a client runs. The remote side
 // receives one string, built by quoting the arguments, so a name with spaces or shell syntax
 // arrives as the same single argument (connection obligation O8).
+//
+// A Viewer command in the shape IsShow allows is left as it is: it shows the session on the
+// client's own screen, and run on the engine it would show it on the engine's.
 func (r Remote) Wrap(c Command) Command {
+	if c.Viewer && IsShow(c.Argv) {
+		return c
+	}
 	remote := shell.Join(c.Argv)
 	if c.Dir != "" {
 		remote = "cd " + shell.Quote(c.Dir) + " && " + remote

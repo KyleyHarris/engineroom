@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/config"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/settings"
 	"github.com/KyleyHarris/engineroom/internal/slots"
 	"github.com/KyleyHarris/engineroom/internal/zj"
@@ -43,9 +44,9 @@ func openCheckout(name, dir string, start Start) ([]action.Command, error) {
 	case existing != nil && start.NoJoin && !existing.Ended:
 		return nil, fmt.Errorf("the session %s is already running; join it to work in it", name)
 	case existing != nil && !existing.Ended:
-		return []action.Command{zj.Attach(name)}, nil
+		return []action.Command{mux.Active().Join(name)}, nil
 	case existing != nil && existing.Ended:
-		return append([]action.Command{zj.End(name)}, createCommands(name, dir, start)...), nil
+		return append([]action.Command{mux.End(name)}, createCommands(name, dir, start)...), nil
 	}
 	return createCommands(name, dir, start), nil
 }
@@ -59,16 +60,14 @@ func createCommands(name, dir string, start Start) []action.Command {
 		write = append(write, "--remote-control")
 		why = "write the standard layout, with the agent started under Remote Control"
 	}
-	cmds := []action.Command{
-		{Argv: append(write, "--out", LayoutFile(start.RemoteControl)), Why: why},
-		zj.Create(name, LayoutFile(start.RemoteControl), dir),
-		// Zellij returns from a background create before the session accepts clients, so
-		// joining straight away can find no session. Waiting is a command of its own, so it is
-		// seen like any other step.
-		{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the session is ready"},
-	}
+	cmds := []action.Command{{Argv: append(write, "--out", LayoutFile(start.RemoteControl)), Why: why}}
+	cmds = append(cmds, mux.Active().Create(name, dir, mux.Standard(LayoutFile(start.RemoteControl)))...)
+	// Zellij returns from a background create before the session accepts clients, so joining
+	// straight away can find no session. Waiting is a command of its own, so it is seen like any
+	// other step.
+	cmds = append(cmds, action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the session is ready"})
 	if !start.NoJoin {
-		cmds = append(cmds, zj.Attach(name))
+		cmds = append(cmds, mux.Active().Join(name))
 	}
 	return cmds
 }

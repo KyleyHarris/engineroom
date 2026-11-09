@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/config"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/settings"
 	"github.com/KyleyHarris/engineroom/internal/slots"
 	"github.com/KyleyHarris/engineroom/internal/zj"
@@ -94,9 +95,12 @@ func cleanDir(p config.Project, dir string) (action.Plan, error) {
 	// an ended session that could be brought back into a folder that no longer exists.
 	if s, err := find(name); err == nil && s != nil {
 		if s.Ended {
-			plan.Commands = append(plan.Commands, action.Command{Argv: []string{"zellij", "delete-session", name}, Why: "forget the ended session"})
+			// Only a backend that keeps ended sessions lists one (Zellij); Forget is its command.
+			if forget := mux.Active().Forget(name); forget != nil {
+				plan.Commands = append(plan.Commands, action.Command{Argv: forget, Why: "forget the ended session"})
+			}
 		} else {
-			plan.Commands = append(plan.Commands, zj.End(name))
+			plan.Commands = append(plan.Commands, mux.End(name))
 		}
 	}
 	// Then whatever still runs in the session's name, before the folder it runs from goes

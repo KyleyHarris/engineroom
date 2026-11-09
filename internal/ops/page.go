@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyleyHarris/engineroom/internal/config"
 	"github.com/KyleyHarris/engineroom/internal/engineroomfile"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/procs"
 	"github.com/KyleyHarris/engineroom/internal/settings"
 	"github.com/KyleyHarris/engineroom/internal/signal"
@@ -184,7 +185,7 @@ func Page(cfg *config.Config, name string) (ProjectPage, error) {
 	}
 
 	sessions := map[string]zj.Session{}
-	if list, err := zj.List(); err == nil {
+	if list, err := mux.Active().List(); err == nil {
 		for _, s := range list {
 			sessions[s.Name] = s
 		}

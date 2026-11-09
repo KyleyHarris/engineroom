@@ -9,10 +9,10 @@ import (
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/assistant"
 	"github.com/KyleyHarris/engineroom/internal/config"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/ops"
 	"github.com/KyleyHarris/engineroom/internal/paths"
 	"github.com/KyleyHarris/engineroom/internal/settings"
-	"github.com/KyleyHarris/engineroom/internal/zj"
 )
 
 // runAssistant is `engineroom assistant prepare <project> <checkout> [--remote-control]`: the first step
@@ -61,8 +61,10 @@ func prepareAssistant(cfg *config.Config, project, checkout string, remote bool)
 	name := assistant.SessionName(c.Path)
 	ctx := assistant.Context(page, c, settings.Dir(p.Name, p.Path))
 	contextFile := filepath.Join(assistantDir(), name+".md")
-	layout := assistant.Layout(cfg.Agent.Command, contextFile, settings.Root(), assistant.Opening(page, c), remote)
-	return assistant.Write(assistantDir(), name, ctx, layout)
+	opening := assistant.Opening(page, c)
+	layout := assistant.Layout(cfg.Agent.Command, contextFile, settings.Root(), opening, remote)
+	agent := assistant.Agent(cfg.Agent.Command, contextFile, settings.Root(), opening, remote)
+	return assistant.Write(assistantDir(), name, ctx, layout, agent)
 }
 
 // checkoutOf finds the checkout at path, comparing folders as the file system resolves them: git
@@ -98,13 +100,13 @@ func assistantPlan(cfg *config.Config, project, checkout string, remote bool) (a
 	}
 	name := assistant.SessionName(c.Path)
 	plan := action.Plan{Title: "Ask Claude about " + project, Machine: "engine"}
-	if list, err := zj.List(); err == nil {
+	if list, err := mux.Active().List(); err == nil {
 		for _, s := range list {
 			if s.Name == name && !s.Ended {
 				return plan, nil
 			}
 			if s.Name == name {
-				plan.Commands = append(plan.Commands, zj.End(name))
+				plan.Commands = append(plan.Commands, mux.End(name))
 			}
 		}
 	}
@@ -114,7 +116,9 @@ func assistantPlan(cfg *config.Config, project, checkout string, remote bool) (a
 	}
 	plan.Commands = append(plan.Commands,
 		action.Command{Argv: prepare, Why: "write what the assistant is told about " + project + ", and its layout"},
-		zj.Create(name, filepath.Join(assistantDir(), name+".kdl"), c.Path),
+	)
+	plan.Commands = append(plan.Commands, mux.Active().Create(name, c.Path, mux.AgentOnly(filepath.Join(assistantDir(), name+".kdl")))...)
+	plan.Commands = append(plan.Commands,
 		action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the assistant is ready"},
 	)
 	return plan, nil

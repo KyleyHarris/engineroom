@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/history"
+	"github.com/KyleyHarris/engineroom/internal/mux"
 	"github.com/KyleyHarris/engineroom/internal/ops"
 	"github.com/KyleyHarris/engineroom/internal/source"
 	"github.com/KyleyHarris/engineroom/internal/tui"
@@ -24,7 +25,7 @@ import (
 // the same plan runs and prints its commands and output as plain text, and is recorded in the
 // history the same way, so the agent's run is as visible as the developer's.
 func runStack(kind string, args []string, stdout, stderr io.Writer) int {
-	session := os.Getenv("ZELLIJ_SESSION_NAME")
+	session := mux.Current()
 	switch len(args) {
 	case 0:
 	case 1:
@@ -130,7 +131,7 @@ func writeOutput(w io.Writer, out string) {
 // inside a session the session defaults to this one, so Claude runs a task the way the app does.
 func runTask(args []string, stdout, stderr io.Writer) int {
 	usage := "usage: engineroom task [<session>] <task name> | engineroom task list [<session>]   (inside a session, the session defaults to this one)"
-	session := os.Getenv("ZELLIJ_SESSION_NAME")
+	session := mux.Current()
 	list := len(args) > 0 && args[0] == "list"
 	if list {
 		args = args[1:]
