@@ -293,9 +293,20 @@ final class EngineRoomKitTests: XCTestCase {
         return try JSONDecoder().decode([Session].self, from: Data("[\(json)]".utf8))
     }
 
+    // Built step by step: one long chain of + over mapped arrays is too slow for some compilers to
+    // type-check.
     private func names(_ list: PanelList) -> [String] {
-        list.pinned.flatMap { p in p.sessions.isEmpty ? ["(start \(p.project))"] : p.sessions.map(\.name) }
-            + ["|"] + list.running.map(\.name) + ["|"] + list.helpers.map(\.name) + ["|"] + list.here.map(\.name)
+        var out: [String] = []
+        for p in list.pinned {
+            out += p.sessions.isEmpty ? ["(start \(p.project))"] : p.sessions.map(\.name)
+        }
+        out.append("|")
+        out += list.running.map(\.name)
+        out.append("|")
+        out += list.helpers.map(\.name)
+        out.append("|")
+        out += list.here.map(\.name)
+        return out
     }
 
     // The panel lists the sessions in one order whether or not Claude is waiting in any of them, the
