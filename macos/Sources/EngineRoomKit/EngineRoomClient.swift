@@ -119,22 +119,28 @@ public final class EngineRoomClient: @unchecked Sendable {
             p.standardOutput = out
             p.standardError = err
             let collected = Collected()
-            out.fileHandleForReading.readabilityHandler = { h in collected.append(h.availableData) }
             let errLines = LineSplitter()
-            err.fileHandleForReading.readabilityHandler = { h in
-                let data = h.availableData
+            // The answer is whole only when the program has ended and both pipes have been read to
+            // their end: each pipe is read on its own reader until it reports its end, so no chunk
+            // still being read can land after the answer is returned.
+            let finished = DispatchGroup()
+            finished.enter()
+            finished.enter()
+            finished.enter()
+            readToEnd(out, finished) { collected.append($0) }
+            readToEnd(err, finished) { data in
                 if let onError { for line in errLines.feed(data) { onError(line) } }
+            } atEnd: {
+                if let onError { for line in errLines.feed(Data([0x0A])) { onError(line) } }
             }
-            p.terminationHandler = { proc in
+            p.terminationHandler = { _ in finished.leave() }
+            do { try p.run() } catch {
                 out.fileHandleForReading.readabilityHandler = nil
                 err.fileHandleForReading.readabilityHandler = nil
-                collected.append(out.fileHandleForReading.readDataToEndOfFile())
-                // The last lines may still be in the pipe when the program ends.
-                let rest = err.fileHandleForReading.readDataToEndOfFile()
-                if let onError { for line in errLines.feed(rest + Data([0x0A])) { onError(line) } }
-                cont.resume(returning: (collected.data, proc.terminationStatus))
+                cont.resume(throwing: error)
+                return
             }
-            do { try p.run() } catch { cont.resume(throwing: error) }
+            finished.notify(queue: .global()) { cont.resume(returning: (collected.data, p.terminationStatus)) }
         }
     }
 
@@ -217,15 +223,35 @@ public final class EngineRoomClient: @unchecked Sendable {
                     DispatchQueue.main.async { MainActor.assumeIsolated { onEvent(e) } }
                 }
             }
-            out.fileHandleForReading.readabilityHandler = { h in deliver(h.availableData) }
-            p.terminationHandler = { _ in
-                out.fileHandleForReading.readabilityHandler = nil
-                deliver(out.fileHandleForReading.readDataToEndOfFile())
-                DispatchQueue.main.async { cont.resume(returning: result.get()) }
-            }
+            // Done when the program has ended and its output has been read to the end: every event
+            // is then on the main queue ahead of the answer, so the caller sees them all first.
+            let finished = DispatchGroup()
+            finished.enter()
+            finished.enter()
+            readToEnd(out, finished, deliver) { deliver(Data([0x0A])) }
+            p.terminationHandler = { _ in finished.leave() }
             do { try p.run() } catch {
+                out.fileHandleForReading.readabilityHandler = nil
                 cont.resume(returning: false)
+                return
             }
+            finished.notify(queue: .main) { cont.resume(returning: result.get()) }
+        }
+    }
+}
+
+/// Reads a pipe as data arrives, handing each chunk to chunk, until the pipe reports its end
+/// (empty data); then runs atEnd and leaves group. The pipe's reader calls one chunk at a time, so
+/// the end comes after every chunk has been handed on.
+func readToEnd(_ pipe: Pipe, _ group: DispatchGroup, _ chunk: @escaping @Sendable (Data) -> Void, atEnd: (@Sendable () -> Void)? = nil) {
+    pipe.fileHandleForReading.readabilityHandler = { h in
+        let data = h.availableData
+        if data.isEmpty {
+            h.readabilityHandler = nil
+            atEnd?()
+            group.leave()
+        } else {
+            chunk(data)
         }
     }
 }
