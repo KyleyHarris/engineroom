@@ -1,0 +1,29 @@
+name: Bug report
+description: Something does not behave as an acceptance scenario says it should.
+labels: ["type: bug"]
+body:
+  - type: input
+    id: scenario
+    attributes:
+      label: Scenario id
+      description: The scenario the behaviour contradicts, if there is one.
+      placeholder: CONN-DOWN-001
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: Steps, and the commands the program showed in its history.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true

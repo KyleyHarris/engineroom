@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [{ "type": "command", "command": "command -v engineroom >/dev/null && engineroom slot status --hook || true" }] }
+    ],
+    "Notification": [
+      { "hooks": [{ "type": "command", "command": "command -v engineroom >/dev/null && engineroom signal waiting --from-hook || true" }] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "command -v engineroom >/dev/null && engineroom signal clear || true" }] }
+    ]
+  }
+}

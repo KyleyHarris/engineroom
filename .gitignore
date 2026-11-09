@@ -1,0 +1,25 @@
+# Personal, per-machine material at any depth (plans, memory, notes) never enters the repo.
+**/local/
+
+# Build output.
+/bin/
+/dist/
+
+# criteria-review task plans: per-branch working state, like the plan files under .claude/local.
+/.criteria/plan-*.json
+
+# macOS Finder window settings: per machine, never part of the repository.
+.DS_Store
+
+# The binary a plain `go build ./cmd/engineroom` leaves in the root; scripts/install.sh builds elsewhere.
+/engineroom
+
+# The website built by tools/site; generated from docs/ and site/, never committed.
+/site/out/
+
+# The website dev server .engineroom/up builds and starts: its binary, its log and its process record.
+/site/.serve/
+
+# The slot record engineroom writes into a checkout that holds a slot (.engineroom/engineroom.toml).
+.engineroom-slot.json
+.engineroom-slot.env

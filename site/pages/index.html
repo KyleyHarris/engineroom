@@ -1,0 +1,223 @@
+{{/*
+  The front page, written by hand. In order: what it is (with one moment of motion: new work
+  running as real commands), why it exists as short problem and answer pairs, how it sits beside
+  Claude's own remote features, the stack of tools it joins together (from site.toml), and the
+  way into the docs. The product's name, command and folders come from site.toml; never spell
+  them here.
+
+  The comparison with Claude's own features states theirs only as Anthropic's docs do, with the
+  links, and dated; ours as the docs and code here say. Keep both true when either changes.
+*/}}{{define "main"}}
+<main id="main" class="home">
+  <section class="hero">
+    <p class="hero-name" aria-hidden="true">{{.Site.Product}}</p>
+    <div class="hero-grid">
+      <div class="hero-text">
+        <h1 class="hero-line">{{.Site.Tagline}}</h1>
+        <p class="hero-lead">Many sessions on one Mac, each on its own branch and ports, none in
+          another's way. Work on them at that Mac, or from your laptop anywhere, with the app each one
+          is building on your own <code>localhost</code>.</p>
+        <p class="hero-actions">
+          <a class="button" href="how-it-works.html">See how it works</a>
+          <a class="button button-quiet" href="setup/index.html">Set a machine up</a>
+        </p>
+      </div>
+
+      <figure class="console" aria-labelledby="console-caption">
+        <div class="console-head"><span>{{.Site.Command}}</span><span>on the engine</span></div>
+        <ul class="sessions">
+          <li class="session"><span class="lamp lamp-run" title="running"></span><span class="session-name">project-a</span><span class="session-state">running</span></li>
+          <li class="session session-new">
+            <span class="swap"><span class="lamp lamp-run"></span><span class="mark" title="waiting for you">✻</span></span>
+            <span class="session-name">project-a-fix-login</span>
+            <span class="swap"><span class="session-state state-run">running</span><span class="session-state state-wait">Keep the email after a failed sign-in?</span></span>
+          </li>
+          <li class="session"><span class="lamp lamp-off" title="not running"></span><span class="session-name">web-app</span><span class="session-state">not running</span></li>
+        </ul>
+        {{template "plan-newwork" .}}
+        <figcaption id="console-caption">New work as {{.Site.Product}} runs it: every command
+          shown with its reason, then the new session waiting for you with Claude's question. The
+          plan is the program's own, shortened where it says so.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="ways" aria-labelledby="ways-title">
+    <h2 id="ways-title">One Mac is enough. More is better.</h2>
+    <p class="ways-lead">The Mac that runs the sessions is the <strong>engine</strong>. It is the
+      whole tool on its own; another Mac only adds a way in.</p>
+    <ol class="ways-list">
+      <li class="way">
+        <p class="way-where">The engine on its own</p>
+        <h3>Everything, on one Mac</h3>
+        <ul>
+          <li>Sessions that outlive the terminal, a waiting one marked</li>
+          <li>A worktree, branch and slot of ports for each piece of work</li>
+          <li>The app each session builds started and stopped with it</li>
+          <li>Settings and secrets kept in a repository of yours</li>
+          <li>Every action shown as the commands it runs</li>
+        </ul>
+      </li>
+      <li class="way">
+        <p class="way-where">At the engine</p>
+        <h3>Work on it directly</h3>
+        <ul>
+          <li>Its own menu bar, terminal and VS Code, on its own files</li>
+          <li>No SSH in between: every session is local</li>
+          <li>Walk away and the sessions keep going</li>
+        </ul>
+      </li>
+      <li class="way">
+        <p class="way-where">Anywhere else</p>
+        <h3>A laptop as a client</h3>
+        <ul>
+          <li>The same list, the same sessions, joined over SSH</li>
+          <li>The app on your laptop's <code>localhost</code>, VS Code on the engine's files</li>
+          <li>No engine to reach? Work local, and hand back later</li>
+        </ul>
+      </li>
+    </ol>
+    <p class="ways-note">With Remote Control on, every session also answers from your phone,
+      however you use it.</p>
+  </section>
+
+  <section class="why" aria-labelledby="why-title">
+    <h2 id="why-title">Why {{.Site.Product}}</h2>
+    <ul class="why-grid">
+      <li class="why-item">
+        <h3>Close the terminal. The work goes on.</h3>
+        <p>Every session lives in Zellij on the engine. Close the window, or shut the laptop, and it
+          is where you left it.</p>
+      </li>
+      <li class="why-item">
+        <h3>Six sessions. Which one needs you?</h3>
+        <p>One list in a fixed order. A session waiting for an answer is marked, with Claude's
+          question.</p>
+      </li>
+      <li class="why-item">
+        <h3>Three copies of one app, one set of ports.</h3>
+        <p>New work gets its own worktree, branch and slot of ports, so copies run side by side
+          without colliding.</p>
+      </li>
+      <li class="why-item">
+        <h3>The app is on the engine. You are on the laptop.</h3>
+        <p>Its ports answer on the laptop's own <code>localhost</code>, same numbers, so sign-in
+          and cookies just work.</p>
+      </li>
+      <li class="why-item">
+        <h3>Settings and secrets on every machine.</h3>
+        <p>Kept in a private repository of yours, secret files encrypted, set up the same on every
+          Mac.</p>
+      </li>
+      <li class="why-item">
+        <h3>No forgotten servers. No hidden steps.</h3>
+        <p>What a session starts stops with it. Every action is real commands you can read first
+          and copy.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="versus" aria-labelledby="versus-title">
+    <h2 id="versus-title">Why not just Claude's Remote Control?</h2>
+    <p class="versus-lead">Keep it: {{.Site.Product}} can turn it on for every session. Remote
+      Control is a window onto a session on one machine, and Anthropic's docs say that machine
+      "has to stay on and the <code>claude</code> process has to keep running". {{.Site.Product}}
+      is that machine, and everything around the session.</p>
+    <div class="compare-scroll">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th scope="col"><span class="visually-hidden">What you need</span></th>
+            <th scope="col">Remote Control on its own</th>
+            <th scope="col">Claude Code cloud sessions</th>
+            <th scope="col" class="compare-us">{{.Site.Product}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Where Claude runs</th>
+            <td>On the machine you started it on</td>
+            <td>In a VM Anthropic manages, cloned from GitHub</td>
+            <td class="compare-us">On your always-on Mac, the engine</td>
+          </tr>
+          <tr>
+            <th scope="row">You close the laptop</th>
+            <td>It waits for that machine to wake; it stops if its terminal closes</td>
+            <td>It keeps running</td>
+            <td class="compare-us">It keeps running on the engine</td>
+          </tr>
+          <tr>
+            <th scope="row">Your toolchain, databases, secrets</th>
+            <td>That machine's</td>
+            <td>What the cloud environment sets up</td>
+            <td class="compare-us">The engine's, with secrets from your settings</td>
+          </tr>
+          <tr>
+            <th scope="row">The app in your browser</th>
+            <td>On that machine</td>
+            <td>Inside the VM, if its environment can run it</td>
+            <td class="compare-us">On your laptop's <code>localhost</code>, same port numbers</td>
+          </tr>
+          <tr>
+            <th scope="row">Several pieces of work at once</th>
+            <td>One <code>claude</code> process per session, each kept open by you</td>
+            <td>A session per task, each on its own branch</td>
+            <td class="compare-us">A worktree, branch, session and slot of ports each, from one command</td>
+          </tr>
+          <tr>
+            <th scope="row">Your editor</th>
+            <td>On that machine</td>
+            <td>The diff, reviewed in the browser</td>
+            <td class="compare-us">VS Code on your laptop, on the engine's files</td>
+          </tr>
+          <tr>
+            <th scope="row">No way to reach it</th>
+            <td>Waits until the machine is back</td>
+            <td>Needs the network</td>
+            <td class="compare-us">Work local hands the work to your laptop, and back</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="versus-note">Claude Code's own features as Anthropic's docs describe them in November
+      2026: <a href="https://code.claude.com/docs/en/remote-control">Remote Control</a> and
+      <a href="https://code.claude.com/docs/en/claude-code-on-the-web">cloud sessions</a>. Cloud
+      sessions are the better fit for a self-contained task that needs nothing of your machine.</p>
+  </section>
+
+  <section class="stack" aria-labelledby="stack-title">
+    <h2 id="stack-title">What it puts together</h2>
+    <p class="stack-lead">Each job is done by a tool you may already use. {{.Site.Product}} does the
+      chores between them.</p>
+    <ol class="stack-layers">
+      <li class="layer layer-top">
+        <span class="layer-job">Ties every layer together</span>
+        <span class="layer-tool">{{.Site.Product}}</span>
+        <span class="layer-note">One program on every machine, set as the engine or a client. The menu
+          bar app, the terminal interface and the command line all run the same actions.</span>
+      </li>
+      {{range .Site.Stack}}<li class="layer">
+        <span class="layer-job">{{.Job}}</span>
+        <span class="layer-tool">{{if .URL}}<a href="{{.URL}}">{{.Tool}}</a>{{else}}{{.Tool}}{{end}}</span>
+        <span class="layer-note">{{.Note}}</span>
+      </li>
+      {{end}}
+    </ol>
+  </section>
+
+  <section class="readon" aria-labelledby="readon-title">
+    <h2 id="readon-title">Read on</h2>
+    <div class="readon-docs">
+      <div class="readon-doc">
+        <h3><a href="how-it-works.html">How it works</a></h3>
+        <p>The pieces and how they connect, with every job shown step by step.</p>
+      </div>
+      {{range .Docs}}<div class="readon-doc">
+        <h3><a href="{{.Config.Slug}}/index.html">{{.Title}}</a></h3>
+        <p>{{.Config.About}}</p>
+      </div>
+      {{end}}
+    </div>
+  </section>
+</main>
+{{end}}

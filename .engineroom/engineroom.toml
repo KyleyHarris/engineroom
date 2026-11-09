@@ -1,0 +1,58 @@
+# What this repository recommends to engineroom for its own checkouts (docs/decisions.md D-013):
+# the developer's settings win section by section and script by script; whatever they leave out
+# is taken from here.
+#
+# The repository runs one server, the website's dev server (go run ./tools/site -serve), started
+# by .engineroom/up and stopped by .engineroom/down. Each checkout serves it on its own slot's port, so several
+# worktrees can show their own copy of the site side by side.
+
+# A block of 100 ports, ten slots of ten. Slot 1 is the main clone, on the same port the site
+# tool uses when run without engineroom.
+reserve = ["20800-20899"]
+
+[ports]
+site = 20800
+
+[[slot]]
+slot = 1
+ports = { site = 20800 }
+
+[[slot]]
+slot = 2
+ports = { site = 20810 }
+
+[[slot]]
+slot = 3
+ports = { site = 20820 }
+
+[[slot]]
+slot = 4
+ports = { site = 20830 }
+
+[[slot]]
+slot = 5
+ports = { site = 20840 }
+
+[[slot]]
+slot = 6
+ports = { site = 20850 }
+
+[[slot]]
+slot = 7
+ports = { site = 20860 }
+
+[[slot]]
+slot = 8
+ports = { site = 20870 }
+
+[[slot]]
+slot = 9
+ports = { site = 20880 }
+
+[[slot]]
+slot = 10
+ports = { site = 20890 }
+
+# The address the stack serves, shown as a link in the app (and forwarded to a client).
+[links]
+"Website" = "http://localhost:{{site}}/"

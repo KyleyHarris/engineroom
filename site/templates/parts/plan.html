@@ -1,0 +1,20 @@
+{{/*
+  One real plan, as the program shows it before it runs: new work on an invented project, made
+  by `engineroom api plan new project-a fix-login --mode zellij` on an engine set up with invented
+  names and nothing else.
+  Shortened only where marked with an ellipsis (the long layout options, the join's AppleScript,
+  and the variables the session is started without); every command and every reason is the
+  program's own. If the program's plan for new work changes, take it again the same way and
+  update this. The --at delay is when the front page's animation shows each step; elsewhere the
+  plan is shown still.
+*/}}{{define "plan-newwork"}}<div class="plan">
+  <p class="plan-title">New work fix-login on project-a <span class="plan-where">on the engine</span></p>
+  <ol class="plan-steps">
+    <li style="--at: 0.6s"><code>git -C ~/src/project-a fetch origin</code><span>bring the remote's branches up to date</span></li>
+    <li style="--at: 1.3s"><code>git -C ~/src/project-a worktree add -b fix-login ~/src/project-a-fix-login origin/main</code><span>create the worktree on a new branch from origin/main</span></li>
+    <li style="--at: 2.0s"><code>{{.Site.Command}} layout write --out ~/.local/state/{{.Site.Folder}}/layouts/standard.kdl</code><span>write the standard layout</span></li>
+    <li style="--at: 2.7s"><code>zellij attach --create-background project-a-fix-login options …</code><span>start the session in the background</span></li>
+    <li style="--at: 3.4s"><code>{{.Site.Command}} session wait project-a-fix-login</code><span>wait until the session is ready</span></li>
+    <li style="--at: 4.1s"><code>osascript …</code><span>join the session in a tab of the Ghostty window that holds the sessions</span></li>
+  </ol>
+</div>{{end}}

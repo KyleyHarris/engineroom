@@ -1,0 +1,36 @@
+{{/*
+  The frame of every page: the nameplate with the navigation, the page's own content (the "main"
+  block, from doc.html or a hand-written page), and the footer. The product's name and every
+  address come from site/site.toml through .Site; nothing here spells the name.
+*/}}{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if .Title}}{{.Title}} - {{.Site.Product}}{{else}}{{.Site.Product}}: Claude Code sessions on an always-on Mac{{end}}</title>
+<meta name="description" content="{{.Site.Tagline}}">
+<link rel="stylesheet" href="{{.Root}}assets/base.css">
+<link rel="stylesheet" id="site-style" href="{{.Root}}assets/styles/{{.Site.Style}}.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="nameplate">
+  <div class="nameplate-inner">
+    <a class="wordmark" href="{{.Root}}index.html">{{.Site.Product}}</a>
+    <nav class="topnav" aria-label="Site">
+      <a href="{{.Root}}how-it-works.html"{{if eq .Section "how-it-works"}} aria-current="true"{{end}}>How it works</a>
+      {{range .Docs}}<a href="{{$.Root}}{{.Config.Slug}}/index.html"{{if eq $.Section .Config.Slug}} aria-current="true"{{end}}>{{.Config.Nav}}</a>
+      {{end}}<a href="{{.Site.Repository}}">GitHub</a>
+    </nav>
+  </div>
+</header>
+{{block "main" .}}{{end}}
+<footer class="footer">
+  <div class="footer-inner">
+    <p>{{.Site.Product}} is open source under the MIT licence. {{.Site.Platform}}</p>
+    <p><a href="{{.Site.Repository}}">The source, the docs and every decision, on GitHub</a></p>
+  </div>
+</footer>
+</body>
+</html>
+{{end}}

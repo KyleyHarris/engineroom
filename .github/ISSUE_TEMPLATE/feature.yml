@@ -1,0 +1,31 @@
+name: Feature or task
+description: A piece of work that delivers acceptance scenarios, or supports them.
+labels: ["type: feature"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What this delivers, in one or two sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: scenarios
+    attributes:
+      label: Acceptance scenarios
+      description: The scenario ids this work delivers, one per line, exactly as written in acceptance/.
+      placeholder: |
+        SESS-NEW-001
+        SESS-NEW-002
+  - type: textarea
+    id: obligations
+    attributes:
+      label: Engineering obligations
+      description: The tier 2 obligations that apply (see acceptance/<area>/<area>-obligations.md).
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: How anyone can tell this is finished.
+    validations:
+      required: true

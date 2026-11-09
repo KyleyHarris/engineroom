@@ -1,0 +1,477 @@
+import Foundation
+import XCTest
+@testable import EngineRoomKit
+
+/// The app's side of `engineroom api`: answers decode, refusals arrive as the program worded them, a run
+/// streams its events in order, and engineroom is found where it is installed. The program itself is
+/// covered by the journeys; these check the app reads it faithfully.
+final class EngineRoomKitTests: XCTestCase {
+    /// A stand-in engineroom: prints the file named after its arguments and exits with the code in it.
+    private func fakeEngineroom(_ answers: [String: (String, Int32)]) throws -> EngineRoomClient {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        var script = "#!/bin/sh\ncase \"$*\" in\n"
+        for (args, (out, code)) in answers {
+            let file = dir.appendingPathComponent(UUID().uuidString)
+            try out.write(to: file, atomically: true, encoding: .utf8)
+            script += "\"\(args)\") cat '\(file.path)'; exit \(code) ;;\n"
+        }
+        script += "*) echo unknown >&2; exit 2 ;;\nesac\n"
+        let exe = dir.appendingPathComponent("engineroom")
+        try script.write(to: exe, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: exe.path)
+        return EngineRoomClient(executable: exe.path)
+    }
+
+    // An answer larger than a pipe's buffer (64 KB) comes back whole, and the call returns. Before,
+    // the output was read only after engineroom exited, so engineroom blocked writing it and the call never
+    // returned: the menu's refresh hung once the history passed 64 KB. Fails (times out) if the
+    // output is read only at exit again, or comes back cut.
+    func testALargeAnswerIsReadWhole() async throws {
+        let big = String(repeating: "0123456789abcdef", count: 16 * 1024)
+        let client = try fakeEngineroom(["history --json": (big, 0)])
+        // Waited for with a deadline that does not wait on the call itself: a call that never
+        // returns fails the test at the deadline instead of hanging it.
+        let done = expectation(description: "the answer came back")
+        let box = Collected()
+        var code: Int32 = -1
+        Task {
+            if let (data, c) = try? await client.output(["history", "--json"]) {
+                box.append(data)
+                code = c
+            }
+            done.fulfill()
+        }
+        await fulfillment(of: [done], timeout: 10)
+        let data = box.data
+        XCTAssertEqual(code, 0)
+        XCTAssertEqual(data.count, big.utf8.count)
+    }
+
+    // A real `engineroom api sessions` answer decodes, and the waiting session is recognised.
+    func testSessionsDecode() async throws {
+        let c = try fakeEngineroom(["api sessions": ("""
+        {"read":"zellij list-sessions --no-formatting","sessions":[{"name":"project-b","project":"project-b","checkout":"~/src/project-b","path":"/x/project-b","ended":false,"waiting":"waiting","question":"Approve?","created":"3s ago"},{"name":"project-a","project":"","checkout":"","ended":true,"waiting":"","created":"1h"}],"where":"engine"}
+        """, 0)])
+        let s = try await c.sessions()
+        XCTAssertEqual(s.sessions.map(\.name), ["project-b", "project-a"])
+        XCTAssertTrue(s.sessions[0].isWaiting)
+        XCTAssertEqual(s.sessions[0].question, "Approve?")
+        XCTAssertFalse(s.sessions[1].isWaiting)
+    }
+
+    // D-013: a session's slot and ports decode, and the status says whether this Mac should run
+    // the forwarder: only a client, working on the engine, with forwarding on. Fails if an engine, an
+    // offline client, or a client with forwarding off would start one.
+    func testPortsAndForwarding() async throws {
+        let c = try fakeEngineroom([
+            "api sessions": ("""
+            {"sessions":[{"name":"app","ended":false,"slot":2,"ports":[{"name":"ui","port":20110},{"name":"api","port":20111}]}],"where":"engine"}
+            """, 0),
+            "api status": ("""
+            {"role":"client","engine":"engine","offline":false,"where":"engine","terminals":[],"start":"zellij","forward":true}
+            """, 0),
+        ])
+        let s = try await c.sessions()
+        XCTAssertEqual(s.sessions[0].slot, 2)
+        XCTAssertEqual(s.sessions[0].ports, [Port(name: "ui", port: 20110), Port(name: "api", port: 20111)])
+        let st = try await c.status()
+        XCTAssertTrue(st.forwards)
+        let decode = { (json: String) throws -> Status in try JSONDecoder().decode(Status.self, from: Data(json.utf8)) }
+        XCTAssertFalse(try decode(#"{"role":"engine","offline":false,"where":"engine","terminals":[],"start":"zellij","forward":true}"#).forwards)
+        XCTAssertFalse(try decode(#"{"role":"client","offline":true,"where":"this machine","terminals":[],"start":"zellij","forward":true}"#).forwards)
+        XCTAssertFalse(try decode(#"{"role":"client","offline":false,"where":"engine","terminals":[],"start":"zellij"}"#).forwards)
+    }
+
+    // D-020 as amended 2026-11-08: the app runs the sweep on the engine, and on a client only while it
+    // works local. Fails if a client working on the engine would sweep (a process every minute for
+    // nothing) or the engine or a client working local would not.
+    func testTheSweepRunsOnlyWhereTheSessionsAreThisMachines() throws {
+        let decode = { (json: String) throws -> Status in try JSONDecoder().decode(Status.self, from: Data(json.utf8)) }
+        XCTAssertTrue(try decode(#"{"role":"engine","offline":false,"where":"this machine","terminals":[],"start":"zellij"}"#).sweepsHere)
+        XCTAssertTrue(try decode(#"{"role":"client","offline":true,"where":"this machine","terminals":[],"start":"zellij"}"#).sweepsHere)
+        XCTAssertFalse(try decode(#"{"role":"client","offline":false,"where":"engine","terminals":[],"start":"zellij"}"#).sweepsHere)
+    }
+
+    // CONN-HANDOFF-006: a session on this Mac listed with the engine's keeps its own identity when
+    // the engine has one of the same name, and its actions carry --here so they are done on this
+    // Mac. Fails if the two share an id or the flag is missing.
+    func testHereSessionsAreTheirOwn() async throws {
+        let c = try fakeEngineroom(["api sessions": ("""
+        {"read":"x","sessions":[{"name":"project-a","ended":false,"waiting":""},{"name":"project-a","ended":false,"waiting":"","here":true}],"where":"engine engine"}
+        """, 0)])
+        let s = try await c.sessions().sessions
+        XCTAssertNotEqual(s[0].id, s[1].id)
+        XCTAssertEqual(s[0].target, ["project-a"])
+        XCTAssertEqual(s[1].target, ["project-a", "--here"])
+    }
+
+    // CONN-HANDOFF-003: a plan's notes reach the window, and a plan with nothing to run decodes.
+    func testPlanNotesDecode() async throws {
+        let c = try fakeEngineroom(["api plan handoff to-engine": ("""
+        {"plan":{"title":"Hand over from this machine to the engine","machine":"this machine and the engine","commands":[],"notes":["Nothing needs handing over."]},"lines":[]}
+        """, 0)])
+        let p = try await c.plan(["handoff", "to-engine"])
+        XCTAssertEqual(p.plan.notes, ["Nothing needs handing over."])
+        XCTAssertTrue(p.lines.isEmpty)
+    }
+
+    // CONN-HANDOFF-013: while a plan is made, each {"progress": ...} line engineroom writes to its
+    // standard error reaches the app in order, and the plan on standard output is still read whole.
+    // Fails if a step is lost, arrives out of order, or the progress spoils the plan.
+    @MainActor
+    func testPlanProgressReachesTheApp() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let exe = dir.appendingPathComponent("engineroom")
+        try """
+        #!/bin/sh
+        echo '{"progress":{"side":"the engine","done":0,"total":2,"command":"ssh engine.example -- engineroom handoff state --json"}}' >&2
+        echo '{"progress":{"side":"the engine","done":1,"total":2,"project":"project-a"}}' >&2
+        echo '{"progress":{"side":"the engine","done":2,"total":2,"project":"project-b"}}' >&2
+        echo '{"progress":{"side":"this machine","done":1,"total":1,"project":"project-a"}}' >&2
+        echo '{"plan":{"title":"Hand over from the engine to this machine","commands":[],"notes":[]},"lines":[]}'
+        """.write(to: exe, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: exe.path)
+        var steps: [PlanProgress] = []
+        let p = try await EngineRoomClient(executable: exe.path).plan(["handoff", "from-engine"]) { steps.append($0) }
+        XCTAssertEqual(p.plan.title, "Hand over from the engine to this machine")
+        // The steps are delivered on the main queue after the reply is read: let them land.
+        for _ in 0..<50 where steps.count < 4 { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(steps.map(\.done), [0, 1, 2, 1])
+        XCTAssertEqual(steps.map(\.side), ["the engine", "the engine", "the engine", "this machine"])
+        XCTAssertEqual(steps.first?.command, "ssh engine.example -- engineroom handoff state --json")
+        XCTAssertNil(PlanProgress.parse(Data(#"{"plan":{}}"#.utf8)))
+    }
+
+    // A refusal (exit 3) reaches the window in the program's own words, with engineDown kept, so the
+    // window can offer retry or offline.
+    func testRefusalIsTheProgramsWords() async throws {
+        let c = try fakeEngineroom(["api sessions": ("{\"error\":\"the engine did not answer: timeout\",\"engineDown\":true}", 3)])
+        do {
+            _ = try await c.sessions()
+            XCTFail("a refusal decoded as an answer")
+        } catch let e as APIError {
+            XCTAssertEqual(e.error, "the engine did not answer: timeout")
+            XCTAssertEqual(e.engineDown, true)
+        }
+    }
+
+    // The repositories answer decodes with its marks, and categories group as the terminal lists
+    // them: alphabetical, ignoring case, uncategorised last.
+    func testReposAndCategories() async throws {
+        let c = try fakeEngineroom(["api repos": ("""
+        {"roots":[{"root":{"name":"owners","path":"/r","owner":"owner-a","account":"account-a"},"read":"engineroom gh ...","repos":[{"name":"widget","visibility":"private"},{"name":"sprocket","here":"registered","project":"sprocket","category":"tools"},{"name":"scratch","here":"folder","local":true},{"name":"Tango"},{"name":"cog","here":"registered","project":"cog","category":"Apps"}]}],"projects":[]}
+        """, 0)])
+        let r = try await c.repos()
+        let l = r.roots[0]
+        XCTAssertEqual(l.byCategory.map(\.0), ["Apps", "tools", ""])
+        // Inside a category, by name ignoring case, whatever order the engine sent: a sort that
+        // minds case would put "Tango" first, and none would leave "widget" first.
+        XCTAssertEqual(l.byCategory.last!.1.map(\.name), ["scratch", "Tango", "widget"])
+        let by = Dictionary(uniqueKeysWithValues: l.repos.map { ($0.name, $0) })
+        XCTAssertTrue(by["widget"]!.isOnGitHubOnly)
+        XCTAssertTrue(by["sprocket"]!.isRegistered)
+        XCTAssertTrue(by["scratch"]!.isUnregisteredFolder)
+    }
+
+    // A run's events arrive in the order printed, and its outcome is the done event's.
+    @MainActor
+    func testRunStreamsEventsInOrder() async throws {
+        let events = """
+        {"event":"plan","plan":{"title":"Start project-a","machine":"engine","commands":[{"argv":["true"]},{"argv":["false"]}]},"lines":["true","false"]}
+        {"event":"step","index":0,"status":"running"}
+        {"event":"step","index":0,"status":"ok"}
+        {"event":"step","index":1,"status":"failed","exit":1,"onFail":"left behind"}
+        {"event":"done","ok":false}
+        """
+        let c = try fakeEngineroom(["api run start project-a": (events + "\n", 1)])
+        var seen: [String] = []
+        let ok = await c.run(["start", "project-a"]) { e in
+            seen.append(e.event + (e.status.map { ":\($0)" } ?? ""))
+        }
+        XCTAssertFalse(ok)
+        XCTAssertEqual(seen, ["plan", "step:running", "step:ok", "step:failed", "done"])
+    }
+
+    // engineroom is found by ENGINEROOM_PATH first, then in the usual install folders, never on the bare PATH
+    // macOS starts apps with.
+    func testLocate() {
+        let have: Set<String> = ["/h/.local/bin/engineroom", "/opt/homebrew/bin/engineroom"]
+        XCTAssertEqual(EngineRoomClient.locate(environment: ["HOME": "/h"], fileExists: have.contains), "/h/.local/bin/engineroom")
+        XCTAssertEqual(EngineRoomClient.locate(environment: ["HOME": "/h", "ENGINEROOM_PATH": "/opt/homebrew/bin/engineroom"], fileExists: have.contains), "/opt/homebrew/bin/engineroom")
+        XCTAssertNil(EngineRoomClient.locate(environment: ["HOME": "/nobody"], fileExists: { _ in false }))
+    }
+
+    // A run whose plan could not be made ends with the reason, so the window says why nothing
+    // ran instead of only that it stopped. Fails if the reason is dropped.
+    @MainActor
+    func testARefusedRunCarriesItsReason() async throws {
+        let c = try fakeEngineroom(["api run edit-project project-a": ("{\"error\":\"The editor command \\\"code\\\" was not found\",\"event\":\"done\",\"engineDown\":false,\"ok\":false}\n", 3)])
+        var reason: String?
+        let ok = await c.run(["edit-project", "project-a"]) { e in reason = e.error }
+        XCTAssertFalse(ok)
+        XCTAssertEqual(reason, "The editor command \"code\" was not found")
+    }
+
+    // engineroom runs with the environment the client was given, not the app's own, so the PATH found
+    // for it reaches the commands engineroom runs. Fails if the environment is not passed on.
+    func testEngineroomRunsInTheGivenEnvironment() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let exe = dir.appendingPathComponent("engineroom")
+        try "#!/bin/sh\nprintf %s \"$PATH\"\n".write(to: exe, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: exe.path)
+        let c = EngineRoomClient(executable: exe.path, environment: ["PATH": "/tools-a:/usr/bin:/bin"])
+        let (out, _) = try await c.output(["x"])
+        XCTAssertEqual(String(decoding: out, as: UTF8.self), "/tools-a:/usr/bin:/bin")
+    }
+
+    // The PATH given to engineroom is the login shell's, with the usual install folders added where it
+    // lacks them; with no login shell answer, the app's own PATH and those folders. Fails if the
+    // folder VS Code's command is linked into (/usr/local/bin) can be missing, or a folder repeats.
+    func testThePathIsTheLoginShells() {
+        XCTAssertEqual(EngineRoomClient.mergedPath(login: "/a:/usr/local/bin:/usr/bin", current: "/usr/bin:/bin", home: "/h", etcPaths: ["/usr/bin", "/bin"]),
+                       "/a:/usr/local/bin:/usr/bin:/h/.local/bin:/opt/homebrew/bin:/bin")
+        XCTAssertEqual(EngineRoomClient.mergedPath(login: nil, current: "/usr/bin:/bin:/usr/sbin:/sbin", home: "/h", etcPaths: ["/usr/local/bin", "/usr/bin"]),
+                       "/usr/bin:/bin:/usr/sbin:/sbin:/h/.local/bin:/opt/homebrew/bin:/usr/local/bin")
+        // With neither a login shell nor /etc/paths, the usual folders are still there.
+        XCTAssertEqual(EngineRoomClient.mergedPath(login: "", current: "/usr/bin", home: "/h", etcPaths: []),
+                       "/usr/bin:/h/.local/bin:/opt/homebrew/bin:/usr/local/bin")
+    }
+
+    // Zellij's variables, inherited when the app is opened from inside a Zellij pane, are not
+    // passed on, so a window opened to join a session is not taken for one of its panes. Fails
+    // if any ZELLIJ variable reaches engineroom, or the rest of the environment is lost.
+    func testZellijsVariablesAreNotPassedOn() {
+        let env = EngineRoomClient.toolEnvironment(base: ["HOME": "/h", "SHELL": "/nonexistent", "PATH": "/usr/bin",
+                                                    "ZELLIJ": "0", "ZELLIJ_SESSION_NAME": "project-a", "ZELLIJ_PANE_ID": "0", "LANG": "en_NZ.UTF-8"])
+        XCTAssertTrue(env.keys.filter { $0.hasPrefix("ZELLIJ") }.isEmpty, "\(env)")
+        XCTAssertEqual(env["LANG"], "en_NZ.UTF-8")
+        XCTAssertEqual(env["HOME"], "/h")
+    }
+
+    // A Claude Code session's markers, inherited when the app is opened by Claude, are not passed
+    // on, while the developer's own Claude Code settings are. Fails if a marker reaches engineroom (a
+    // session or editor it opens would take itself for that session's child) or a setting is lost.
+    func testClaudeSessionMarkersAreNotPassedOn() {
+        let env = EngineRoomClient.toolEnvironment(base: ["HOME": "/h", "SHELL": "/nonexistent", "PATH": "/usr/bin",
+                                                    "CLAUDECODE": "1", "CLAUDE_CODE_CHILD_SESSION": "1", "CLAUDE_CODE_SESSION_ID": "x",
+                                                    "CLAUDE_CODE_MESSAGING_SOCKET": "/tmp/s", "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "kept"])
+        for k in ["CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_MESSAGING_SOCKET"] {
+            XCTAssertNil(env[k], k)
+        }
+        XCTAssertEqual(env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"], "kept")
+    }
+
+    // A project page's GitHub links decode: the repository's three pages, and a checkout's branch
+    // with or without its pull requests (APP-PAGE-005, 006). Fails if a link is dropped on reading.
+    func testGitHubLinksDecode() throws {
+        let page = try JSONDecoder().decode(ProjectPage.self, from: Data("""
+        {"name":"project-a","path":"/x","checkout":"~/x","settings":"~/s","slots":0,"scripts":[],
+         "github":{"repo":"acme/widget","code":"https://github.com/acme/widget","issues":"https://github.com/acme/widget/issues","pulls":"https://github.com/acme/widget/pulls"},
+         "checkouts":[{"session":"a","path":"/x","checkout":"~/x","branch":"main","main":true,"running":false,"ended":false,"changes":0,"github":{"code":"https://github.com/acme/widget/tree/main"}},
+                      {"session":"b","path":"/y","checkout":"~/y","branch":"feature-x","main":false,"running":false,"ended":false,"changes":0,"github":{"code":"https://github.com/acme/widget/tree/feature-x","pulls":"https://github.com/acme/widget/pulls?q=is%3Apr+head%3Afeature-x"}},
+                      {"session":"c","path":"/z","checkout":"~/z","branch":"local-only","main":false,"running":false,"ended":false,"changes":0}]}
+        """.utf8))
+        XCTAssertEqual(page.github?.repo, "acme/widget")
+        XCTAssertEqual(page.github?.issues, "https://github.com/acme/widget/issues")
+        XCTAssertEqual(page.github?.pulls, "https://github.com/acme/widget/pulls")
+        XCTAssertNil(page.checkouts[0].github?.pulls)
+        XCTAssertEqual(page.checkouts[1].github?.pulls, "https://github.com/acme/widget/pulls?q=is%3Apr+head%3Afeature-x")
+        XCTAssertNil(page.checkouts[2].github)
+    }
+
+    /// Sessions as the engine lists them, the waiting ones given.
+    private func sessions(_ rows: [(name: String, project: String, waiting: Bool, assistant: Bool, here: Bool)]) throws -> [Session] {
+        let json = rows.map { r in
+            """
+            {"name":"\(r.name)","project":"\(r.project)","ended":false,"waiting":"\(r.waiting ? "waiting" : "")"\
+            \(r.waiting ? ",\"question\":\"Approve the plan?\"" : "")\(r.assistant ? ",\"assistant\":true" : "")\(r.here ? ",\"here\":true" : "")}
+            """
+        }.joined(separator: ",")
+        return try JSONDecoder().decode([Session].self, from: Data("[\(json)]".utf8))
+    }
+
+    private func names(_ list: PanelList) -> [String] {
+        list.pinned.flatMap { p in p.sessions.isEmpty ? ["(start \(p.project))"] : p.sessions.map(\.name) }
+            + ["|"] + list.running.map(\.name) + ["|"] + list.helpers.map(\.name) + ["|"] + list.here.map(\.name)
+    }
+
+    // The panel lists the sessions in one order whether or not Claude is waiting in any of them, the
+    // waiting one marked on its own row (APP-LIST-001). Fails if a waiting session is moved (to the
+    // top, or into a section of its own), or listed twice.
+    func testWaitingDoesNotMoveASession() throws {
+        let rows: [(name: String, project: String, waiting: Bool, assistant: Bool, here: Bool)] = [
+            ("project-b", "project-b", false, false, false), ("project-a-fix", "project-a", false, false, false),
+            ("project-a", "project-a", false, false, false), ("project-c", "project-c", false, false, false),
+            ("project-a-ai", "project-a", false, true, false),
+        ]
+        let quiet = PanelList(sessions: try sessions(rows), pinned: ["project-b"])
+        for i in rows.indices {
+            var waiting = rows
+            waiting[i].waiting = true
+            let list = PanelList(sessions: try sessions(waiting.reversed()), pinned: ["project-b"])
+            XCTAssertEqual(names(list), names(quiet), "with \(rows[i].name) waiting")
+            let marked = (list.pinned.flatMap(\.sessions) + list.running + list.helpers).filter(\.isWaiting)
+            XCTAssertEqual(marked.map(\.name), [rows[i].name])
+            XCTAssertEqual(marked.first?.question, "Approve the plan?")
+        }
+    }
+
+    // Pinned projects come first, by name, each always listed: with its running sessions, main clone
+    // first, or as one to start (APP-LIST-002). Then the rest by name, then Ask Claude, then this
+    // Mac's own. Fails if a pinned project drops out or moves, or the order follows the engine's.
+    func testPinnedProjectsAreAlwaysFirstInAFixedOrder() throws {
+        let list = PanelList(sessions: try sessions([
+            ("zeta", "zeta", false, false, false), ("Beta-work", "Beta", false, false, false),
+            ("alpha", "alpha", true, false, false), ("Beta", "Beta", false, false, false),
+            ("alpha-ai", "alpha", false, true, false), ("mine", "mine", false, false, true),
+        ]), pinned: ["Beta", "idle", "Beta"])
+        XCTAssertEqual(names(list), ["Beta", "Beta-work", "(start idle)", "|", "alpha", "zeta", "|", "alpha-ai", "|", "mine"])
+    }
+
+    // A session carries its branch's links on GitHub and the repositories list carries each
+    // project's repository, for the panel's GitHub line (APP-LIST-003). Fails if either is dropped
+    // on reading.
+    func testThePanelsGitHubLinksDecode() throws {
+        let s = try JSONDecoder().decode(Session.self, from: Data("""
+        {"name":"project-a-fix","project":"project-a","ended":false,"waiting":"",
+         "github":{"code":"https://github.com/acme/widget/tree/fix","pulls":"https://github.com/acme/widget/pulls?q=is%3Apr+head%3Afix"}}
+        """.utf8))
+        XCTAssertEqual(s.github?.code, "https://github.com/acme/widget/tree/fix")
+        XCTAssertNotNil(s.github?.pulls)
+        let r = try JSONDecoder().decode(ReposReply.self, from: Data("""
+        {"roots":[],"projects":[],"github":{"project-a":{"repo":"acme/widget","code":"https://github.com/acme/widget","issues":"https://github.com/acme/widget/issues","pulls":"https://github.com/acme/widget/pulls"}}}
+        """.utf8))
+        XCTAssertEqual(r.github?["project-a"]?.issues, "https://github.com/acme/widget/issues")
+        XCTAssertNil(try JSONDecoder().decode(ReposReply.self, from: Data(#"{"roots":[],"projects":[]}"#.utf8)).github)
+    }
+
+    // The login shell's PATH is read from between its markers, whatever the profile prints, and a
+    // shell that does not answer in time gives nil instead of holding the app. Fails if profile
+    // noise is taken as the PATH or a hung shell is waited on.
+    // The menu bar carries Claude's mark while any running session waits, and not otherwise
+    // (APP-FEED-005). Fails if the mark shows with none waiting, misses a waiting one, or shows for
+    // a session that has ended.
+    func testTheMenuBarMarkFollowsWaiting() throws {
+        let quiet = try sessions([("project-a", "project-a", false, false, false), ("project-b", "project-b", false, false, false)])
+        XCTAssertFalse(PanelList.anyWaiting(quiet))
+        XCTAssertFalse(PanelList.anyWaiting([]))
+        let one = try sessions([("project-a", "project-a", false, false, false), ("project-b", "project-b", true, false, false)])
+        XCTAssertTrue(PanelList.anyWaiting(one))
+        let ended = try EngineRoomClient.decode([Session].self, data: Data("""
+        [{"name":"project-a","ended":true,"waiting":"waiting","question":"Approve the plan?"}]
+        """.utf8), code: 0)
+        XCTAssertFalse(PanelList.anyWaiting(ended))
+    }
+
+    // Each line of the feed is read for what it is: the sessions, the engine not answering, or a
+    // keep-alive; anything else is ignored rather than shown (D-023). Fails if a list or an error
+    // is misread, or a keep-alive is taken for an empty list.
+    func testFeedLinesAreRead() throws {
+        guard case .sessions(let r)? = Feed.parse(Data(#"{"sessions":[{"name":"project-a","ended":false,"waiting":"waiting","question":"Approve the plan?"}],"read":"zellij list-sessions","where":"engine"}"#.utf8)) else {
+            return XCTFail("a list was not read as one")
+        }
+        XCTAssertEqual(r.sessions.map(\.name), ["project-a"])
+        XCTAssertEqual(r.sessions.first?.question, "Approve the plan?")
+        guard case .problem(let e)? = Feed.parse(Data(#"{"error":"the engine did not answer","engineDown":true}"#.utf8)) else {
+            return XCTFail("an error was not read as one")
+        }
+        XCTAssertEqual(e.engineDown, true)
+        guard case .quiet? = Feed.parse(Data()) else { return XCTFail("a keep-alive was not read as one") }
+        XCTAssertNil(Feed.parse(Data("not json".utf8)))
+    }
+
+    // A refusal that something would make safe carries its offers to the app (D-024), and a role
+    // worktree its role. Fails if either is dropped in decoding.
+    func testRefusalOffersAndRolesDecode() throws {
+        let data = Data(#"{"error":"project-a-x has uncommitted changes","engineDown":false,"offers":[{"label":"Put them aside","action":["put-aside","project-a","/src/project-a-x"]}]}"#.utf8)
+        do {
+            _ = try EngineRoomClient.decode(PlanReply.self, data: data, code: 3)
+            XCTFail("a refusal was read as a plan")
+        } catch let e as APIError {
+            XCTAssertEqual(e.offers?.first?.action, ["put-aside", "project-a", "/src/project-a-x"])
+        }
+        let c = try JSONDecoder().decode(CheckoutView.self, from: Data(#"{"session":"project-a-designer","path":"/p","checkout":"~/p","branch":"nav-rework","main":false,"work":"designer","role":"designer","running":false,"ended":false,"changes":0}"#.utf8))
+        XCTAssertEqual(c.role, "designer")
+    }
+
+    // The panel's list is one row per project, pinned first, each with one light for all its
+    // sessions, and a chosen project shows every checkout, running or not (APP-LIST-004, D-025).
+    // Fails if a pinned project with nothing running drops out, the order follows waiting, the
+    // light ignores a waiting session, or a checkout the feed sent is missing from the cards.
+    func testThePanelListsOneRowPerProjectWithOneLight() throws {
+        let list = PanelList(sessions: try sessions([
+            ("gamma", "gamma", false, false, false), ("alpha-work", "alpha", true, false, false),
+            ("alpha", "alpha", false, false, false),
+        ]), pinned: ["beta"])
+        let facts = try JSONDecoder().decode([String: [CheckoutFacts]].self, from: Data(#"""
+        {"alpha":[{"session":"alpha-work","path":"/a-work","main":false,"work":"work","branch":"work","changes":1,"unpushed":0,"behind":0},
+                  {"session":"alpha","path":"/a","main":true,"branch":"main","changes":0,"unpushed":0,"behind":0},
+                  {"session":"alpha-old","path":"/a-old","main":false,"work":"old","branch":"old","changes":0,"unpushed":0,"behind":0,"merged":true}]}
+        """#.utf8))
+        let projects = PanelProject.list(list, checkouts: facts)
+        XCTAssertEqual(projects.map(\.project), ["beta", "alpha", "gamma"])
+        XCTAssertEqual(projects.map(\.light), [.idle, .waiting, .running])
+        let alpha = projects[1]
+        XCTAssertEqual(alpha.cards.map(\.id), ["alpha", "alpha-old", "alpha-work"])
+        XCTAssertEqual(alpha.cards.map(\.light), [.running, .idle, .waiting])
+        XCTAssertTrue(projects[0].cards.isEmpty)
+        // The project last chosen stays listed after its last session stops, last and marked as
+        // recent, so the panel comes back to it; one already listed is not listed twice.
+        let kept = PanelProject.list(list, checkouts: facts, keep: "delta")
+        XCTAssertEqual(kept.map(\.project), ["beta", "alpha", "gamma", "delta"])
+        XCTAssertEqual(kept.map(\.recent), [false, false, false, true])
+        XCTAssertEqual(PanelProject.list(list, checkouts: facts, keep: "alpha").map(\.project), ["beta", "alpha", "gamma"])
+    }
+
+    func testTheLoginShellIsRead() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let noisy = dir.appendingPathComponent("noisy")
+        try "#!/bin/sh\necho welcome back\nPATH=/from-profile:/usr/bin\nexport PATH\nexec /bin/sh -c \"$2\"\n".write(to: noisy, atomically: true, encoding: .utf8)
+        let hung = dir.appendingPathComponent("hung")
+        try "#!/bin/sh\nexec sleep 30\n".write(to: hung, atomically: true, encoding: .utf8)
+        for f in [noisy, hung] { try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: f.path) }
+        XCTAssertEqual(EngineRoomClient.loginShellPath(shell: noisy.path), "/from-profile:/usr/bin")
+        let start = Date()
+        XCTAssertNil(EngineRoomClient.loginShellPath(shell: hung.path, timeout: 0.5))
+        XCTAssertLessThan(Date().timeIntervalSince(start), 5)
+        XCTAssertNil(EngineRoomClient.extractPath("no markers here"))
+    }
+
+    // Copy all joins so a paste stops at the first failure (LEARN-COPY-002).
+    func testJoinAll() {
+        XCTAssertEqual(joinAll(["a", "b"]), "a &&\nb\n")
+    }
+
+    // The line splitter keeps a partial line for the next chunk.
+    func testLineSplitter() {
+        let s = LineSplitter()
+        XCTAssertEqual(s.feed(Data("ab\ncd".utf8)).map { String(decoding: $0, as: UTF8.self) }, ["ab"])
+        XCTAssertEqual(s.feed(Data("e\n".utf8)).map { String(decoding: $0, as: UTF8.self) }, ["cde"])
+    }
+
+    // A client newer than its engine was told to update itself: the banner always named this Mac.
+    // Fails if the machine told to update is not the one behind, if builds from different branches
+    // tell one side to update, or if an answer that cannot order them (or an older engineroom that
+    // leaves `behind` out) tells either side to update.
+    func testTheBannerTellsTheMachineThatIsBehind() throws {
+        let engineBehind = try EngineRoomClient.decode(EngineVersion.self, data: Data(#"{"here":"bbb2222","engine":"aaa1111","behind":"engine"}"#.utf8), code: 0)
+        XCTAssertEqual(engineBehind.advice, "This Mac runs engineroom bbb2222, newer than the engine's aaa1111. Update the engine: git pull, then scripts/install.sh --app, on the engine.")
+        XCTAssertEqual(EngineVersion.advice(here: "aaa1111", engine: "bbb2222", behind: "here"), "The engine runs engineroom bbb2222, newer than this Mac's aaa1111. Update this Mac: git pull, then scripts/install.sh --app.")
+        XCTAssertFalse(EngineVersion.advice(here: "aaa1111", engine: "ccc3333", behind: "apart")!.contains("Update this Mac"))
+        XCTAssertFalse(EngineVersion.advice(here: "aaa1111", engine: "ccc3333", behind: "apart")!.contains("Update the engine"))
+        // CONN-ROLE-003: the engine's own machine name is read when it gives one, and is nil from
+        // an engine too old to. Fails if the name is dropped or an answer without it cannot be read.
+        let named = try EngineRoomClient.decode(EngineVersion.self, data: Data(#"{"here":"aaa1111","engine":"aaa1111","behind":"none","name":"Studio Mac"}"#.utf8), code: 0)
+        XCTAssertEqual(named.name, "Studio Mac")
+        let older = try EngineRoomClient.decode(EngineVersion.self, data: Data(#"{"here":"aaa1111","engine":"bbb2222"}"#.utf8), code: 0)
+        XCTAssertNil(older.name)
+        XCTAssertEqual(older.advice, "The engine runs engineroom bbb2222 and this Mac runs aaa1111.")
+        XCTAssertEqual(EngineVersion.advice(here: "aaa1111", engine: "bbb2222", behind: "unknown"), "The engine runs engineroom bbb2222 and this Mac runs aaa1111.")
+        XCTAssertNil(EngineVersion.advice(here: "aaa1111", engine: "aaa1111", behind: "none"))
+        XCTAssertNil(EngineVersion.advice(here: "aaa1111", engine: "aaa1111", behind: nil))
+    }
+}

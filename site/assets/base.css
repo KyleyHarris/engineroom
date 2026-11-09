@@ -1,0 +1,1474 @@
+/*
+  The structure every style shares: layout, type scale, the console, the diagrams, the mechanics
+  map. No build step: this file is served as written.
+
+  It names no colour and no typeface of its own. Those are tokens (--wall, --ink, --display and the
+  rest), set by the chosen style in assets/styles/<style>.css, which may also restyle a few pieces
+  (the hero's name, the plates). site.toml names the style the site uses.
+
+  Fonts are served from this site (assets/fonts, SIL Open Font Licence, licences beside them) so
+  the site sends no request anywhere else and reads the same opened from disk. A browser fetches
+  a font only when a style uses it.
+*/
+
+@font-face {
+  font-family: "Big Shoulders Stencil";
+  src: url("fonts/big-shoulders-stencil.woff2") format("woff2");
+  font-weight: 600 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Big Shoulders";
+  src: url("fonts/big-shoulders.woff2") format("woff2");
+  font-weight: 500 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("fonts/atkinson-hyperlegible-next.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("fonts/atkinson-hyperlegible-next-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Mono";
+  src: url("fonts/atkinson-hyperlegible-mono.woff2") format("woff2");
+  font-weight: 400 600;
+  font-display: swap;
+}
+
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--wall);
+  color: var(--ink);
+  font-family: var(--text);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  font-kerning: normal;
+}
+
+a {
+  color: var(--link);
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.09em;
+  text-decoration-color: color-mix(in srgb, var(--signal) 60%, transparent);
+  text-underline-offset: 0.2em;
+}
+a:hover {
+  text-decoration-color: var(--signal);
+}
+:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.skip {
+  position: absolute;
+  left: -100vw;
+}
+.skip:focus {
+  left: var(--gutter);
+  top: 0.75rem;
+  z-index: 10;
+  background: var(--plate);
+  padding: 0.5rem 0.75rem;
+}
+
+/* The nameplate: a dark band across the top with the product's name stencilled in amber. */
+
+.nameplate {
+  background: var(--band);
+  color: var(--band-ink);
+  border-bottom: 3px solid var(--band-mark);
+}
+.nameplate-inner {
+  max-width: 90rem;
+  margin: 0 auto;
+  padding: 0.6rem var(--gutter);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+}
+.wordmark {
+  font-family: var(--stencil);
+  font-weight: 800;
+  font-size: 2.1rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--band-mark);
+  text-decoration: none;
+}
+.topnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+}
+.topnav a {
+  color: var(--band-ink);
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.2rem 0;
+  border-bottom: 2px solid transparent;
+}
+.topnav a:hover,
+.topnav a[aria-current] {
+  border-bottom-color: var(--band-mark);
+}
+
+/* Doc pages: the doc's pages down the side, the page itself on a plate beside them. */
+
+/* The page list takes what its titles need and no more, so on a laptop the plate gets the width:
+   a 13-inch screen left most of it to gutters and squeezed tables into columns a word wide. */
+.doc {
+  max-width: 90rem;
+  margin: 0 auto;
+  padding: 2rem var(--gutter) 4rem;
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 1.75rem;
+  align-items: start;
+}
+.sidebar nav {
+  position: sticky;
+  top: 1.5rem;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+.sidebar ul,
+.pagemenu ul,
+.contents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sidebar a,
+.pagemenu a {
+  position: relative;
+  display: block;
+  padding: 0.28rem 0.5rem 0.28rem 1rem;
+  border-left: 2px solid var(--seam);
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  text-decoration: none;
+}
+.sidebar a:hover,
+.pagemenu a:hover {
+  color: var(--ink);
+  border-left-color: var(--plate-edge);
+}
+/* Where you are is lit: a green lamp on the rail beside the current page. */
+.sidebar a[aria-current],
+.pagemenu a[aria-current] {
+  color: var(--ink);
+  font-weight: 600;
+  border-left-color: var(--lamp);
+}
+.sidebar a[aria-current]::before,
+.pagemenu a[aria-current]::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: calc(0.28rem + 0.36em);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--lamp);
+  box-shadow: 0 0 0 2px var(--wall), 0 0 10px 1px color-mix(in srgb, var(--lamp) 70%, transparent);
+}
+.depth-0 > a {
+  font-weight: 600;
+  color: var(--ink);
+}
+.depth-2 > a {
+  padding-left: 1.9rem;
+}
+.depth-3 > a {
+  padding-left: 2.8rem;
+}
+
+.pagemenu {
+  display: none;
+}
+
+.doc-main {
+  min-width: 0;
+  background: var(--plate);
+  border: 1px solid var(--plate-edge);
+  border-radius: 6px;
+  padding: 2.25rem clamp(1.25rem, 4vw, 3rem) 2rem;
+}
+
+/* Reading text. */
+
+/* Running text keeps a readable measure; tables and code blocks take the plate's whole width,
+   since their columns and commands need it more than a line of text does. */
+.prose > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6, dl) {
+  max-width: var(--measure);
+}
+.prose h1,
+.prose h2,
+.prose h3 {
+  font-family: var(--display);
+  line-height: 1.05;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
+  margin: 2.4rem 0 0.8rem;
+}
+.prose h1 {
+  font-size: clamp(2.4rem, 5vw, 3.25rem);
+  font-weight: 800;
+  margin-top: 0;
+}
+.prose h2 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+.prose h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin: 1.75rem 0 0.5rem;
+}
+.prose p,
+.prose ul,
+.prose ol,
+.prose pre,
+.prose table,
+.prose blockquote {
+  margin: 0 0 1.1rem;
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.4rem;
+}
+.prose li + li {
+  margin-top: 0.3rem;
+}
+.prose li > p {
+  margin-bottom: 0.5rem;
+}
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--tint);
+  padding: 0.08em 0.32em;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+/* Code blocks are plates of their own: dark in both themes, with an amber band on the edge. */
+.prose pre {
+  background: var(--code);
+  color: var(--code-ink);
+  border-left: 4px solid var(--signal);
+  border-radius: 4px;
+  padding: 0.95rem 1.15rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+.prose pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  overflow-wrap: normal;
+}
+.prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+/* A table's first column names the row: wide enough that a name of a few words is not stacked a
+   word to a line. */
+.prose td:first-child {
+  min-width: 9rem;
+}
+/* A command in a table breaks between its words, never inside one, so `BatchMode=yes` and a path
+   read whole; a single word too long for the column scrolls the table instead. */
+.prose td code {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.prose th,
+.prose td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--seam);
+}
+.prose th {
+  background: var(--tint);
+  font-weight: 700;
+}
+.prose blockquote {
+  border-left: 3px solid var(--plate-edge);
+  padding-left: 1rem;
+  color: var(--ink-soft);
+}
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--seam);
+  margin: 2rem 0;
+}
+
+.contents {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--seam);
+  padding-top: 1rem;
+  columns: 2 18rem;
+  column-gap: 2rem;
+}
+.contents li {
+  break-inside: avoid;
+  padding: 0.2rem 0;
+}
+.contents .depth-2 {
+  padding-left: 1rem;
+}
+.contents .depth-3 {
+  padding-left: 2rem;
+}
+
+.pager {
+  max-width: var(--measure);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--seam);
+}
+.pager a {
+  display: flex;
+  flex-direction: column;
+  max-width: 48%;
+  text-decoration: none;
+  font-weight: 600;
+}
+.pager a span {
+  font-weight: 400;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+.pager-next {
+  margin-left: auto;
+  text-align: right;
+}
+.source {
+  max-width: var(--measure);
+  margin: 1.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+/* The front page. */
+
+.home {
+  max-width: 90rem;
+  margin: 0 auto;
+  padding: 0 var(--gutter) 4rem;
+}
+.hero {
+  padding: clamp(2rem, 6vw, 4.5rem) 0 clamp(2rem, 5vw, 3.5rem);
+}
+/* The product's name, stencilled large: the one loud thing on the page. */
+.hero-name {
+  font-family: var(--stencil);
+  font-weight: 800;
+  font-size: clamp(3.6rem, 16.5vw, 15rem);
+  line-height: 0.8;
+  letter-spacing: -0.005em;
+  margin: 0 0 clamp(2rem, 4.5vw, 4rem);
+  color: var(--ink);
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 2rem clamp(2rem, 4vw, 4rem);
+  align-items: start;
+}
+.hero-line {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 4vw, 2.9rem);
+  line-height: 1.05;
+  max-width: 24ch;
+  margin: 0 0 1.25rem;
+  text-wrap: balance;
+}
+.hero-lead {
+  max-width: 58ch;
+  margin: 0 0 1.75rem;
+  color: var(--ink-soft);
+  font-size: 1.125rem;
+}
+.hero-lead code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+}
+.button {
+  display: inline-block;
+  padding: 0.65rem 1.15rem;
+  border-radius: 4px;
+  background: var(--band);
+  color: var(--band-ink);
+  border: 2px solid var(--band);
+  font-weight: 700;
+  text-decoration: none;
+}
+.button:hover {
+  border-color: var(--band-mark);
+}
+.button-quiet {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--plate-edge);
+}
+
+.ways,
+.why,
+.versus,
+.stack,
+.readon {
+  border-top: 1px solid var(--plate-edge);
+  padding-top: 2.5rem;
+  margin-top: 1rem;
+}
+.ways h2,
+.why h2,
+.versus h2,
+.stack h2,
+.readon h2 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 4.5vw, 3rem);
+  line-height: 1;
+  margin: 0 0 0.75rem;
+}
+.stack-lead {
+  max-width: 62ch;
+  color: var(--ink-soft);
+  margin: 0 0 2rem;
+}
+
+/*
+  The stack: one plate per layer, the program itself on top, joined down the left by a rail with
+  a lamp on each plate. The order is the stack's order, from what you touch to the network.
+*/
+.stack-layers {
+  list-style: none;
+  margin: 0 0 3rem;
+  padding: 0 0 0 1.75rem;
+  position: relative;
+  display: grid;
+  gap: 0.4rem;
+}
+.stack-layers::before {
+  content: "";
+  position: absolute;
+  left: 0.45rem;
+  top: 1.2rem;
+  bottom: 1.2rem;
+  width: 3px;
+  background: var(--plate-edge);
+  border-radius: 2px;
+}
+.layer {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(10rem, 15rem) minmax(8rem, 11rem) minmax(0, 1fr);
+  gap: 0.25rem 1.5rem;
+  align-items: baseline;
+  background: var(--plate);
+  border: 1px solid var(--plate-edge);
+  border-radius: 4px;
+  padding: 0.8rem 1.1rem;
+}
+.layer::before {
+  content: "";
+  position: absolute;
+  left: calc(-1.75rem + 0.45rem - 4px);
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  border-radius: 50%;
+  background: var(--lamp);
+  box-shadow: 0 0 0 3px var(--wall), 0 0 9px 1px color-mix(in srgb, var(--lamp) 60%, transparent);
+}
+.layer-job {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+.layer-tool {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+.layer-tool a {
+  color: var(--ink);
+  text-decoration-color: var(--plate-edge);
+}
+.layer-tool a:hover {
+  text-decoration-color: var(--signal);
+}
+.layer-note {
+  font-size: 0.95rem;
+}
+/* The program itself caps the stack: the nameplate's band and stencil, its lamp amber. */
+.layer-top {
+  background: var(--band);
+  border-color: var(--band);
+  color: var(--band-ink);
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.layer-top .layer-job {
+  color: color-mix(in srgb, var(--band-ink) 75%, transparent);
+}
+.layer-top .layer-tool {
+  font-family: var(--stencil);
+  font-size: 2rem;
+  color: var(--band-mark);
+}
+.layer-top::before {
+  background: var(--band-mark);
+  box-shadow: 0 0 0 3px var(--wall), 0 0 10px 2px color-mix(in srgb, var(--band-mark) 60%, transparent);
+}
+
+.readon-docs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 2rem 3rem;
+}
+.readon-doc h3 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1.1;
+  margin: 0 0 0.4rem;
+}
+.readon-doc h3 a {
+  color: var(--ink);
+}
+.readon-doc p {
+  margin: 0 0 0.75rem;
+  color: var(--ink-soft);
+}
+.readon-doc ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.95rem;
+}
+
+.footer {
+  border-top: 1px solid var(--plate-edge);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.footer-inner {
+  max-width: 90rem;
+  margin: 0 auto;
+  padding: 1.5rem var(--gutter) 2.5rem;
+}
+.footer p {
+  margin: 0 0 0.35rem;
+}
+
+/*
+  The console beside the hero: a drawing of the program at work, in the code plate's colours in
+  both themes. Its one animation runs once when the page opens: the plan's commands appear one
+  by one, each lamp amber while it runs and green when done, then the new session joins the
+  list, runs, and turns to Claude's mark with its question. The finished state is the styling
+  itself, so with reduced motion (or no animation at all) the console simply shows it.
+*/
+.console {
+  margin: 0;
+  background: var(--code);
+  color: var(--code-ink);
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--code-ink) 14%, transparent);
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+.console-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--code-ink) 65%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--code-ink) 12%, transparent);
+}
+.sessions {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--code-ink) 12%, transparent);
+}
+.session {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 12rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+}
+.session-name {
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+.session-state {
+  color: color-mix(in srgb, var(--code-ink) 65%, transparent);
+  font-size: 0.85rem;
+}
+.lamp {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  justify-self: center;
+}
+.lamp-run {
+  background: #57c785;
+  box-shadow: 0 0 8px 1px rgb(87 199 133 / 0.55);
+}
+.lamp-off {
+  background: #5c6c6b;
+}
+.mark {
+  color: var(--band-mark);
+  font-size: 1.1rem;
+  line-height: 1;
+  justify-self: center;
+}
+.swap {
+  display: grid;
+  align-items: center;
+}
+.swap > * {
+  grid-area: 1 / 1;
+}
+.session-new {
+  background: color-mix(in srgb, var(--band-mark) 12%, transparent);
+  overflow: hidden;
+}
+.session-new .lamp-run,
+.session-new .state-run {
+  opacity: 0;
+}
+.state-wait {
+  color: var(--band-mark);
+}
+
+.plan {
+  padding: 0.85rem 1rem 1rem;
+}
+.plan-title {
+  margin: 0 0 0.6rem;
+  font-weight: 700;
+}
+.plan-where {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--code-ink) 65%, transparent);
+  margin-left: 0.5rem;
+}
+.plan-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.plan-steps li {
+  position: relative;
+  padding-left: 1.2rem;
+}
+/* Each step's lamp: green, as a step that ran. */
+.plan-steps li::before {
+  content: "";
+  position: absolute;
+  left: 0.1rem;
+  top: 0.42em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #57c785;
+}
+.plan-steps code {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.plan-steps span {
+  display: block;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--code-ink) 60%, transparent);
+}
+.console figcaption {
+  padding: 0.7rem 1rem 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--code-ink) 62%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--code-ink) 12%, transparent);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+@keyframes running {
+  0%,
+  100% {
+    background: var(--band-mark);
+  }
+}
+@keyframes shown {
+  0%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.console .plan-title {
+  animation: appear 0.4s ease-out 0.2s backwards;
+}
+.console .plan-steps li {
+  animation: appear 0.35s ease-out var(--at) backwards;
+}
+.console .plan-steps li::before {
+  animation: running 0.5s linear var(--at) backwards;
+}
+/* The new row opens its own space as it arrives, so the list does not show a gap waiting for it. */
+@keyframes open-row {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+.console .session-new {
+  max-height: 7rem;
+  animation: open-row 0.5s ease-out 4.8s backwards;
+}
+.console .session-new .lamp-run,
+.console .session-new .state-run {
+  animation: shown 1.9s linear 4.8s backwards;
+}
+.console .session-new .mark,
+.console .session-new .state-wait {
+  animation: fade-in 0.45s ease-out 6.7s backwards;
+}
+
+/* How it works: a long read in parts, each a heading and its text, some with a figure beside. */
+
+.story {
+  max-width: 90rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3.5rem) var(--gutter) 4rem;
+}
+.story-head h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  line-height: 0.95;
+  margin: 0 0 1rem;
+}
+.story-lead {
+  max-width: 60ch;
+  font-size: 1.2rem;
+  margin: 0 0 1rem;
+}
+.story-part {
+  border-top: 1px solid var(--plate-edge);
+  padding-top: 2.25rem;
+  margin-top: 2.75rem;
+}
+.story-part > h2 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1;
+  margin: 0 0 1.25rem;
+  text-wrap: balance;
+}
+.story-intro {
+  max-width: var(--measure);
+  margin: 0 0 1.5rem;
+}
+.story-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2rem 3rem;
+  align-items: start;
+}
+.story-note {
+  background: var(--plate);
+  border: 1px solid var(--plate-edge);
+  border-left: 4px solid var(--lamp);
+  border-radius: 4px;
+  padding: 1rem 1.25rem;
+}
+.note-title {
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+.story-note ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.story-note li + li {
+  margin-top: 0.25rem;
+}
+.plan-figure {
+  margin: 0;
+}
+.plan-figure .plan {
+  background: var(--code);
+  color: var(--code-ink);
+  border-radius: 8px;
+}
+.plan-figure figcaption,
+.diagram figcaption {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  margin-top: 0.6rem;
+}
+.plan-figure figcaption code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+/* The picture: drawn in the page's own tokens, so it follows the theme. Wide by nature, so on a
+   narrow screen it scrolls sideways rather than shrinking past reading. */
+.diagram {
+  margin: 0;
+}
+.diagram-scroll {
+  overflow-x: auto;
+}
+.diagram-hint {
+  display: none;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin: 0 0 0.5rem;
+}
+.diagram svg {
+  display: block;
+  width: 100%;
+  min-width: 46rem;
+  height: auto;
+}
+.d-band {
+  fill: var(--tint);
+}
+.d-band-label {
+  font: 700 15px var(--text);
+  fill: var(--ink);
+}
+.d-band-sub {
+  font: 13px var(--text);
+  fill: var(--ink-soft);
+}
+.d-box {
+  fill: var(--plate);
+  stroke: var(--plate-edge);
+}
+.d-engine {
+  stroke: var(--lamp);
+  stroke-width: 2;
+}
+.d-item {
+  fill: var(--wall);
+  stroke: var(--plate-edge);
+}
+.d-product {
+  fill: var(--band);
+  stroke: var(--band);
+}
+.d-title {
+  font: 800 24px var(--display);
+  fill: var(--ink);
+}
+.d-sub {
+  font: 13px var(--text);
+  fill: var(--ink-soft);
+}
+.d-name {
+  font: 600 15px var(--text);
+  fill: var(--ink);
+}
+.d-product-name {
+  font: 800 24px var(--stencil);
+  fill: var(--band-mark);
+}
+.d-mono {
+  font: 12px var(--mono);
+  fill: var(--ink-soft);
+}
+.d-label {
+  font: 600 13px var(--text);
+  fill: var(--ink);
+}
+.d-line {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+}
+.d-line-soft {
+  stroke-dasharray: 5 4;
+}
+.d-head {
+  fill: var(--ink-soft);
+}
+.d-lamp {
+  fill: var(--lamp);
+}
+.d-git {
+  fill: var(--plate);
+  stroke: var(--plate-edge);
+}
+.d-git-top {
+  fill: none;
+  stroke: var(--plate-edge);
+}
+
+/* What the app says when the engine does not answer, quoted as the app shows it. */
+.prose blockquote.said {
+  border: 1px solid var(--plate-edge);
+  border-left: 4px solid #c8463b;
+  border-radius: 4px;
+  background: var(--plate);
+  color: var(--ink);
+  padding: 0.9rem 1.1rem;
+}
+.said p {
+  margin: 0 0 0.6rem;
+}
+.said-title {
+  font-weight: 700;
+  color: #c8463b;
+}
+.said .said-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0;
+}
+.said-actions span {
+  border: 1px solid var(--plate-edge);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.story-next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-top: 1px solid var(--plate-edge);
+  margin-top: 3rem;
+  padding-top: 2rem;
+}
+
+/* Ways to use it: one card per way, the engine on its own first. */
+.ways-lead {
+  max-width: 62ch;
+  margin: 0 0 1.5rem;
+}
+.ways-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1rem;
+}
+.way {
+  background: var(--plate);
+  border: 1px solid var(--plate-edge);
+  border-radius: 8px;
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+.way:first-child {
+  border-top: 4px solid var(--lamp);
+}
+.way-where {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.way h3 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  margin: 0.15rem 0 0.7rem;
+}
+.way ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+}
+.way code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+.ways-note {
+  margin: 1rem 0 3rem;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+/* Why: short problem and answer pairs, a heading each. */
+.why-grid {
+  list-style: none;
+  margin: 0 0 3rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1.5rem 2.5rem;
+}
+.why-item {
+  border-top: 3px solid var(--plate-edge);
+  padding-top: 0.9rem;
+}
+.why-item h3 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  margin: 0 0 0.45rem;
+  text-wrap: balance;
+}
+.why-item p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+.why-item code,
+.compare code,
+.versus-lead code,
+.points code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+/* Why not just Remote Control: a lead, a table with this product's column marked, the sources. */
+.versus-lead {
+  max-width: 62ch;
+  margin: 0 0 1.5rem;
+}
+.compare-scroll {
+  overflow-x: auto;
+}
+.compare {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.compare th,
+.compare td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.65rem 0.8rem;
+  border-bottom: 1px solid var(--seam);
+}
+.compare thead th {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+.compare tbody th {
+  font-weight: 600;
+  width: 14rem;
+}
+.compare .compare-us {
+  background: color-mix(in srgb, var(--lamp) 11%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+}
+.compare thead .compare-us {
+  font-family: var(--stencil);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.versus-note {
+  max-width: 70ch;
+  margin: 1rem 0 3rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Points: the short form the story pages use instead of paragraphs. */
+.points {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.7rem;
+  max-width: var(--measure);
+}
+.points-wide {
+  max-width: 80ch;
+}
+.story-more {
+  margin: 1.1rem 0 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+/* The picture's lines between the machines carry a slow moving dash: traffic, not decoration. */
+.d-flow {
+  stroke-dasharray: 7 6;
+  animation: flow 1.4s linear infinite;
+}
+@keyframes flow {
+  to {
+    stroke-dashoffset: -13;
+  }
+}
+
+/*
+  The mechanics map: GitHub across the top, the laptop and the engine below, every piece a small
+  card. Without the script every job's steps are listed below it; with it (.mech-ready) the jobs
+  are tabs, one shown at a time, the pieces it uses lit, the step's two pieces marked and a dot
+  sent along the line between them.
+*/
+.mech-tabs {
+  display: none;
+}
+.mech-ready .mech-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+}
+.mech-tab,
+.mech-play {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.93rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--plate-edge);
+  background: var(--plate);
+  color: var(--ink);
+  cursor: pointer;
+}
+.mech-tab.is-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--wall);
+}
+.mech-play {
+  margin-left: auto;
+  background: transparent;
+}
+.mech-map {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "github github" "laptop engine";
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+}
+.mech-area {
+  background: var(--plate);
+  border: 1px solid var(--plate-edge);
+  border-radius: 8px;
+  padding: 0.85rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem;
+  align-content: start;
+}
+.mech-github {
+  grid-area: github;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  border-top: 4px solid var(--band-mark);
+}
+.mech-laptop {
+  grid-area: laptop;
+}
+.mech-engine {
+  grid-area: engine;
+  border-color: var(--lamp);
+}
+.mech-area-name {
+  grid-column: 1 / -1;
+  margin: 0 0 0.15rem;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+.mech-github .mech-area-name {
+  grid-column: auto;
+  margin-right: 0.5rem;
+}
+.mech-area-name span {
+  display: block;
+  font-family: var(--text);
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.mech-part {
+  background: var(--wall);
+  border: 1px solid var(--plate-edge);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  transition: opacity 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+.mech-part strong {
+  display: block;
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+.mech-part span {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.mech-product {
+  background: var(--band);
+  border-color: var(--band);
+}
+.mech-product strong {
+  font-family: var(--stencil);
+  font-size: 1.2rem;
+  color: var(--band-mark);
+}
+.mech-product span {
+  color: color-mix(in srgb, var(--band-ink) 75%, transparent);
+}
+.mech-map.is-showing .mech-part:not(.is-used) {
+  opacity: 0.32;
+}
+.mech-part.is-from {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 2px var(--signal);
+}
+.mech-part.is-to {
+  border-color: var(--lamp);
+  box-shadow: 0 0 0 2px var(--lamp), 0 0 16px color-mix(in srgb, var(--lamp) 55%, transparent);
+}
+.mech-wire {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.mech-wire.is-on {
+  opacity: 1;
+}
+.mech-wire line {
+  stroke: var(--signal);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+}
+.mech-wire circle {
+  fill: var(--signal);
+  stroke: var(--wall);
+  stroke-width: 2;
+}
+.mech-jobs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 1.5rem 2rem;
+}
+.mech-ready .mech-jobs {
+  display: block;
+}
+.mech-job h3 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  margin: 0 0 0.6rem;
+}
+.mech-ready .mech-job h3 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.mech-job ol {
+  list-style: none;
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.mech-job li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  column-gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+.mech-ready .mech-job li {
+  cursor: pointer;
+}
+.mech-job li::before {
+  content: counter(step);
+  grid-row: span 2;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  line-height: 1.2;
+  color: var(--ink-soft);
+}
+.mech-job li code {
+  font-family: var(--mono);
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+.mech-job li span {
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+.mech-job li.is-on {
+  background: var(--plate);
+  border-color: var(--plate-edge);
+}
+.mech-job li.is-on::before {
+  color: var(--signal);
+}
+
+/* Narrow screens: one column; the doc's pages move into a menu above the page. */
+@media (max-width: 54rem) {
+  :root {
+    --gutter: 1rem;
+  }
+  .doc {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 1.25rem;
+    gap: 0;
+  }
+  .sidebar {
+    display: none;
+  }
+  .pagemenu {
+    display: block;
+    margin: 0 0 1.5rem;
+    border-bottom: 1px solid var(--seam);
+    padding-bottom: 0.75rem;
+  }
+  .pagemenu summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .pagemenu nav {
+    margin-top: 0.75rem;
+  }
+  .layer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hero-grid,
+  .story-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* A session's state goes under its name, so a question has the row's width to wrap in. */
+  .session {
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+  }
+  .session > :last-child {
+    grid-column: 2;
+  }
+  .diagram-hint {
+    display: block;
+  }
+  .mech-map {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "github" "laptop" "engine";
+  }
+  .mech-github {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .mech-github .mech-area-name {
+    grid-column: 1 / -1;
+  }
+  .wordmark {
+    font-size: 1.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

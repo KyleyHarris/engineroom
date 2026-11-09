@@ -1,0 +1,55 @@
+/*
+  Machine room: walls in painted machinery green by day and dark steel at night, a navy nameplate
+  band with the name stencilled in amber, plates stacked like the layers of the program, and
+  signal lamps (green for where you are, amber for what wants you).
+*/
+
+:root {
+  color-scheme: light dark;
+
+  /* Day: painted machinery green walls, a lighter plate for reading, navy ink. */
+  --wall: #d7e2da;
+  --plate: #edf2ee;
+  --plate-edge: #b9c9be;
+  --seam: #cbd8ce;
+  --ink: #142229;
+  --ink-soft: #46585e;
+  --link: #0a5463;
+  --lamp: #21844b;
+  --signal: #c47a0a;
+  --band: #142229;
+  --band-ink: #e3ebe5;
+  --band-mark: #f0b23c;
+  --code: #15242a;
+  --code-ink: #dbe7df;
+  --tint: rgb(20 34 41 / 0.07);
+
+  --stencil: "Big Shoulders Stencil", "Big Shoulders", "Arial Narrow", sans-serif;
+  --display: "Big Shoulders", "Arial Narrow", sans-serif;
+  --text: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --measure: 68ch;
+  --gutter: 1.5rem;
+}
+
+/* Night: the same room with the lights down, lamps brighter against dark steel. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --wall: #0e191b;
+    --plate: #142225;
+    --plate-edge: #2a3e40;
+    --seam: #1e3033;
+    --ink: #e1eae4;
+    --ink-soft: #9db1ab;
+    --link: #82cfdb;
+    --lamp: #5acb88;
+    --signal: #f0b23c;
+    --band: #091214;
+    --band-ink: #d6e1da;
+    --band-mark: #f0b23c;
+    --code: #0a1416;
+    --code-ink: #d6e3da;
+    --tint: rgb(225 234 228 / 0.08);
+  }
+}

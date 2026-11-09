@@ -1,0 +1,36 @@
+{{/*
+  A page rendered from a doc. The sidebar lists the doc's pages; on a narrow screen the same list
+  is a menu above the page instead, because a sidebar does not fit beside the text there. A doc's
+  index page also lists its pages under its introduction, and every page names the file it was
+  rendered from, which is where it is edited.
+*/}}{{define "main"}}
+<div class="doc">
+  <aside class="sidebar" aria-label="{{.Doc.Config.Nav}}">
+    <nav>{{template "pagelist" .}}</nav>
+  </aside>
+  <main id="main" class="doc-main">
+    <details class="pagemenu">
+      <summary>{{.Doc.Config.Nav}}: all pages</summary>
+      <nav aria-label="{{.Doc.Config.Nav}}, all pages">{{template "pagelist" .}}</nav>
+    </details>
+    <article class="prose">
+{{.Body}}
+{{- if eq .Page.Level 1}}
+      <ul class="contents">
+        {{range slice .Nav 1}}<li class="depth-{{.Depth}}"><a href="{{.Href}}">{{.Title}}</a></li>
+        {{end}}
+      </ul>
+{{- end}}
+    </article>
+    <nav class="pager" aria-label="Previous and next page">
+      {{with .Prev}}<a class="pager-prev" href="{{.Href}}"><span>Previous</span>{{.Title}}</a>{{end}}
+      {{with .Next}}<a class="pager-next" href="{{.Href}}"><span>Next</span>{{.Title}}</a>{{end}}
+    </nav>
+    <p class="source">This page is generated from <a href="{{.Site.Repository}}/blob/{{.Site.Branch}}/{{.Doc.Config.Source}}">{{.Doc.Config.Source}}</a>, where it is edited.</p>
+  </main>
+</div>
+{{end}}
+
+{{define "pagelist"}}<ul>
+  {{range .Nav}}<li class="depth-{{.Depth}}"><a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a></li>
+  {{end}}</ul>{{end}}

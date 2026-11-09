@@ -1,0 +1,10 @@
+{
+  "name": "engineroom",
+  "displayName": "engineroom",
+  "version": "0.1.0",
+  "description": "Skills and hooks for engineroom: set a machine up, adopt a repository, register projects, make worktrees and run a worktree's app; each session is told its slot and ports, and the session list shows which sessions wait for you.",
+  "author": { "name": "Kyley Harris" },
+  "repository": "https://github.com/KyleyHarris/engineroom",
+  "license": "MIT",
+  "keywords": ["zellij", "worktrees", "sessions", "remote", "ports"]
+}

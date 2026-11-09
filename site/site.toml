@@ -1,0 +1,116 @@
+# The website's settings, read by tools/site (go run ./tools/site).
+#
+# The product's name, its command and its folders are here and nowhere else in the site's own
+# pages: every template reads them from here, so a rename is an edit to these lines (and to the
+# docs the site renders). Never write them into a template, a class, a file name or a URL.
+
+product = "engineroom"
+# The command people type, and the program's own folder under ~/.config and ~/.local/state, as the
+# program has them (docs/decisions.md D-026).
+command = "engineroom"
+folder = "engineroom"
+tagline = "Run all your Claude Code sessions on one Mac that keeps them in order, and work on them there or from any other Mac as if they were local."
+platform = "Built and tested on macOS. The command line also runs on Linux, where its end-to-end tests run their engine; the menu bar app is macOS only."
+repository = "https://github.com/KyleyHarris/engineroom"
+branch = "main"
+
+# The look: assets/styles/<style>.css over assets/base.css. When more than one style is listed,
+# the dev server (go run ./tools/site -serve) offers a switch between them, so a new look can be
+# compared on the running site; the built site uses `style` alone.
+style = "machine"
+
+[styles]
+machine = "Machine room"
+
+# The README is the repository's front page on GitHub; on the site the hand-written front page
+# takes its place, so the docs' links to it land there.
+[aliases]
+"README.md" = "index.html"
+
+# The docs the site renders, in the order the navigation lists them. Each heading from level 2
+# down to `split` starts a page of its own.
+
+[[doc]]
+source = "docs/setup.md"
+slug = "setup"
+nav = "Set up"
+about = "Setting up an engine or a client, item by item: what each piece is for, how to check it, and how to fix it."
+split = 2
+
+[[doc]]
+source = "docs/usage.md"
+slug = "guide"
+nav = "Guide"
+about = "The full guide: sessions, new work and clean up, settings and secrets, ports, forwarding, working local and the menu bar app."
+split = 3
+
+[[doc]]
+source = "docs/decisions.md"
+slug = "decisions"
+nav = "Decisions"
+about = "Every design decision, with the problem it solved and the options weighed."
+split = 2
+# Written as field records (Context, Options, Decision, Status); tools/site/records.go reads them.
+format = "record"
+# A decision's page is named by its id (decisions/d-013.html), and the docs name decisions in
+# running text the same way, so every "D-013" in any doc links to its page.
+page_name = '^(D-\d{3})\b'
+mentions = '\bD-\d{3}\b'
+
+# The stack: each job the product hands to another tool, and the tool that does it today, from
+# what you touch at the top to the network at the bottom. Kept as data, so swapping one tool
+# for another (a terminal, a Git host, an agent) is an edit here, not a new page. Every line is
+# true of the program as it is; nothing here describes a tool it does not use yet.
+
+[[stack]]
+job = "The agent"
+tool = "Claude Code"
+url = "https://claude.com/claude-code"
+note = "Runs in every session. With Remote Control on, the same session answers from your phone or claude.ai."
+
+[[stack]]
+job = "Sessions that outlive the window"
+tool = "Zellij"
+url = "https://zellij.dev"
+note = "Every session lives in Zellij on the engine. Closing the window, or the laptop, stops nothing."
+
+[[stack]]
+job = "The window you join through"
+tool = "Ghostty"
+url = "https://ghostty.org"
+note = "Every joined session is a tab of one window. Other terminals work too."
+
+[[stack]]
+job = "Your editor, where the files are"
+tool = "VS Code"
+url = "https://code.visualstudio.com"
+note = "From a client it opens the engine's folder over Remote - SSH. Nothing is copied."
+
+[[stack]]
+job = "Parallel work"
+tool = "git worktrees"
+url = "https://git-scm.com/docs/git-worktree"
+note = "New work gets its own worktree, branch, session and slot of ports."
+
+[[stack]]
+job = "What the machines share"
+tool = "GitHub"
+url = "https://github.com"
+note = "Code moves between engine and client only by push and pull."
+
+[[stack]]
+job = "Settings and secrets that follow you"
+tool = "git-crypt"
+note = "Your scripts and settings live in a private repository of your own, its secret files encrypted."
+
+[[stack]]
+job = "Every action, every port"
+tool = "OpenSSH"
+url = "https://www.openssh.com"
+note = "A client runs each action on the engine over SSH, and forwards the engine's ports over one connection."
+
+[[stack]]
+job = "Reaching the engine from anywhere"
+tool = "Tailscale"
+url = "https://tailscale.com"
+note = "Recommended: a stable name for the engine on any network, with no port opened on a router. Any SSH route works."

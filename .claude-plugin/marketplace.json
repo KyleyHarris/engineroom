@@ -1,0 +1,12 @@
+{
+  "name": "engineroom",
+  "owner": { "name": "Kyley Harris" },
+  "description": "engineroom's Claude Code plugin, from the engineroom repository.",
+  "plugins": [
+    {
+      "name": "engineroom",
+      "source": "./plugin",
+      "description": "Set a machine up for engineroom, adopt a repository, register projects, make worktrees and run a worktree's app."
+    }
+  ]
+}

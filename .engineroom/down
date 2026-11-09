@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#
+# down for this repository: stops the website's dev server that .engineroom/up started in this checkout,
+# found by the process id up recorded, and nothing else: never a process found by its name, and
+# never one that has since taken that id. With nothing running it does nothing, so it is safe to
+# run again (docs/decisions.md D-013).
+#
+# SITE_RUN_DIR names the folder up kept its record in, as it does for up.
+
+set -uo pipefail
+
+cd "${ENGINEROOM_WORKTREE:-$(git rev-parse --show-toplevel)}" || exit 1
+root="$(pwd)"
+port="${ENGINEROOM_PORT_SITE:-20800}"
+run="${SITE_RUN_DIR:-${root}/site/.serve}"
+bin="${run}/site"
+pidfile="${run}/site.pid"
+
+say() { printf '+ %s\n' "$*"; }
+
+if [ ! -f "${pidfile}" ]; then
+  echo "The website is not running here (no ${pidfile})."
+  exit 0
+fi
+pid="$(cat "${pidfile}")"
+cmd="$(ps -p "${pid}" -o command= 2>/dev/null)"
+if [ "${cmd}" != "${bin} -serve -port ${port}" ]; then
+  echo "The website's server (process ${pid}) is no longer running; its record is removed."
+  say rm "${pidfile}"
+  rm -f "${pidfile}"
+  exit 0
+fi
+
+say kill "${pid}"
+kill "${pid}" 2>/dev/null
+# The server removes its temporary builds as it stops; give it a moment to do so.
+for _ in $(seq 1 20); do
+  kill -0 "${pid}" 2>/dev/null || break
+  sleep 0.25
+done
+if kill -0 "${pid}" 2>/dev/null; then
+  echo "The website's server (process ${pid}) did not stop within 5 seconds; it is still running."
+  exit 1
+fi
+say rm "${pidfile}"
+rm -f "${pidfile}"
+echo "The website is stopped."

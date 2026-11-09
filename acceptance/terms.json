@@ -1,0 +1,42 @@
+{
+  "engine": {
+    "value": "Engine",
+    "plural": "Engines",
+    "description": "The always-on machine where the work runs: repositories, sessions, dev servers and services"
+  },
+  "client": {
+    "value": "Client",
+    "plural": "Clients",
+    "description": "Any other machine the developer works from; it reaches the engine and can fall back to working locally"
+  },
+  "session": {
+    "value": "Session",
+    "plural": "Sessions",
+    "description": "A named, long-running terminal session on the engine holding Claude Code and a git tab, one per checkout"
+  },
+  "project": {
+    "value": "Project",
+    "plural": "Projects",
+    "description": "A repository registered with the tool"
+  },
+  "checkout": {
+    "value": "Worktree",
+    "plural": "Worktrees",
+    "description": "A working copy of a project on disk: its main clone or a sibling worktree on its own branch"
+  },
+  "editor": {
+    "value": "VS Code",
+    "plural": "VS Code windows",
+    "description": "The code editor a session's worktree is opened in, on the machine the developer is at"
+  },
+  "category": {
+    "value": "Category",
+    "plural": "Categories",
+    "description": "A label a project is grouped under in the program's own configuration; it never moves anything on disk"
+  },
+  "root": {
+    "value": "Root",
+    "plural": "Roots",
+    "description": "A folder on the engine tied to one GitHub owner and the account that lists it; that owner's repositories are cloned into it"
+  }
+}

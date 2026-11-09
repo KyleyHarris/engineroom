@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#
+# up for this repository: the website's dev server on this checkout's slot port, in the
+# background, recorded by its process id so down stops exactly it and nothing else.
+#
+# engineroom runs this in the checkout with the slot's values set (ENGINEROOM_PORT_SITE is the port); run by
+# hand, it uses the main clone's port, 20800. It returns once the site answers, and is safe to
+# run again: a server it started that is still running is left alone (docs/decisions.md D-013).
+# What it starts carries the session's ENGINEROOM_SESSION, so stopping the session stops it (D-020).
+#
+# SITE_RUN_DIR moves the folder it keeps the server, its log and its record in; the tests use it.
+
+set -uo pipefail
+
+cd "${ENGINEROOM_WORKTREE:-$(git rev-parse --show-toplevel)}" || exit 1
+root="$(pwd)"
+port="${ENGINEROOM_PORT_SITE:-20800}"
+run="${SITE_RUN_DIR:-${root}/site/.serve}"
+bin="${run}/site"
+pidfile="${run}/site.pid"
+log="${run}/site.log"
+url="http://localhost:${port}/"
+
+# Every command is shown before it runs, as engineroom shows its own.
+say() { printf '+ %s\n' "$*"; }
+
+# ours tells whether a process id is the server this script started: alive, and running the
+# binary it built, with the port it was given. A recycled id belongs to someone else.
+ours() {
+  local cmd
+  cmd="$(ps -p "$1" -o command= 2>/dev/null)" || return 1
+  [ "${cmd}" = "${bin} -serve -port ${port}" ]
+}
+
+if [ -f "${pidfile}" ]; then
+  pid="$(cat "${pidfile}")"
+  if ours "${pid}"; then
+    echo "The website is already running: ${url} (process ${pid})."
+    exit 0
+  fi
+  say rm "${pidfile}"
+  rm -f "${pidfile}"
+fi
+
+# A port someone else holds is never taken over: say who, and stop.
+holder="$(lsof -nP -iTCP:"${port}" -sTCP:LISTEN -t 2>/dev/null | head -n 1)"
+if [ -n "${holder}" ]; then
+  echo "Port ${port} is already in use, so the website was not started. It is held by:"
+  ps -p "${holder}" -o pid=,command= 2>/dev/null
+  exit 1
+fi
+
+say mkdir -p "${run}"
+mkdir -p "${run}" || exit 1
+# Built once rather than run with go run, so the recorded process is the server itself and
+# stopping it stops the server, not a wrapper that leaves it running.
+say go build -o "${bin}" ./tools/site
+go build -o "${bin}" ./tools/site || exit 1
+
+say "${bin} -serve -port ${port} > ${log} 2>&1 &"
+nohup "${bin}" -serve -port "${port}" >"${log}" 2>&1 &
+pid=$!
+echo "${pid}" >"${pidfile}"
+
+# Wait until the site answers: the first build takes a moment.
+for _ in $(seq 1 60); do
+  if curl -fsS -o /dev/null "${url}" 2>/dev/null; then
+    echo "The website is running: ${url} (process ${pid})."
+    exit 0
+  fi
+  if ! kill -0 "${pid}" 2>/dev/null; then
+    echo "The website's server stopped before it answered. Its log:"
+    cat "${log}"
+    rm -f "${pidfile}"
+    exit 1
+  fi
+  sleep 0.5
+done
+
+echo "The website did not answer on ${url} within 30 seconds, so its server was stopped. Its log:"
+cat "${log}"
+say kill "${pid}"
+kill "${pid}" 2>/dev/null
+rm -f "${pidfile}"
+exit 1

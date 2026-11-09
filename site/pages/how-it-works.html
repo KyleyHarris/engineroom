@@ -1,0 +1,298 @@
+{{/*
+  How it works, written by hand: the pieces and how they connect, kept short. Every fact is in
+  the docs or the code, and each part links to the guide page that says it in full.
+
+  The mechanics map is the page's centre: the pieces on each machine and on GitHub, and for each
+  job the steps it takes, each with the real command (shortened where marked) and the two pieces
+  it passes between. Without scripts every job's steps are simply listed; assets/mechanics.js
+  turns them into tabs and plays each job through the map. The commands come from the program's
+  own plans (internal/ops, internal/handoff, internal/forward); when one changes, change it here.
+
+  The product's name, command and folders come from site.toml; never spell them here.
+*/}}{{define "title"}}How it works{{end}}
+{{define "main"}}
+<main id="main" class="story">
+  <header class="story-head">
+    <h1>How it works</h1>
+    <p class="story-lead">One Mac is the <strong>engine</strong>: every session runs there, and you can
+      work at it directly. On its own it is the whole tool. Any other Mac can be a
+      <strong>client</strong>: you work from it, and what it does, it does on the engine. Your code
+      reaches the other machine through GitHub; a handover carries work in progress straight between
+      them over SSH.</p>
+  </header>
+
+  <section class="story-part" aria-labelledby="where">
+    <h2 id="where">A session stays where it started</h2>
+    <div class="story-cols">
+      <ul class="points">
+        <li><strong>Sessions live on the engine</strong>, inside Zellij. Your terminal, the app, VS Code
+          and your phone are only windows onto them.</li>
+        <li><strong>Close any window and nothing stops.</strong> Join again from anywhere and it is
+          where you left it; a dropped connection rejoins on its own.</li>
+        <li><strong>Claude's conversation stays with the session</strong>, on the engine, whichever
+          machine you joined from.</li>
+        <li><strong>Your phone works too</strong>: with Remote Control on, every session is in the
+          Claude app under its own name.</li>
+      </ul>
+      <aside class="story-note">
+        <p class="note-title">What you no longer do by hand</p>
+        <ul>
+          <li>Find the right tmux or Zellij session</li>
+          <li>Keep a terminal open per piece of work</li>
+          <li>Work out each worktree's ports</li>
+          <li>Forward ports to test the app</li>
+          <li>Copy secrets between machines</li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <section class="story-part" aria-labelledby="picture">
+    <h2 id="picture">The picture</h2>
+    <figure class="diagram">
+      <p class="diagram-hint">The picture is wide: scroll it sideways to see the engine.</p>
+      <div class="diagram-scroll">
+        <svg viewBox="0 0 1000 610" role="img" aria-labelledby="diagram-title diagram-desc">
+          <title id="diagram-title">How a client reaches the engine</title>
+          <desc id="diagram-desc">On the left, your laptop, a client, with the menu bar app, Ghostty,
+            VS Code and a browser. On the right, the engine, with {{.Site.Product}}, a Zellij
+            session running Claude Code, a worktree and its slot of ports. Between them, SSH:
+            every action, joining a session, VS Code and forwarded ports all travel over it. Your
+            phone reaches the session through Remote Control. Below, GitHub, which both machines
+            push to and pull from: your code, and your private settings repository.</desc>
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path class="d-head" d="M0 0 L10 5 L0 10 z"/>
+            </marker>
+          </defs>
+
+          <rect class="d-band" x="320" y="70" width="360" height="380" rx="6"/>
+          <text class="d-band-label" x="500" y="96" text-anchor="middle">SSH, on any network</text>
+          <text class="d-band-sub" x="500" y="116" text-anchor="middle">Tailscale makes it anywhere</text>
+
+          <rect class="d-box" x="20" y="70" width="300" height="380" rx="8"/>
+          <text class="d-title" x="40" y="104">Your laptop</text>
+          <text class="d-sub" x="40" y="124">a client</text>
+          <rect class="d-item" x="40" y="140" width="260" height="52" rx="5"/>
+          <text class="d-name" x="56" y="172">Menu bar app</text>
+          <rect class="d-item" x="40" y="210" width="260" height="52" rx="5"/>
+          <text class="d-name" x="56" y="242">Ghostty</text>
+          <rect class="d-item" x="40" y="280" width="260" height="52" rx="5"/>
+          <text class="d-name" x="56" y="312">VS Code</text>
+          <rect class="d-item" x="40" y="350" width="260" height="52" rx="5"/>
+          <text class="d-name" x="56" y="382">Browser on localhost</text>
+
+          <rect class="d-box d-engine" x="680" y="70" width="300" height="380" rx="8"/>
+          <text class="d-title" x="700" y="104">The engine</text>
+          <text class="d-sub" x="700" y="124">always on</text>
+          <rect class="d-item d-product" x="700" y="140" width="260" height="52" rx="5"/>
+          <text class="d-name d-product-name" x="716" y="174">{{.Site.Product}}</text>
+          <rect class="d-item" x="700" y="210" width="260" height="52" rx="5"/>
+          <circle class="d-lamp" cx="722" cy="236" r="6"/>
+          <text class="d-name" x="736" y="242">Zellij session: Claude Code</text>
+          <rect class="d-item" x="700" y="280" width="260" height="52" rx="5"/>
+          <text class="d-name" x="716" y="303">Worktree</text>
+          <text class="d-mono" x="716" y="321">~/src/project-a-fix-login</text>
+          <rect class="d-item" x="700" y="350" width="260" height="52" rx="5"/>
+          <text class="d-name" x="716" y="373">Its slot of ports</text>
+          <text class="d-mono" x="716" y="391">ui 20110, api 20111</text>
+
+          <line class="d-line d-flow" x1="300" y1="166" x2="700" y2="166" marker-end="url(#arrow)"/>
+          <text class="d-label" x="500" y="156" text-anchor="middle">every action</text>
+          <text class="d-mono" x="500" y="186" text-anchor="middle">ssh engine.example {{.Site.Command}} api …</text>
+          <line class="d-line d-flow" x1="300" y1="236" x2="700" y2="236" marker-end="url(#arrow)"/>
+          <text class="d-label" x="500" y="226" text-anchor="middle">join</text>
+          <text class="d-mono" x="500" y="256" text-anchor="middle">ssh -t engine.example zellij attach …</text>
+          <line class="d-line d-flow" x1="300" y1="306" x2="700" y2="306" marker-end="url(#arrow)"/>
+          <text class="d-label" x="500" y="296" text-anchor="middle">open the folder</text>
+          <text class="d-mono" x="500" y="326" text-anchor="middle">code --remote ssh-remote+engine.example</text>
+          <line class="d-line d-flow" x1="300" y1="376" x2="700" y2="376" marker-end="url(#arrow)"/>
+          <text class="d-label" x="500" y="366" text-anchor="middle">the app, same port numbers</text>
+          <text class="d-mono" x="500" y="396" text-anchor="middle">one connection, every forward</text>
+
+          <rect class="d-item" x="700" y="6" width="260" height="44" rx="5"/>
+          <text class="d-name" x="716" y="34">Your phone: the Claude app</text>
+          <path class="d-line d-flow" d="M960 28 H988 V236 H962" marker-end="url(#arrow)"/>
+          <text class="d-label" x="994" y="140" text-anchor="middle" transform="rotate(90 994 140)">Remote Control</text>
+
+          <path class="d-git" d="M380 520 a120 16 0 0 1 240 0 v54 a120 16 0 0 1 -240 0 z"/>
+          <path class="d-git-top" d="M380 520 a120 16 0 0 0 240 0"/>
+          <text class="d-name" x="500" y="556" text-anchor="middle">GitHub</text>
+          <text class="d-sub" x="500" y="576" text-anchor="middle">your code, and your settings</text>
+          <path class="d-line d-line-soft" d="M170 450 V546 H372" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+          <path class="d-line d-line-soft" d="M830 450 V546 H628" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+          <text class="d-label" x="270" y="536" text-anchor="middle">push and pull</text>
+          <text class="d-label" x="730" y="536" text-anchor="middle">push and pull</text>
+        </svg>
+      </div>
+      <figcaption>The client never runs the work; it reaches it. Every line between the machines is
+        SSH, and committed work travels between them through GitHub.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story-part" aria-labelledby="mechanics">
+    <h2 id="mechanics">The mechanics, job by job</h2>
+    <p class="story-intro">Pick a job to see which pieces it touches and the commands it runs, step by
+      step. Commands are the program's own, shortened where marked.</p>
+    <div class="mech" data-mech>
+      <div class="mech-map" aria-hidden="true">
+        <div class="mech-area mech-github">
+          <p class="mech-area-name">GitHub <span>shared by every machine</span></p>
+          <div class="mech-part" data-part="gh-repo"><strong>Your project's repository</strong><span>code and every branch</span></div>
+          <div class="mech-part" data-part="gh-settings"><strong>Your settings repository</strong><span>private; secrets encrypted by git-crypt</span></div>
+        </div>
+        <div class="mech-area mech-laptop">
+          <p class="mech-area-name">Your laptop <span>a client</span></p>
+          <div class="mech-part" data-part="lap-app"><strong>Menu bar app</strong><span>or the terminal interface</span></div>
+          <div class="mech-part" data-part="lap-term"><strong>Ghostty</strong><span>a tab per joined session</span></div>
+          <div class="mech-part" data-part="lap-browser"><strong>Browser</strong><span>localhost:20110</span></div>
+          <div class="mech-part" data-part="lap-code"><strong>VS Code</strong><span>the engine's folder, over SSH</span></div>
+          <div class="mech-part" data-part="lap-settings"><strong>Settings clone</strong><span>unlocked by this Mac's key</span></div>
+          <div class="mech-part" data-part="lap-copies"><strong>Its own copies</strong><span>for working local</span></div>
+        </div>
+        <div class="mech-area mech-engine">
+          <p class="mech-area-name">The engine <span>always on</span></p>
+          <div class="mech-part mech-product" data-part="engine-er"><strong>{{.Site.Product}}</strong><span>plans and runs every action</span></div>
+          <div class="mech-part" data-part="engine-clone"><strong>The main clone</strong><span>~/src/project-a</span></div>
+          <div class="mech-part" data-part="engine-worktree"><strong>A worktree</strong><span>~/src/project-a-fix-login</span></div>
+          <div class="mech-part" data-part="engine-slot"><strong>Its slot of ports</strong><span>ui 20110, api 20111</span></div>
+          <div class="mech-part" data-part="engine-session"><strong>Its Zellij session</strong><span>Claude Code, and what it started</span></div>
+          <div class="mech-part" data-part="engine-settings"><strong>Settings clone</strong><span>unlocked by the engine's key</span></div>
+        </div>
+        <svg class="mech-wire"><line/><circle r="6"/></svg>
+      </div>
+
+      <div class="mech-jobs">
+        <section class="mech-job" id="job-new" data-job>
+          <h3>Start new work</h3>
+          <ol>
+            <li data-from="lap-app" data-to="engine-er"><code>{{.Site.Command}} new project-a fix-login</code><span>Asked on the laptop; planned and run on the engine, over SSH.</span></li>
+            <li data-from="gh-repo" data-to="engine-clone"><code>git -C ~/src/project-a fetch origin</code><span>Bring the remote's branches up to date.</span></li>
+            <li data-from="engine-clone" data-to="engine-worktree"><code>git -C ~/src/project-a worktree add -b fix-login ~/src/project-a-fix-login origin/main</code><span>A worktree beside the clone, on a new branch.</span></li>
+            <li data-from="engine-settings" data-to="engine-slot"><code>{{.Site.Command}} slot claim --worktree ~/src/project-a-fix-login</code><span>Its own slot of ports, written into the worktree.</span></li>
+            <li data-from="engine-settings" data-to="engine-worktree"><code>{{.Site.Command}} secrets restore project-a --worktree ~/src/project-a-fix-login</code><span>The project's secret files, from your settings.</span></li>
+            <li data-from="engine-worktree" data-to="engine-session"><code>zellij attach --create-background project-a-fix-login …</code><span>Its session, Claude Code in the first tab.</span></li>
+            <li data-from="engine-session" data-to="lap-term"><code>{{.Site.Command}} join project-a-fix-login</code><span>Joined in a Ghostty tab on the laptop.</span></li>
+          </ol>
+        </section>
+
+        <section class="mech-job" id="job-run" data-job>
+          <h3>Run the app, use it on the laptop</h3>
+          <ol>
+            <li data-from="lap-app" data-to="engine-er"><code>{{.Site.Command}} up project-a-fix-login</code><span>Run, from the app or from inside the session.</span></li>
+            <li data-from="engine-worktree" data-to="engine-slot"><code>up</code><span>The project's up script starts its servers on the slot's ports.</span></li>
+            <li data-from="engine-slot" data-to="lap-browser"><code>ssh … -O forward -L 20110:localhost:20110 engine.example</code><span>Forwarded over one SSH connection, same numbers.</span></li>
+            <li data-from="lap-browser" data-to="lap-browser"><code>http://localhost:20110/</code><span>Sign-in callbacks and cookies work as if it ran here.</span></li>
+            <li data-from="lap-code" data-to="engine-worktree"><code>code --remote ssh-remote+engine.example ~/src/project-a-fix-login</code><span>Edit the same files, on the engine.</span></li>
+          </ol>
+        </section>
+
+        <section class="mech-job" id="job-secrets" data-job>
+          <h3>Keep settings and secrets in step</h3>
+          <ol>
+            <li data-from="engine-clone" data-to="engine-settings"><code>{{.Site.Command}} secrets save project-a</code><span>Copies the files engineroom.toml names into secrets/.</span></li>
+            <li data-from="engine-settings" data-to="gh-settings"><code>{{.Site.Command}} settings sync</code><span>Pushed encrypted: GitHub only ever holds encrypted bytes.</span></li>
+            <li data-from="gh-settings" data-to="lap-settings"><code>{{.Site.Command}} settings sync</code><span>The laptop takes them; its own key decrypts them.</span></li>
+            <li data-from="lap-settings" data-to="lap-copies"><code>{{.Site.Command}} secrets restore project-a</code><span>Into a checkout that lacks them; never over a file it has.</span></li>
+          </ol>
+        </section>
+
+        <section class="mech-job" id="job-local" data-job>
+          <h3>Work local, then hand back</h3>
+          <ol>
+            <li data-from="lap-app" data-to="engine-er"><code>{{.Site.Command}} offline on</code><span>The handover is shown first, one line per checkout, and checked in full: if anything would stop the laptop matching the engine, nothing runs and it says what to clear.</span></li>
+            <li data-from="engine-worktree" data-to="gh-repo"><code>git -C ~/src/project-a-fix-login push origin fix-login</code><span>The work checked out is pushed; other branches are left as they are, and named.</span></li>
+            <li data-from="gh-repo" data-to="lap-copies"><code>git -C ~/src/project-a-fix-login switch -C fix-login 3f2a9c1</code><span>Each copy on the laptop takes the engine's branch and commit, its own changes set aside in its stash list; a missing project is cloned.</span></li>
+            <li data-from="engine-worktree" data-to="lap-copies"><code>{{.Site.Command}} handoff pack ~/src/project-a-fix-login</code><span>Uncommitted work is stashed on the engine and carried straight over SSH, never through GitHub, then applied: the laptop is where the engine was.</span></li>
+            <li data-from="lap-copies" data-to="lap-term"><code>{{.Site.Command}} open project-a</code><span>Sessions now run on the laptop, and every screen says so.</span></li>
+            <li data-from="lap-app" data-to="engine-er"><code>{{.Site.Command}} offline off</code><span>Hand back: the same handover, the other way.</span></li>
+          </ol>
+        </section>
+
+        <section class="mech-job" id="job-clean" data-job>
+          <h3>Finish and clean up</h3>
+          <ol>
+            <li data-from="lap-app" data-to="engine-er"><code>{{.Site.Command}} clean project-a fix-login</code><span>Refused while work would be lost, with ways to keep it.</span></li>
+            <li data-from="engine-worktree" data-to="engine-slot"><code>down</code><span>The project's down script stops its servers.</span></li>
+            <li data-from="engine-er" data-to="engine-session"><code>{{.Site.Command}} session reap project-a-fix-login</code><span>The session ends; anything still running for it stops.</span></li>
+            <li data-from="engine-slot" data-to="engine-er"><code>{{.Site.Command}} slot release --worktree ~/src/project-a-fix-login</code><span>The slot is given back.</span></li>
+            <li data-from="engine-worktree" data-to="engine-clone"><code>git -C ~/src/project-a worktree remove ~/src/project-a-fix-login</code><span>The worktree goes.</span></li>
+            <li data-from="engine-clone" data-to="gh-repo"><code>git -C ~/src/project-a push origin --delete fix-login</code><span>The branch goes, here and on GitHub, only if it is merged.</span></li>
+          </ol>
+        </section>
+      </div>
+    </div>
+    <p class="story-more">In full: <a href="guide/new-work-and-clean-up.html">new work and clean up</a>,
+      <a href="guide/running-the-app-stack.html">the app stack</a>,
+      <a href="guide/your-settings-and-a-repositorys-recommendations.html">settings and secrets</a>,
+      <a href="guide/working-local.html">working local</a>.</p>
+  </section>
+
+  <section class="story-part" aria-labelledby="commands">
+    <h2 id="commands">Every action is real commands</h2>
+    <div class="story-cols">
+      <ul class="points">
+        <li><strong>Read it before it runs.</strong> Each action is a plan of ordinary commands, each
+          with its reason.</li>
+        <li><strong>Watch it while it runs</strong>, and find it afterwards in the history, with its
+          output.</li>
+        <li><strong>Copy any of it.</strong> Copy all joins them with <code>&amp;&amp;</code>, so a
+          paste stops at the first failure, as the program does.</li>
+        <li><strong>Nothing changes unasked.</strong> A problem is reported with its fix, applied only
+          when you ask.</li>
+      </ul>
+      <figure class="plan-figure">
+        {{template "plan-newwork" .}}
+        <figcaption>The plan for <code>{{.Site.Command}} new project-a fix-login</code>, shortened
+          where it says so.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story-part" aria-labelledby="localhost">
+    <h2 id="localhost">Your app, on your laptop's own localhost</h2>
+    <ul class="points points-wide">
+      <li><strong>Every worktree has its own ports</strong>, so copies of one project run side by
+        side on the engine.</li>
+      <li><strong>Forward a worktree, or just open its link</strong>, and its ports answer on your
+        laptop under the same numbers, over one SSH connection. A link whose app is not running
+        starts it first.</li>
+      <li><strong>Same numbers on <code>localhost</code> means nothing breaks</strong>: sign-in
+        callbacks, cookies and allowed origins behave as if the app ran on the laptop.</li>
+    </ul>
+    <p class="story-more">In full: <a href="guide/ports-and-slots.html">ports and slots</a>,
+      <a href="guide/reaching-the-engines-ports-from-a-client.html">reaching the engine's ports</a>.</p>
+  </section>
+
+  <section class="story-part" aria-labelledby="down">
+    <h2 id="down">When the engine does not answer</h2>
+    <div class="story-cols">
+      <blockquote class="said">
+        <p class="said-title">The engine did not answer.</p>
+        <p>Nothing has been started on either machine. Sessions already running on the engine keep
+          running.</p>
+        <p class="said-actions"><span>Retry the engine</span><span>Work local on this Mac</span></p>
+      </blockquote>
+      <ul class="points">
+        <li><strong>Never a quiet fallback.</strong> The app says the engine did not answer, and what
+          that means.</li>
+        <li><strong>Work local</strong> takes the work over, committed and not, and hands it back
+          later. Switching stops nothing.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="story-part" aria-labelledby="behind">
+    <h2 id="behind">Nothing left running behind you</h2>
+    <p class="story-intro">What a session starts belongs to it. Stopping the session stops its
+      servers, and a session that ends some other way has them stopped two minutes later. An
+      editor you opened is never touched (<a href="decisions/d-020.html">D-020</a>).</p>
+  </section>
+
+  <nav class="story-next" aria-label="Where next">
+    <a class="button" href="setup/index.html">Set a machine up</a>
+    <a class="button button-quiet" href="guide/index.html">Read the guide</a>
+  </nav>
+</main>
+<script src="assets/mechanics.js"></script>
+{{end}}
