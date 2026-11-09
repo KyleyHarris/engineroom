@@ -1006,3 +1006,25 @@ Decision:   - The program's own keys are ENGINEROOM_SLOT, ENGINEROOM_WORKTREEROO
               merged, so a clash between the two is caught too. The same port in [ports] and in
               every [[slot]] row is one key. The error names the file and both keys.
 Status:     accepted
+
+## D-029  2026-11-10  Rex as an alternative to Zellij and Ghostty (proposed)
+Context:    Every session lives in Zellij on the engine and is joined through a terminal app
+            (Ghostty by default), locally or with `ssh -t`. Rex is a terminal app and session
+            server in one: its server keeps sessions running whether or not a window shows them
+            (a session holds windows, a window holds blocks), its Mac app is the terminal and
+            reaches other Macs' Rex servers natively (Tailscale, or an SSH-forwarded socket),
+            and its `rex` CLI creates, lists, reads, types into and kills sessions, with stable
+            JSON output and exit codes. It also shows each program's own status (idle, working,
+            waiting on the user) from the Program Status Protocol (OSC 7501). It is in public
+            testing: the Mac app, and Linux and FreeBSD servers. The architect, 2026-11-10: "start
+            preparing a branch that integrates this as an option over ghostty and zellij".
+Options:    (a) Rex as a session backend beside Zellij, chosen per machine, with the Rex app as
+                its terminal [RECOMMENDED]: sessions created, listed and ended through `rex`,
+                joined by asking the Rex app to show the session, on the engine's server.
+            (b) Rex only as a terminal app, joining Zellij sessions like Ghostty does: small, but
+                Rex's own sessions, its native remote connection and its status display go unused.
+            (c) Replace Zellij outright: rejected for now, as Rex is in testing and not
+                available to everyone.
+Decision:   proposed, not yet agreed: see .claude/local/plans/rex-option.md for the units, and
+            the open questions put to the architect.
+Status:     proposed
