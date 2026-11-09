@@ -10,8 +10,10 @@ under "To confirm on a machine with Rex", with the command that confirms it
 ## How it would work
 
 engineroom keeps its own model: a project's checkout has one session, named as today
-(`project-a`, `project-a-fix-login`), holding Claude Code in one window and git in another. What
-changes is who keeps the session and what shows it.
+(`project-a`, `project-a-fix-login`). In Rex it has two windows: Claude Code, and a plain
+terminal in the checkout. Rex is installed on the engine and on every client, but only the
+engine's Rex server holds sessions; a client's Rex app reaches it over Tailscale. What changes is
+who keeps the session and what shows it.
 
 | Today (Zellij, Ghostty) | With Rex |
 |---|---|
@@ -33,7 +35,7 @@ engineroom runs `rex` like any other tool: as a plan of commands shown before th
 |---|---|---|
 | Is the session server up (`zj.Answers`) | `rex server status --json` | Exit 4: the server could not be reached. |
 | List sessions (`zj.List`) | `rex ls --json` | Documented shape: `{"sessions": [{"session_id": "session:...", "label": "..."}]}`. engineroom's session name is the label. |
-| Create a session with the standard layout (`zj.Create`) | `rex session new <name> --cwd <dir> --window agent --json -- <agent command>` then `rex window new -s <id> git --focus=false --cwd <dir> -- lazygit` | The agent command is run through the login shell (`--shell`, `--interactive` to read `~/.zshrc`). engineroom records the `session_id` the first call returns and addresses the session by it from then on. |
+| Create a session with the standard layout (`zj.Create`) | `rex session new <name> --cwd <dir> --window claude --json -- <agent command>` then `rex window new -s <id> terminal --focus=false --cwd <dir>` (a shell) | The agent command is run through the login shell (`--shell`, `--interactive` to read `~/.zshrc`). engineroom records the `session_id` the first call returns and addresses the session by it from then on. |
 | End a session (`zj.End`) | `rex session kill <session_id>` | Closing a terminal hangs up its program, as closing a window does. |
 | Join on this machine (`zj.Attach` in a terminal app) | `rex do -C <app client> session.select <args>` | Needs the app running and its Remote Control setting on. The app client is found with `rex client ls --json` (kind `app`). |
 | Join from a client | `rex do -C <local app client> client.host.switch <args>`, then `session.select` | The engine's server is one of the client's Rex hosts (`rex hosts add engine <endpoint>`). |
@@ -77,15 +79,12 @@ without a `rex` it can run is a setup item, said plainly, never a quiet fall bac
 
 ### Reaching the engine's Rex from a client
 
-Rex's server listens on a Unix socket by default. A client's Rex app reaches it one of two ways,
-chosen when the client is set up:
-
-- **Tailscale**, which Rex recommends: the engine's server joins the tailnet
-  (`rex server start --tailscale`, or the address of a tailnet the engine is already on), and the
-  client adds it with `rex hosts add engine <tailnet endpoint>`.
-- **engineroom's SSH**: engineroom already keeps an SSH connection to the engine for forwarding;
-  the engine's Rex socket is forwarded over it to a socket on the client, and the client's host
-  endpoint is `unix:///<that socket>`.
+Rex's server listens on a Unix socket by default. A client's Rex app reaches the engine's over
+**Tailscale** (agreed): the engine's server serves its API on the tailnet (`rex server tailscale
+on`, or started with `--tailscale`), and each client adds it once with
+`rex hosts add engine <tailnet endpoint>`. Only the engine's Rex server holds engineroom's
+sessions; a client's own Rex server holds none of them. Forwarding the engine's socket over
+engineroom's SSH remains possible, but is not built.
 
 ### Processes belonging to a session
 

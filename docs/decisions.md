@@ -1025,7 +1025,11 @@ Options:    (a) Rex as a session backend beside Zellij, chosen per machine, with
                 Rex's own sessions, its native remote connection and its status display go unused.
             (c) Replace Zellij outright: rejected for now, as Rex is in testing and not
                 available to everyone.
-Decision:   proposed, not yet agreed. The design, written from Rex's CLI and server API
+Decision:   - Agreed by the architect, 2026-11-10: Rex's own Tailscale support is the way a
+              client reaches the engine; Rex is installed on the engine and on each client, but
+              only the engine's Rex server holds sessions; a session has two windows, Claude and a
+              plain terminal.
+            - The rest is proposed, not yet agreed. The design, written from Rex's CLI and server API
             documentation before Rex has been run here, is docs/rex.md: each operation as Rex
             commands, how a client reaches the engine's Rex, errors, naming by ID, and what is
             still to confirm, which scripts/rex-probe.sh records on a machine with Rex.
