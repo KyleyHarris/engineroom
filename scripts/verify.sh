@@ -95,8 +95,15 @@ if [ -f macos/Package.swift ]; then
   step "swift (macos/)"
   if command -v swift >/dev/null 2>&1; then
     swift build --package-path macos -Xswiftc -warnings-as-errors >/dev/null || fail "swift build (macos/)"
-    swift test --package-path macos 2>&1 | grep -E "Executed [0-9]+ tests" | tail -1
-    swift test --package-path macos >/dev/null 2>&1 || fail "swift test (macos/)"
+    # Run once; the count is shown, and on a failure the end of the output, so the failing test
+    # can be read where it ran (a CI log included).
+    swift_out="$(swift test --package-path macos 2>&1)"
+    swift_status=$?
+    printf '%s\n' "${swift_out}" | grep -E "Executed [0-9]+ tests" | tail -1
+    if [ "${swift_status}" -ne 0 ]; then
+      printf '%s\n' "${swift_out}" | grep -E "error|failed|XCTAssert" | head -40
+      fail "swift test (macos/)"
+    fi
   else
     echo "SKIPPED: swift is not installed, so the menu bar app was not built or tested"
   fi
