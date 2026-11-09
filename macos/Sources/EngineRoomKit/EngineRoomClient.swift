@@ -120,27 +120,25 @@ public final class EngineRoomClient: @unchecked Sendable {
             p.standardError = err
             let collected = Collected()
             let errLines = LineSplitter()
-            // The answer is whole only when the program has ended and both pipes have been read to
-            // their end: each pipe is read on its own reader until it reports its end, so no chunk
-            // still being read can land after the answer is returned.
-            let finished = DispatchGroup()
-            finished.enter()
-            finished.enter()
-            finished.enter()
-            readToEnd(out, finished) { collected.append($0) }
-            readToEnd(err, finished) { data in
+            // Each pipe is read while the program runs, and read to its end once it has ended,
+            // under one lock with the reading, so a chunk being read as it ends is never handed on
+            // after the rest (PipeReader).
+            let outReader = PipeReader(out) { collected.append($0) }
+            let errReader = PipeReader(err) { data in
                 if let onError { for line in errLines.feed(data) { onError(line) } }
-            } atEnd: {
+            }
+            p.terminationHandler = { proc in
+                outReader.finish()
+                errReader.finish()
+                // The last line may lack its newline.
                 if let onError { for line in errLines.feed(Data([0x0A])) { onError(line) } }
+                cont.resume(returning: (collected.data, proc.terminationStatus))
             }
-            p.terminationHandler = { _ in finished.leave() }
             do { try p.run() } catch {
-                out.fileHandleForReading.readabilityHandler = nil
-                err.fileHandleForReading.readabilityHandler = nil
+                outReader.finish()
+                errReader.finish()
                 cont.resume(throwing: error)
-                return
             }
-            finished.notify(queue: .global()) { cont.resume(returning: (collected.data, p.terminationStatus)) }
         }
     }
 
@@ -223,36 +221,55 @@ public final class EngineRoomClient: @unchecked Sendable {
                     DispatchQueue.main.async { MainActor.assumeIsolated { onEvent(e) } }
                 }
             }
-            // Done when the program has ended and its output has been read to the end: every event
-            // is then on the main queue ahead of the answer, so the caller sees them all first.
-            let finished = DispatchGroup()
-            finished.enter()
-            finished.enter()
-            readToEnd(out, finished, deliver) { deliver(Data([0x0A])) }
-            p.terminationHandler = { _ in finished.leave() }
-            do { try p.run() } catch {
-                out.fileHandleForReading.readabilityHandler = nil
-                cont.resume(returning: false)
-                return
+            // Once the program has ended its output is read to the end, in order after anything
+            // being read as it ended (PipeReader): every event is then on the main queue ahead of
+            // the answer, so the caller sees them all first.
+            let reader = PipeReader(out, deliver)
+            p.terminationHandler = { _ in
+                reader.finish()
+                deliver(Data([0x0A]))
+                DispatchQueue.main.async { cont.resume(returning: result.get()) }
             }
-            finished.notify(queue: .main) { cont.resume(returning: result.get()) }
+            do { try p.run() } catch {
+                reader.finish()
+                cont.resume(returning: false)
+            }
         }
     }
 }
 
-/// Reads a pipe as data arrives, handing each chunk to chunk, until the pipe reports its end
-/// (empty data); then runs atEnd and leaves group. The pipe's reader calls one chunk at a time, so
-/// the end comes after every chunk has been handed on.
-func readToEnd(_ pipe: Pipe, _ group: DispatchGroup, _ chunk: @escaping @Sendable (Data) -> Void, atEnd: (@Sendable () -> Void)? = nil) {
-    pipe.fileHandleForReading.readabilityHandler = { h in
-        let data = h.availableData
-        if data.isEmpty {
-            h.readabilityHandler = nil
-            atEnd?()
-            group.leave()
-        } else {
-            chunk(data)
+/// Reads a pipe as data arrives, handing each chunk on, and once the program has ended (finish)
+/// reads the rest to the end. The reading as data arrives and the final read share one lock, so a
+/// chunk read just as the program ended is handed on before the rest, never after it, and nothing
+/// is read twice.
+final class PipeReader: @unchecked Sendable {
+    private let lock = NSLock()
+    private var finished = false
+    private let handle: FileHandle
+    private let chunk: @Sendable (Data) -> Void
+
+    init(_ pipe: Pipe, _ chunk: @escaping @Sendable (Data) -> Void) {
+        handle = pipe.fileHandleForReading
+        self.chunk = chunk
+        handle.readabilityHandler = { [weak self] h in
+            guard let self else { return }
+            self.lock.lock()
+            defer { self.lock.unlock() }
+            if self.finished { return }
+            let data = h.availableData
+            if !data.isEmpty { self.chunk(data) }
         }
+    }
+
+    /// Stops the reading as data arrives and hands on the rest of the pipe, to its end.
+    func finish() {
+        lock.lock()
+        defer { lock.unlock() }
+        if finished { return }
+        finished = true
+        handle.readabilityHandler = nil
+        let rest = handle.readDataToEndOfFile()
+        if !rest.isEmpty { chunk(rest) }
     }
 }
 
