@@ -1,10 +1,14 @@
 package settings
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/KyleyHarris/engineroom/internal/action"
+	"github.com/KyleyHarris/engineroom/internal/history"
 )
 
 // Saving copies a checkout's secret files into the settings' secrets folder; restoring puts them
@@ -53,5 +57,83 @@ func TestSecretsAreSavedAndPutBack(t *testing.T) {
 	plan := RestorePlan(p, wt)
 	if len(plan.Commands) != 0 || !strings.Contains(strings.Join(plan.Notes, " "), "differs from your saved copy") {
 		t.Fatalf("a differing file would be overwritten: %v %v", plan.Lines(), plan.Notes)
+	}
+}
+
+// Learning obligation O10: a secret's value never appears on screen or in the history. The
+// actions that carry secrets (saving them to the settings, putting them back in a checkout) are
+// run for real and recorded the way the interface records them; then every line shown before
+// they run, every note, every step's output and the history file itself are searched for the
+// value. Today this holds because the plans name files and never their contents; the test fails
+// if a plan ever carries a value in its arguments, or a command prints one.
+func TestASecretsValueIsNeverShownOrRecorded(t *testing.T) {
+	const value = "s3cr3t-value-that-must-stay-in-the-file"
+	root := t.TempDir()
+	t.Setenv("ENGINEROOM_SETTINGS", root)
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	main := clone(t, "git@github.com:owner/app.git")
+	mine := filepath.Join(root, "projects", "owner", "app")
+	write(t, filepath.Join(mine, "engineroom.toml"), "secrets = [\"server/local.json\"]\n", 0o644)
+	write(t, filepath.Join(main, "server", "local.json"), `{"token":"`+value+`"}`, 0o600)
+	p, err := Load("app", main, main)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var shown []string
+	record := func(plan action.Plan) {
+		t.Helper()
+		shown = append(shown, plan.Title)
+		shown = append(shown, plan.Lines()...)
+		shown = append(shown, plan.Notes...)
+		for _, c := range plan.Commands {
+			shown = append(shown, c.Why, c.OnFail)
+		}
+		entry, err := history.Begin(plan)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ok := action.Run(context.Background(), plan, func(s action.Step) {
+			shown = append(shown, s.Output)
+			entry.Update(s)
+		})
+		if !ok {
+			t.Fatalf("%s failed: %+v", plan.Title, entry.Commands)
+		}
+		if err := entry.Finish(history.Done); err != nil {
+			t.Fatal(err)
+		}
+	}
+	save := SavePlan(p, main)
+	if len(save.Commands) == 0 {
+		t.Fatal("nothing to save: the test would search an empty action")
+	}
+	record(save)
+	wt := t.TempDir()
+	restore := RestorePlan(p, wt)
+	if len(restore.Commands) == 0 {
+		t.Fatal("nothing to restore: the test would search an empty action")
+	}
+	record(restore)
+	// A checkout whose copy differs is named in a note, with both paths, never their contents.
+	write(t, filepath.Join(wt, "server", "local.json"), `{"token":"edited-`+value+`"}`, 0o600)
+	differs := RestorePlan(p, wt)
+	if len(differs.Notes) == 0 {
+		t.Fatal("a differing copy was not noted: the test would search no note")
+	}
+	record(differs)
+
+	for _, s := range shown {
+		if strings.Contains(s, value) {
+			t.Fatalf("a secret's value is on screen: %q", s)
+		}
+	}
+	b, err := os.ReadFile(history.File())
+	if err != nil || len(b) == 0 {
+		t.Fatalf("no history was written to search: %v", err)
+	}
+	if strings.Contains(string(b), value) {
+		t.Fatalf("a secret's value is in the history:\n%s", b)
 	}
 }
