@@ -1,8 +1,12 @@
 {{/*
   The front page, written by hand. In order: what it is (with one moment of motion: new work
-  running as real commands), why it exists as short problem and answer pairs, how it sits beside
-  Claude's own remote features, the stack of tools it joins together (from site.toml), and the
-  way into the docs. The product's name, command and folders come from site.toml; never spell
+  running as real commands), the app as it looks, the ways to use it, why it exists as short
+  problem and answer pairs, how to install it, how it sits beside Claude's own remote features,
+  the stack of tools it joins together (from site.toml), and the way into the docs.
+
+  The pictures are the README's own (site.toml's images folder), so the two cannot show different
+  apps. The install commands are the README's quick start and docs/setup.md; when one changes
+  there, change it here. The product's name, command and folders come from site.toml; never spell
   them here.
 
   The comparison with Claude's own features states theirs only as Anthropic's docs do, with the
@@ -18,8 +22,8 @@
           another's way. Work on them at that Mac, or from your laptop anywhere, with the app each one
           is building on your own <code>localhost</code>.</p>
         <p class="hero-actions">
-          <a class="button" href="how-it-works.html">See how it works</a>
-          <a class="button button-quiet" href="setup/index.html">Set a machine up</a>
+          <a class="button" href="#start">Install it</a>
+          <a class="button button-quiet" href="how-it-works.html">See how it works</a>
         </p>
       </div>
 
@@ -38,6 +42,22 @@
         <figcaption id="console-caption">New work as {{.Site.Product}} runs it: every command
           shown with its reason, then the new session waiting for you with Claude's question. The
           plan is the program's own, shortened where it says so.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="shots" aria-labelledby="shots-title">
+    <h2 id="shots-title">Every session, from the menu bar</h2>
+    <p class="shots-lead">The same list in the menu bar, in a window and in the terminal. One light
+      per project, Claude's mark on the one that is waiting for you.</p>
+    <div class="shots-grid">
+      <figure class="shot">
+        <img src="images/panel.png" width="1680" height="960" loading="lazy" alt="The menu bar panel: a list of projects on the left, pinned first, each with one light, Claude's mark on one that waits; on the right the chosen project's GitHub line and a compact card per checkout with what is unsaved, unpushed or merged, VS Code, Ask Claude, Join and its links">
+        <figcaption>The menu bar panel: what is running, what is waiting, and one click to join.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="images/window-project.png" width="1960" height="1400" loading="lazy" alt="The window: a project's main clone and worktrees as cards, each with its session, app, tasks, links and code actions">
+        <figcaption>The window: a project's main clone and its worktrees, each with its session, app and links.</figcaption>
       </figure>
     </div>
   </section>
@@ -115,6 +135,38 @@
           and copy.</p>
       </li>
     </ul>
+  </section>
+
+  <section class="start" aria-labelledby="start">
+    <h2 id="start">Install it</h2>
+    <p class="start-lead">You need a Mac with Go, Zellij, git and Claude Code. The
+      <a href="setup/index.html">setup page</a> lists every item, why it is needed and how to check it.</p>
+    <ol class="start-steps">
+      <li class="start-step">
+        <h3>Let Claude set it up</h3>
+        <p>In Claude Code, add the plugin, then ask Claude to set this machine up. It installs
+          what is missing and changes nothing without asking.</p>
+        <pre><code>/plugin install {{.Site.Command}} --marketplace {{.Site.RepositoryPath}}</code></pre>
+      </li>
+      <li class="start-step">
+        <h3>Or install it by hand</h3>
+        <p>Builds the command into <code>~/.local/bin</code> and the menu bar app into
+          <code>~/Applications</code>, printing every command it runs.</p>
+        <pre><code>git clone {{.Site.Repository}} &amp;&amp; cd {{.Site.RepositoryName}}
+scripts/install.sh --app</code></pre>
+      </li>
+      <li class="start-step">
+        <h3>Make this Mac the engine</h3>
+        <p>Register a repository, then open {{.Site.Product}} from the menu bar, or run it in a
+          terminal for the same list.</p>
+        <pre><code>{{.Site.Command}} role set engine
+{{.Site.Command}} project add ~/src/project-a
+{{.Site.Command}}</code></pre>
+      </li>
+    </ol>
+    <p class="start-note">A second Mac joins as a client with
+      <code>{{.Site.Command}} role set client --engine engine.example</code>, naming the engine as
+      an SSH destination.</p>
   </section>
 
   <section class="versus" aria-labelledby="versus-title">

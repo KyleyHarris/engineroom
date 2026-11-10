@@ -7,19 +7,17 @@ import (
 	"testing"
 )
 
-// fixture writes a small repository with a site in it and returns its root. files overrides or
-// adds to the defaults, keyed by repository path.
-func fixture(t *testing.T, files map[string]string) string {
-	t.Helper()
-	root := t.TempDir()
-	defaults := map[string]string{
-		"site/site.toml": `product = "tool-a"
+// fixtureConfig is the fixture's site.toml, named so a case can change one line of it.
+const fixtureConfig = `product = "tool-a"
 command = "tool-a"
 folder = "tool-a"
 tagline = "A tagline."
 platform = "Built for testing."
 repository = "https://git.example/owner-a/repo-a"
 branch = "main"
+url = "https://site.example/tool-a/"
+images = "docs/images"
+share = "images/shot.png"
 style = "plain"
 
 [styles]
@@ -41,8 +39,16 @@ slug = "notes"
 nav = "Notes"
 about = "The notes."
 split = 2
-`,
-		"site/templates/layout.html":     `{{define "layout"}}<html><head><title>{{.Title}}</title><link href="{{.Root}}assets/site.css"></head><body>{{block "main" .}}{{end}}</body></html>{{end}}`,
+`
+
+// fixture writes a small repository with a site in it and returns its root. files overrides or
+// adds to the defaults, keyed by repository path.
+func fixture(t *testing.T, files map[string]string) string {
+	t.Helper()
+	root := t.TempDir()
+	defaults := map[string]string{
+		"site/site.toml":                 fixtureConfig,
+		"site/templates/layout.html":     `{{define "layout"}}<html><head><title>{{.Title}}</title><meta name="description" content="{{.Description}}">{{if .Canonical}}<link rel="canonical" href="{{.Canonical}}">{{end}}<link href="{{.Root}}assets/site.css"></head><body>{{block "main" .}}{{end}}</body></html>{{end}}`,
 		"site/templates/parts/part.html": `{{define "part"}}<p id="part">{{.Site.Command}}</p>{{end}}`,
 		"site/pages/about.html":          `{{define "title"}}About it{{end}}{{define "main"}}{{template "part" .}}<span id="section">{{.Section}}</span>{{end}}`,
 		"site/templates/doc.html":        `{{define "main"}}<main>{{.Body}}</main>{{range .Nav}}<a href="{{.Href}}">{{.Title}}</a>{{end}}{{end}}`,
@@ -181,6 +187,73 @@ func TestBuildRendersDocsIntoPages(t *testing.T) {
 	}
 }
 
+// Guards what a search engine and a link preview read. Each would fail silently otherwise: a page
+// described by another page's words, an address that is not the page's own, a page missing from
+// the sitemap, and a page for a missing address whose links only work from the site's root.
+func TestBuildDescribesAndListsEveryPage(t *testing.T) {
+	long := strings.Repeat("word ", 60)
+	root := fixture(t, map[string]string{
+		"site/pages/404.html": `{{define "title"}}Not here{{end}}{{define "description"}}Nothing at
+  this   address.{{end}}{{define "main"}}<a href="{{.Root}}index.html">home</a>{{end}}`,
+		"docs/notes.md": "# Notes\n\nThe notes, with `code` and a [link](guide.md) in them, long enough to stand alone.\n\n" +
+			"## The first\n\n" + long + "\n\n" +
+			"## The second\n\nRun:\n\n```sh\ntool-a\n```\n",
+	})
+	out := filepath.Join(t.TempDir(), "out")
+	if _, err := Build(root, out); err != nil {
+		t.Fatal(err)
+	}
+	if problems := Check(out); len(problems) > 0 {
+		t.Errorf("the built fixture has problems: %v", problems)
+	}
+
+	// A doc page is described by its own first paragraph, as plain text.
+	mustContain(t, "notes/index.html", read(t, out, "notes/index.html"),
+		`content="The notes, with code and a link in them, long enough to stand alone."`,
+		`<link rel="canonical" href="https://site.example/tool-a/notes/index.html">`)
+	// A long one is cut at a word, within the limit.
+	first := read(t, out, "notes/the-first.html")
+	cut := strings.TrimRight(strings.Repeat("word ", 32), " ") + "..."
+	mustContain(t, "notes/the-first.html", first, `content="`+cut+`"`)
+	// A lead-in line says nothing alone, so the page takes its title and the doc's sentence.
+	mustContain(t, "notes/the-second.html", read(t, out, "notes/the-second.html"),
+		`content="The second. The notes."`)
+
+	// A hand-written page with no description of its own takes the tagline; the front page's
+	// address is the site's.
+	mustContain(t, "about.html", read(t, out, "about.html"), `content="A tagline."`,
+		`href="https://site.example/tool-a/about.html"`)
+	mustContain(t, "index.html", read(t, out, "index.html"), `<link rel="canonical" href="https://site.example/tool-a/">`)
+
+	// The page for a missing address: its own description with the line breaks folded, whole
+	// links, no address of its own, and no place in the sitemap.
+	missing := read(t, out, "404.html")
+	mustContain(t, "404.html", missing, `<title>Not here</title>`, `content="Nothing at this address."`,
+		`<a href="https://site.example/tool-a/index.html">home</a>`, `href="https://site.example/tool-a/assets/site.css"`)
+	if strings.Contains(missing, "canonical") {
+		t.Error("404.html names a canonical address; it is served from every missing address and has none")
+	}
+
+	sitemap := read(t, out, "sitemap.xml")
+	mustContain(t, "sitemap.xml", sitemap,
+		"<loc>https://site.example/tool-a/</loc>",
+		"<loc>https://site.example/tool-a/about.html</loc>",
+		"<loc>https://site.example/tool-a/guide/ports-and-slots.html</loc>",
+		"<loc>https://site.example/tool-a/notes/the-second.html</loc>")
+	if strings.Contains(sitemap, "404") || strings.Contains(sitemap, "tool-a/index.html") {
+		t.Errorf("the sitemap lists a page it should not:\n%s", sitemap)
+	}
+	if n := strings.Count(sitemap, "<loc>"); n != 10 {
+		t.Errorf("the sitemap lists %d pages, want the 10 that have an address", n)
+	}
+	mustContain(t, "robots.txt", read(t, out, "robots.txt"), "Sitemap: https://site.example/tool-a/sitemap.xml")
+
+	// The pictures folder is copied for the hand-written pages and the link preview.
+	if _, err := os.Stat(filepath.Join(out, "images", "shot.png")); err != nil {
+		t.Errorf("the pictures folder was not copied: %v", err)
+	}
+}
+
 // Guards the build's refusals: each of these would otherwise reach a reader as a broken page.
 func TestBuildRefuses(t *testing.T) {
 	cases := []struct {
@@ -208,6 +281,14 @@ func TestBuildRefuses(t *testing.T) {
 			"two pages would both be guide/index.html"},
 		{"an unset product name", map[string]string{"site/site.toml": "command = \"x\"\n"},
 			`"product" is not set`},
+		{"a site address that page paths cannot be joined to", map[string]string{"site/site.toml": strings.Replace(fixtureConfig, "https://site.example/tool-a/", "https://site.example/tool-a", 1)},
+			"must be the site's whole address, ending in a slash"},
+		{"a site address with no scheme", map[string]string{"site/site.toml": strings.Replace(fixtureConfig, "https://site.example/tool-a/", "site.example/", 1)},
+			"must be the site's whole address"},
+		{"a link preview picture that is not in the site", map[string]string{"site/site.toml": strings.Replace(fixtureConfig, "images/shot.png", "images/absent.png", 1)},
+			`share "images/absent.png" is not in the built site`},
+		{"a link preview picture with no folder to take it from", map[string]string{"site/site.toml": strings.Replace(fixtureConfig, "images = \"docs/images\"\n", "", 1)},
+			"images names no folder"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

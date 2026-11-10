@@ -24,8 +24,14 @@ type View struct {
 	Site  *Config
 	Root  string // the way back to the site's root from this page: "" or "../"
 	Title string // for the browser's title bar
-	Docs  []*Doc // every rendered doc, in the order the site lists them
-	Doc   *Doc   // the doc this page belongs to; nil on a hand-written page
+	// Description is what a search result and a link preview say under the title: a doc page's
+	// own first paragraph, a hand-written page's "description" template, or the site's tagline.
+	Description string
+	// Canonical is the page's whole published address; empty on the page for an address that is
+	// not there, which has none.
+	Canonical string
+	Docs      []*Doc // every rendered doc, in the order the site lists them
+	Doc       *Doc   // the doc this page belongs to; nil on a hand-written page
 	// Section names where this page sits, for marking it in the top navigation (templates
 	// compare strings, not the docs themselves): a doc's slug, or a hand-written page's file name
 	// without ".html".
@@ -82,6 +88,8 @@ func Build(root, out string) (int, error) {
 		return 0, err
 	}
 	count := 0
+	// listed is every page a search engine should know, for the sitemap.
+	var listed []string
 
 	// Every page is parsed with the layout and the shared parts (site/templates/parts), pieces of
 	// page more than one page shows, so each is written once.
@@ -99,7 +107,9 @@ func Build(root, out string) (int, error) {
 		nav := navFor(d)
 		for i, p := range d.Pages {
 			v := View{Site: cfg, Root: rootFrom(p.File), Title: p.Title, Docs: s.docs, Doc: d, Page: p,
-				Section: d.Config.Slug, Body: template.HTML(p.Body), File: p.File}
+				Section: d.Config.Slug, Body: template.HTML(p.Body), File: p.File,
+				Description: describe(p), Canonical: cfg.URL + p.File}
+			listed = append(listed, p.File)
 			for j, n := range nav {
 				n.Href = relative(p.File, n.Href)
 				n.Current = j == i
@@ -134,14 +144,34 @@ func Build(root, out string) (int, error) {
 		}
 		file := filepath.Base(pf)
 		// A hand-written page names itself in the navigation by its file name, and may define a
-		// "title" template for the browser's title bar; the front page defines none.
-		v := View{Site: cfg, Root: "", Docs: s.docs, File: file, Section: strings.TrimSuffix(file, ".html")}
-		if tt := t.Lookup("title"); tt != nil {
-			var title bytes.Buffer
-			if err := tt.Execute(&title, v); err != nil {
-				return 0, fmt.Errorf("%s: title: %w", file, err)
+		// "title" template for the browser's title bar and a "description" template for search
+		// results and link previews; the front page defines neither and is described by the
+		// tagline.
+		v := View{Site: cfg, Root: "", Docs: s.docs, File: file, Section: strings.TrimSuffix(file, ".html"),
+			Description: cfg.Tagline, Canonical: cfg.URL + file}
+		switch file {
+		case "index.html":
+			// The front page is the site's address itself.
+			v.Canonical = cfg.URL
+			listed = append(listed, "")
+		case notFoundPage:
+			// A host serves this page for any address that is not there, at any depth, so a
+			// relative link would point somewhere different each time: its links are whole.
+			v.Root = cfg.URL
+			v.Canonical = ""
+		default:
+			listed = append(listed, file)
+		}
+		for name, into := range map[string]*string{"title": &v.Title, "description": &v.Description} {
+			tt := t.Lookup(name)
+			if tt == nil {
+				continue
 			}
-			v.Title = strings.TrimSpace(title.String())
+			var text bytes.Buffer
+			if err := tt.Execute(&text, v); err != nil {
+				return 0, fmt.Errorf("%s: %s: %w", file, name, err)
+			}
+			*into = strings.Join(strings.Fields(text.String()), " ")
 		}
 		if err := writePage(t, out, file, v); err != nil {
 			return 0, err
@@ -157,7 +187,79 @@ func Build(root, out string) (int, error) {
 			return 0, err
 		}
 	}
+	if cfg.Images != "" {
+		if err := copyTree(filepath.Join(root, filepath.FromSlash(cfg.Images)), filepath.Join(out, "images")); err != nil {
+			return 0, err
+		}
+	}
+	// A link preview with a picture that is not there shows a broken image on someone else's
+	// site, where no check of this one would see it.
+	if cfg.Share != "" {
+		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(cfg.Share))); err != nil {
+			return 0, fmt.Errorf("site.toml: share %q is not in the built site", cfg.Share)
+		}
+	}
+	if err := writeSitemap(out, cfg.URL, listed); err != nil {
+		return 0, err
+	}
 	return count, nil
+}
+
+// notFoundPage is the hand-written page a host serves for an address that is not there.
+const notFoundPage = "404.html"
+
+// descriptionLimit is about what a search result shows of a description before cutting it.
+const descriptionLimit = 160
+
+// descriptionFloor is the shortest first paragraph that describes a page on its own.
+const descriptionFloor = 50
+
+// describe is a doc page's description: its own first paragraph, cut at a word where it runs
+// long, so each page says what it holds rather than every page repeating the doc's one sentence.
+// A page whose first paragraph says too little to stand alone (none at all, or a line such as
+// "On the engine:" that only leads into a code block) is described by its title and the doc's
+// sentence.
+func describe(p *Page) string {
+	for _, n := range p.nodes {
+		if _, ok := n.(*ast.Paragraph); !ok {
+			continue
+		}
+		text := strings.Join(strings.Fields(plainText(n, p.Doc.src)), " ")
+		if len([]rune(text)) < descriptionFloor {
+			break
+		}
+		r := []rune(text)
+		if len(r) <= descriptionLimit {
+			return text
+		}
+		cut := string(r[:descriptionLimit])
+		if i := strings.LastIndexByte(cut, ' '); i > 0 {
+			cut = cut[:i]
+		}
+		return strings.TrimRight(cut, " ,;:.") + "..."
+	}
+	if p.Level == 1 {
+		return p.Doc.Config.About
+	}
+	return p.Title + ". " + p.Doc.Config.About
+}
+
+// writeSitemap lists every page's whole address for search engines, and points to the list from
+// robots.txt. The order is fixed so two builds of the same site are the same bytes.
+func writeSitemap(out, base string, files []string) error {
+	sort.Strings(files)
+	var b strings.Builder
+	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	b.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + "\n")
+	for _, f := range files {
+		b.WriteString("  <url><loc>" + template.HTMLEscapeString(base+f) + "</loc></url>\n")
+	}
+	b.WriteString("</urlset>\n")
+	if err := os.WriteFile(filepath.Join(out, "sitemap.xml"), []byte(b.String()), 0o644); err != nil {
+		return err
+	}
+	robots := "User-agent: *\nAllow: /\n\nSitemap: " + base + "sitemap.xml\n"
+	return os.WriteFile(filepath.Join(out, "robots.txt"), []byte(robots), 0o644)
 }
 
 // renderPage turns a page's Markdown blocks into HTML. The blocks are moved into a document of

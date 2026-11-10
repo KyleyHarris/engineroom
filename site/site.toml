@@ -14,6 +14,15 @@ platform = "Built and tested on macOS. The command line also runs on Linux, wher
 repository = "https://github.com/KyleyHarris/engineroom"
 branch = "main"
 
+# Where the site is published, ending in a slash. Pages link to each other relatively; this is
+# for what must be a whole address: each page's canonical link, link previews, the sitemap, and
+# the page shown for an address that is not there.
+url = "https://kyleyharris.github.io/engineroom/"
+# The pictures the hand-written pages show: this folder is copied to images/ in the built site.
+# `share` is the one a link preview shows, as its path in the built site.
+images = "docs/images"
+share = "images/panel.png"
+
 # The look: assets/styles/<style>.css over assets/base.css. When more than one style is listed,
 # the dev server (go run ./tools/site -serve) offers a switch between them, so a new look can be
 # compared on the running site; the built site uses `style` alone.
