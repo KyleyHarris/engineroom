@@ -110,7 +110,12 @@ It brings:
 
 - **Skills**: `setup-machine` (this guide, item by item), `register-project`, `adopt-project`
   (how a repository runs in worktrees, written to your settings when you agree), `worktree` (make,
-  move on or close one) and `run-stack` (start and stop a worktree's app).
+  move on or close one), `run-stack` (start and stop a worktree's app), `sessions` (what is
+  running and what waits for you; start, join, restart or stop a session; run a project's task;
+  read the history), `ports` (a worktree's slot and ports, clashes, and forwarding on a client)
+  and `work-local` (show and run a handover, a release or a mirror). The last three run the
+  same `engineroom` commands the menu bar app runs: Claude shows an action's commands and runs
+  it when you say.
 - **Hooks**: each session is told, as it starts, which slot of ports its worktree runs on
   (`engineroom slot status --hook`); and the session list marks a session waiting for your
   answer with Claude's mark (✻) and its question (`engineroom signal waiting --from-hook` when Claude
