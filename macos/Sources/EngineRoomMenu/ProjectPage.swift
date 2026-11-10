@@ -27,20 +27,20 @@ struct ProjectPageView: View {
                 header(p)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
-                        if let problem = p.problem { Text(problem).foregroundColor(.red).font(.system(size: 13)) }
+                        if let problem = p.problem { Banner(.bad, problem) }
                         ForEach(p.checkouts.filter(\.main)) { c in CheckoutCard(project: p, checkout: c) }
                         worktrees(p)
                         if let loose = p.loose, !loose.isEmpty { looseServers(p, loose) }
                         GroupTitle("Project")
                         VStack(alignment: .leading, spacing: 10) { details(p) }.card()
                     }
-                    .padding(.horizontal, 20).padding(.bottom, 20)
+                    .padding(.horizontal, Gutter.page).padding(.bottom, Gutter.page)
                 }
             } else if let e = store.projectError {
-                Text(e).foregroundColor(.red).padding(20)
+                Banner(.bad, e).padding(Gutter.page)
                 Spacer()
             } else {
-                HStack { ProgressView().controlSize(.small); Text("Reading \(name)…").foregroundColor(.secondary) }.padding(14)
+                HStack { ProgressView().controlSize(.small); Text("Reading \(name)…").foregroundColor(.secondary) }.padding(Gutter.page)
                 Spacer()
             }
         }
@@ -52,12 +52,7 @@ struct ProjectPageView: View {
     /// done to the project as a whole: ask Claude about it, and add a worktree.
     @ViewBuilder private func header(_ p: ProjectPage) -> some View {
         let pinned = store.pendingPin[name] ?? (p.pinned == true)
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(name).font(.system(size: 22, weight: .bold))
-            if let category = p.category, !category.isEmpty {
-                Text(category).font(.system(size: 13)).foregroundColor(.secondary)
-            }
-            Spacer()
+        PageHeader(title: name, detail: p.category) {
             Button { Task { await store.setPinned(name, !pinned) } } label: {
                 Label(pinned ? "Pinned" : "Pin", systemImage: pinned ? "star.fill" : "star")
             }
@@ -68,11 +63,11 @@ struct ProjectPageView: View {
                     .help("A Claude session that knows this project: say what you want done").pointer()
             }
         }
-        .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, p.github == nil ? 10 : 2)
+        .padding(.bottom, p.github == nil ? 10 : 2)
         if let g = p.github {
             // One line to the repository on GitHub, APP-PAGE-005.
             GitHubRow(label: g.repo, links: [("Code", g.code), ("Issues", g.issues), ("Pull requests", g.pulls)])
-                .padding(.horizontal, 20).padding(.bottom, 10)
+                .padding(.horizontal, Gutter.page).padding(.bottom, 10)
         }
     }
 
@@ -106,7 +101,7 @@ struct ProjectPageView: View {
                 Text(forRole
                      ? "Kept: named for its role, it holds one branch after another, with the same session and ports."
                      : "For one piece of work: named for its branch, and closed when the branch is done.")
-                    .font(.system(size: 12)).foregroundColor(.secondary)
+                    .font(.app(.caption)).foregroundColor(.secondary)
                 HStack {
                     if forRole {
                         TextField("role, e.g. designer", text: $role).textFieldStyle(.roundedBorder).frame(maxWidth: 180)
@@ -121,7 +116,7 @@ struct ProjectPageView: View {
         let others = p.checkouts.filter { !$0.main }
         if others.isEmpty {
             Text("None yet. A worktree is a second folder on its own branch, with its own session and ports.")
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(.app(.caption)).foregroundColor(.secondary)
         }
         LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
             ForEach(others) { c in CheckoutCard(project: p, checkout: c) }
@@ -138,13 +133,13 @@ struct ProjectPageView: View {
                 HStack(alignment: .top, spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Port \(s.ports.map(String.init).joined(separator: ", ")) · pid \(s.pid)")
-                            .font(.system(size: 13, weight: .medium))
-                        Text(s.command).font(.system(size: 11, design: .monospaced)).foregroundColor(.secondary).lineLimit(1)
+                            .font(.app(.detail, weight: .medium))
+                        Text(s.command).font(.app(.fine, design: .monospaced)).foregroundColor(.secondary).lineLimit(1)
                         Text([s.folder, "since " + s.started].compactMap { $0 }.joined(separator: " · "))
-                            .font(.system(size: 11)).foregroundColor(.secondary)
+                            .font(.app(.fine)).foregroundColor(.secondary)
                         if let session = s.session {
                             Text("Started for \(session), which has ended; the sweep stops it two minutes after.")
-                                .font(.system(size: 11)).foregroundColor(.orange)
+                                .font(.app(.fine)).foregroundColor(.attention)
                         }
                     }
                     Spacer()
@@ -178,7 +173,7 @@ struct ProjectPageView: View {
             }
             .padding(.top, 4)
         } label: {
-            Text("Scripts, ports and secrets").font(.system(size: 13, weight: .medium))
+            Text("Scripts, ports and secrets").font(.app(.detail, weight: .medium))
         }
         DisclosureGroup {
             VStack(alignment: .leading, spacing: 8) {
@@ -189,11 +184,11 @@ struct ProjectPageView: View {
                 }
                 Button("Unregister…") { Task { await store.preview(["unregister", name]) } }.pointer()
                     .help("Forget the project in engineroom. Its folder and worktrees are left as they are.")
-                Text([p.identity, p.checkout].compactMap { $0 }.joined(separator: " · ")).font(.system(size: 11)).foregroundColor(.secondary)
+                Text([p.identity, p.checkout].compactMap { $0 }.joined(separator: " · ")).font(.app(.fine)).foregroundColor(.secondary)
             }
             .padding(.top, 4)
         } label: {
-            Text("Organise").font(.system(size: 13, weight: .medium))
+            Text("Organise").font(.app(.detail, weight: .medium))
         }
     }
 
@@ -210,9 +205,10 @@ struct ProjectPageView: View {
     }
 }
 
-/// One checkout on a card (Style.swift): its header (state, name, kind, state in words), then a row
-/// each for its session, its app and the addresses it serves, and Ask Claude and More info at the
-/// foot. Its branch, folder, slot and ports are under More info.
+/// One checkout on a card (Style.swift): its header (state, name, kind, state in words), what it
+/// has unsaved as a chip under it, then a row each for its session (a worktree's Close at the far
+/// end of it), its app, the addresses it serves and its code, and More info at the foot. Its
+/// branch, folder, slot and ports are under More info.
 struct CheckoutCard: View {
     @EnvironmentObject var store: Store
     let project: ProjectPage
@@ -229,24 +225,48 @@ struct CheckoutCard: View {
             // "main" title hid. A role worktree is titled by its role, the branch it holds now
             // beside it in the kind (D-024); any other by the branch it has out.
             CardHeader(state: state, name: checkout.role ?? checkout.branch ?? (checkout.main ? "main clone" : (checkout.work ?? "worktree")), kind: kind)
-            if let q = checkout.question, checkout.isWaiting { Text(q).font(.system(size: 13)).foregroundColor(.orange) }
+            // What would be lost is a chip on a line of its own, as on the panel's tile: in the
+            // header's quiet words it was cut off as soon as the card was narrow.
+            if checkout.changes > 0 {
+                HStack(spacing: 6) { Chip(text: "\(checkout.changes) unsaved", color: .attention) }
+            }
+            if let q = checkout.question, checkout.isWaiting { Text(q).font(.app(.detail)).foregroundColor(.attention) }
             if let clash = checkout.clash {
-                Text(clash).font(.system(size: 12)).foregroundColor(.orange).fixedSize(horizontal: false, vertical: true)
+                Text(clash).font(.app(.caption)).foregroundColor(.attention).fixedSize(horizontal: false, vertical: true)
+                // Nothing of its session can be started from here, so the row holds only Close,
+                // which stays in reach where it is on every other worktree's card.
+                if !checkout.main {
+                    FieldRow("Session") {
+                        Spacer()
+                        close
+                    }
+                }
             } else {
-                FieldRow("Session") {
-                    if checkout.running {
+                if checkout.running {
+                    FieldRow("Session") {
                         Button("Join") { Task { await store.runNow(["join", checkout.session], opensWindow: true) } }
                             .buttonStyle(.borderedProminent).pointer()
                         Button("Stop") { Task { await store.preview(["stop", checkout.session]) } }.pointer()
-                    } else {
-                        Menu("Start") {
-                            Button("In \(store.status?.terminal ?? "the terminal") and Remote Control") { start("both") }
-                            Button("In \(store.status?.terminal ?? "the terminal") only") { start("zellij") }
-                            Button("Remote Control only, no window") { start("remote") }
-                        } primaryAction: { start(store.status?.start ?? "zellij") }
-                        .fixedSize().pointer()
+                        Spacer()
+                        if !checkout.main { close }
                     }
-                    Spacer()
+                } else {
+                    // The three ways to start it (APP-START-001 to 003), each a button in sight and
+                    // none in a menu (D-025, D-032), in the words and the order of the Restart row
+                    // a running session has. The way chosen in Settings is the filled one, so the
+                    // usual start is still one click and the eye lands on it first. Short words
+                    // that wrap rather than cut off, so all three read in a narrow card.
+                    FieldRow("Start", wraps: true) {
+                        FlowRow(spacing: 8) {
+                            Button("\(terminal) + Remote") { start("both") }.filled(usual == "both").pointer()
+                                .help("Start it with Remote Control, and open it in \(terminal)")
+                            Button("\(terminal) only") { start("zellij") }.filled(usual == "zellij").pointer()
+                                .help("Start it without Remote Control, and open it in \(terminal)")
+                            Button("Remote only") { start("remote") }.filled(usual == "remote").pointer()
+                                .help("Start it with Remote Control, and open no window")
+                            if !checkout.main { close.flowEnd() }
+                        }
+                    }
                 }
                 // Restarting chooses how the session comes back, as starting does, each way a
                 // button of its own; each ends the session and starts it fresh with the current
@@ -254,7 +274,7 @@ struct CheckoutCard: View {
                 // Claude starts, so a restart is how a running session gets it, or loses it.
                 if checkout.running {
                     // Short words that wrap rather than cut off, so all three read in a narrow card.
-                    FieldRow("Restart") {
+                    FieldRow("Restart", wraps: true) {
                         FlowRow(spacing: 8) {
                             Button("\(terminal) + Remote") { restart("both") }.pointer()
                                 .help("Restart it with Remote Control, and open it in \(terminal)")
@@ -278,7 +298,7 @@ struct CheckoutCard: View {
                 }
                 if let tasks = project.tasks, !tasks.isEmpty {
                     HStack(alignment: .top, spacing: 10) {
-                        Text("Tasks").font(.system(size: 12)).foregroundColor(.secondary).frame(width: 52, alignment: .leading).padding(.top, 4)
+                        Text("Tasks").font(.app(.caption)).foregroundColor(.secondary).frame(width: 52, alignment: .leading).padding(.top, 4)
                         FlowRow(spacing: 8) {
                             ForEach(tasks, id: \.name) { t in
                                 Button(t.name) { Task { await store.preview(["task", checkout.session, t.name]) } }
@@ -318,10 +338,10 @@ struct CheckoutCard: View {
                     }
                 }
             }
-            // The code, Claude and cleaning up are buttons in sight, drawn like every other; the
-            // row wraps rather than squeezing its words when the card is narrow.
+            // The code and Claude are buttons in sight, drawn like every other; the row wraps
+            // rather than squeezing its words when the card is narrow.
             HStack(alignment: .top, spacing: 10) {
-                Text("Code").font(.system(size: 12)).foregroundColor(.secondary).frame(width: 52, alignment: .leading).padding(.top, 4)
+                Text("Code").font(.app(.caption)).foregroundColor(.secondary).frame(width: 52, alignment: .leading).padding(.top, 4)
                 FlowRow(spacing: 8) {
                     Button { Task { await store.runNow(["edit-path", project.name, checkout.path], opensWindow: true) } } label: {
                         Label("VS Code", systemImage: "chevron.left.forwardslash.chevron.right")
@@ -333,10 +353,6 @@ struct CheckoutCard: View {
                     }
                     Button { ask() } label: { Label("Ask Claude", systemImage: "sparkles") }
                         .help("A Claude session that knows this \(checkout.main ? "project" : "worktree"): say what you want done")
-                    if !checkout.main {
-                        Button { Task { await store.preview(["clean-session", checkout.session]) } } label: { Label("Close", systemImage: "trash") }
-                            .help("Stop its session, run the teardown script, remove the worktree; its commands are shown first, and it refuses while work would be lost, offering to save, put aside or push it")
-                    }
                 }
                 .lineLimit(1).pointer()
             }
@@ -361,11 +377,18 @@ struct CheckoutCard: View {
         .card()
     }
 
-    /// What the checkout is, and how many files it has changed and not committed, if any: said
-    /// in the header so the Session row keeps its room for its buttons.
+    /// What the checkout is, in the header's quiet words: the main clone, a worktree, or a role
+    /// and the branch it holds now.
     private var kind: String {
-        let what = checkout.main ? "main clone" : (checkout.role != nil ? "role, on \(checkout.branch ?? "no branch")" : "worktree")
-        return checkout.changes > 0 ? "\(what), \(checkout.changes) unsaved" : what
+        checkout.main ? "main clone" : (checkout.role != nil ? "role, on \(checkout.branch ?? "no branch")" : "worktree")
+    }
+
+    /// Close, which only a worktree has: on the row that joins or starts its session, at the far
+    /// end of it and apart from those buttons, as Stop and Close are on the panel's tile. In
+    /// words alone, as every button that changes something is (D-032).
+    private var close: some View {
+        Button("Close") { Task { await store.preview(["clean-session", checkout.session]) } }.pointer()
+            .help("Stop its session, run the teardown script, remove the worktree; its commands are shown first, and it refuses while work would be lost, offering to save, put aside or push it")
     }
 
     private var state: RunState {
@@ -374,6 +397,10 @@ struct CheckoutCard: View {
     }
 
     private var terminal: String { store.status?.terminal ?? "Terminal" }
+
+    /// The way to start a session chosen in Settings, which the filled Start button is; in the
+    /// terminal alone until the settings have been read, as every other start in the app assumes.
+    private var usual: String { store.status?.start ?? "zellij" }
 
     /// Shows the move to the next branch first, as every action is shown.
     private func moveOn(_ role: String) {
@@ -420,7 +447,7 @@ struct LinksRow: View {
                                 Text(l.name).underline().foregroundColor(.accentColor)
                                 Text(":\(url.port.map(String.init) ?? "")").foregroundColor(.secondary)
                             }
-                            .font(.system(size: 13))
+                            .font(.app(.detail))
                         }.pointer()
                         .buttonStyle(.plain)
                         .help("Open \(l.url) in the browser")
@@ -439,11 +466,11 @@ struct GitHubRow: View {
     let links: [(String, String)]
     var body: some View {
         FlowRow(spacing: 12) {
-            if let label { Text(label).font(.system(size: 12)).foregroundColor(.secondary) }
+            if let label { Text(label).font(.app(.caption)).foregroundColor(.secondary) }
             ForEach(links, id: \.1) { name, address in
                 if let url = URL(string: address) {
                     Button { NSWorkspace.shared.open(url) } label: {
-                        Text(name).underline().foregroundColor(.accentColor).font(.system(size: 13))
+                        Text(name).underline().foregroundColor(.accentColor).font(.app(.detail))
                     }
                     .buttonStyle(.plain).pointer()
                     .help("Open \(address) in the browser")
@@ -453,31 +480,48 @@ struct GitHubRow: View {
     }
 }
 
-/// Lays its children out left to right, wrapping onto the next line when the row is full.
+/// Lays its children out left to right, wrapping onto the next line when the row is full. A child
+/// marked `flowEnd()` goes to the far end of the line it lands on, so a button that ends something
+/// stands apart from the ones before it without the row having to be one line.
 struct FlowRow: Layout {
     var spacing: CGFloat = 6
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? .infinity
         var x: CGFloat = 0, y: CGFloat = 0, line: CGFloat = 0, widest: CGFloat = 0
+        var ends = false
         for v in subviews {
             let s = v.sizeThatFits(.unspecified)
             if x > 0 && x + s.width > width { x = 0; y += line + spacing; line = 0 }
             x += s.width + spacing
             line = max(line, s.height)
             widest = max(widest, x - spacing)
+            ends = ends || v[FlowEnd.self]
         }
-        return CGSize(width: min(widest, width), height: y + line)
+        // With a child at the far end the row takes all the width it is offered: the far end is
+        // the edge of what holds the row, not wherever its last button happens to stop.
+        return CGSize(width: ends && width.isFinite ? width : min(widest, width), height: y + line)
     }
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.minX, y = bounds.minY, line: CGFloat = 0
         for v in subviews {
             let s = v.sizeThatFits(.unspecified)
             if x > bounds.minX && x + s.width > bounds.maxX { x = bounds.minX; y += line + spacing; line = 0 }
-            v.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(s))
-            x += s.width + spacing
+            let at = v[FlowEnd.self] ? max(x, bounds.maxX - s.width) : x
+            v.place(at: CGPoint(x: at, y: y), proposal: ProposedViewSize(s))
+            x = at + s.width + spacing
             line = max(line, s.height)
         }
     }
+}
+
+/// Whether a child of a FlowRow goes to the far end of its line.
+private struct FlowEnd: LayoutValueKey {
+    static let defaultValue = false
+}
+
+extension View {
+    /// In a FlowRow, puts this child at the far end of the line it lands on.
+    func flowEnd() -> some View { layoutValue(key: FlowEnd.self, value: true) }
 }
 
 /// On a client working on the engine: one session's forwarding switch, beside its links. Nothing on
@@ -488,7 +532,7 @@ struct ForwardSwitch: View {
     var body: some View {
         if let s = store.status, s.isClient, !s.offline {
             HStack(spacing: 5) {
-                Text("Forward").font(.system(size: 12)).foregroundColor(.secondary)
+                Text("Forward").font(.app(.caption)).foregroundColor(.secondary)
                 Toggle("Forward", isOn: Binding(get: { store.forwards(session) }, set: { v in Task { await store.setSessionForward(session, v) } }))
                     .toggleStyle(.switch).controlSize(.mini).labelsHidden()
             }
@@ -511,9 +555,9 @@ struct ForwardRow: View {
         let wanted = f?.wants(session) == true
         let here = ports.filter { f?.forwarded[String($0.port)] == session }
         VStack(alignment: .leading, spacing: 2) {
-            Text(summary(f, wanted: wanted, here: here)).font(.system(size: 12)).foregroundColor(here.count == ports.count && running ? .green : .secondary)
+            Text(summary(f, wanted: wanted, here: here)).font(.app(.caption)).foregroundColor(here.count == ports.count && running ? .good : .secondary)
             ForEach((f?.last?.notes ?? []).filter { $0.hasPrefix(session + "'s") }, id: \.self) { n in
-                Text(n).font(.system(size: 12)).foregroundColor(.orange)
+                Text(n).font(.app(.caption)).foregroundColor(.attention)
             }
         }
     }
@@ -527,26 +571,14 @@ struct ForwardRow: View {
     }
 }
 
-struct SectionTitle: View {
-    let title: String
-    let detail: String
-    init(_ title: String, detail: String) { self.title = title; self.detail = detail }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(title).font(.system(size: 14, weight: .bold))
-            Text(detail).font(.system(size: 12)).foregroundColor(.secondary)
-        }
-    }
-}
-
 struct LabeledRow: View {
     let label: String
     let value: String
     init(_ label: String, _ value: String) { self.label = label; self.value = value }
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(label).font(.system(size: 13, weight: .semibold)).frame(width: 64, alignment: .leading)
-            Text(value).font(.system(size: 12, design: .monospaced)).foregroundColor(.secondary).lineLimit(2).truncationMode(.middle)
+            Text(label).font(.app(.detail, weight: .semibold)).frame(width: 64, alignment: .leading)
+            Text(value).font(.app(.caption, design: .monospaced)).foregroundColor(.secondary).lineLimit(2).truncationMode(.middle)
         }
     }
 }

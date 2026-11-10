@@ -12,7 +12,6 @@ final class Store: ObservableObject {
     /// or registering a repository.
     enum Page: Equatable {
         case none
-        case start(project: String)
         case add(root: String?)
         case register(root: String, folder: String)
         case action(title: String)
@@ -38,6 +37,17 @@ final class Store: ObservableObject {
     var activeSurface: Surface = .panel
     /// The monitor that sets activeSurface from each click; kept for the app's life.
     private var clickMonitor: Any?
+    /// The monitor that gives the panel and the window their keys (key(_:in:), D-033); kept for
+    /// the app's life.
+    private var keyMonitor: Any?
+    /// Where the pointer was when an arrow key last chose a project in the panel. A pointer that
+    /// has not moved since chooses nothing, so a row resting under it does not take the choice
+    /// back from the keys; the first movement gives pointing its say again (pointerChooses).
+    private var keyPointer: NSPoint?
+    /// Counts the arrow keys that chose a project in the panel. The list brings the chosen row
+    /// into sight each time this changes, and only then: a row chosen by pointing is in sight
+    /// already, and must not slide under the pointer that chose it.
+    @Published private(set) var keySteps = 0
     /// Where the action on screen was started, and so where its commands are shown.
     @Published var actionIn: Surface = .panel
     /// Opens the window and brings it to the front; set by the panel, which can reach SwiftUI's
@@ -160,6 +170,13 @@ final class Store: ObservableObject {
                 MainActor.assumeIsolated { self?.activeSurface = surface }
             }
             return event
+        }
+        // The keys of the panel's list and Escape on a page reached from another (D-033). A key
+        // that is acted on is taken, so it does not also sound the "nothing takes this key" beep;
+        // every other key goes on to the window untouched.
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
+            guard let self, let w = event.window else { return event }
+            return MainActor.assumeIsolated { self.key(event, in: w) } ? nil : event
         }
         // Read the status once at launch, so the feed and, if forwarding is on, the forwarder run
         // from the moment the app does; everything else waits for the panel to open
@@ -289,6 +306,89 @@ final class Store: ObservableObject {
         return names.sorted { $0.lowercased() < $1.lowercased() }
     }
 
+    /// What the panel lists, laid out from the feed's sessions and the pinned projects.
+    var panelList: PanelList { PanelList(sessions: sessions, pinned: pinnedProjects) }
+
+    /// The panel's rows in the order it draws them, the project last chosen kept in the list. The
+    /// panel draws from this and the keys walk it, so a key always moves to the row that is next
+    /// on screen.
+    var panelProjects: [PanelProject] { PanelProject.list(panelList, checkouts: checkouts, keep: panelSelected) }
+
+    // MARK: the keyboard (D-033)
+
+    /// Acts on a key pressed in the panel or the window, and says whether it did. Which key does
+    /// what, where, is PanelKey.effect; this reads the place off the window and carries the
+    /// effect out. A key in any window that is neither the panel nor the main window is left alone.
+    func key(_ event: NSEvent, in window: NSWindow) -> Bool {
+        guard let key = PanelKey(keyCode: event.keyCode) else { return false }
+        let inPanel: Bool
+        if window === Panel.mainWindow {
+            inPanel = false
+        } else if Panel.isPanel(window), window.isVisible {
+            inPanel = true
+        } else {
+            return false
+        }
+        let screen: PanelKey.Screen
+        if case .action = page, actionIn == (inPanel ? .panel : .window) {
+            screen = .action
+        } else if inPanel {
+            screen = engineDown ? .engineDown : .list
+        } else {
+            screen = page.isWindowTask ? .task : .other
+        }
+        let place = PanelKey.Place(
+            inPanel: inPanel, screen: screen,
+            modified: !event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty,
+            // A dialog over the window, the dialog's own window, or one that stops the whole app.
+            dialog: window.attachedSheet != nil || window.sheetParent != nil || NSApp.modalWindow != nil,
+            typing: (window.firstResponder as? NSText)?.isEditable == true,
+            composing: (window.firstResponder as? NSTextView)?.hasMarkedText() == true,
+            repeated: event.isARepeat)
+        switch key.effect(at: place) {
+        case .pass:
+            return false
+        case .taken:
+            return true
+        case .back:
+            close()
+            return true
+        case .closePanel:
+            Panel.close()
+            return true
+        case .step(let rows):
+            // With no rows (only this Mac's own sessions, or nothing) there is nowhere to go, and
+            // the key is left to the window.
+            guard let next = PanelProject.step(panelProjects, from: panelSelected, by: rows) else { return false }
+            keyPointer = NSEvent.mouseLocation
+            if next != panelSelected { panelSelected = next }
+            keySteps += 1
+            return true
+        case .act:
+            guard let project = PanelProject.shown(panelProjects, chosen: panelSelected) else { return false }
+            // The key was pressed in the panel, so its action is shown in the panel.
+            activeSurface = .panel
+            let mode = status?.start ?? "zellij"
+            switch project.keyAction {
+            case .join(let s):
+                Task { await runNow(["join"] + s.target, opensWindow: true) }
+            case .start(let action):
+                Task { await runNow(action + ["--mode", mode], opensWindow: mode != "remote") }
+            }
+            return true
+        }
+    }
+
+    /// Whether pointing at a row of the panel's list chooses it now: always, except while the
+    /// pointer has not moved since an arrow key chose a row. The list can scroll under a still
+    /// pointer when a key moves the choice, and that must not choose the row that arrives there.
+    func pointerChooses() -> Bool {
+        guard let at = keyPointer else { return true }
+        if at == NSEvent.mouseLocation { return false }
+        keyPointer = nil
+        return true
+    }
+
     /// Opens a project's page, in the window.
     func openProject(_ name: String) async {
         // A session that belongs to no registered project has no page to open.
@@ -299,6 +399,10 @@ final class Store: ObservableObject {
         if project?.name != name { project = nil }
         await loadProject(name)
     }
+
+    /// What a project's sessions are doing, as one light for the whole project: what the window's
+    /// sidebar and the repositories list show beside its name.
+    func runState(of project: String) -> RunState { RunState(PanelLight.of(project: project, in: sessions)) }
 
     /// One group of the window's sidebar: the registered projects of one GitHub owner's root (or
     /// in no root), not pinned, by category, categories in name order and those with none last.

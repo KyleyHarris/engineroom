@@ -336,7 +336,7 @@ and SSH setup.
 
 ### Working local
 
-On a client, the app's "Work local" switch (or `f` in the interface, or `engineroom offline on`) takes
+On a client, the app's "Work local" button (or `f` in the interface, or `engineroom offline on`) takes
 the work over from the engine: everything then runs on this machine as though it were the engine, using
 the copies registered here, and every screen says so. It stays that way until switched back
 ("Hand back to the engine", `f`, or `engineroom offline off`). Switching either way stops nothing. The
@@ -432,12 +432,16 @@ made from; it pulls `main`, runs `scripts/install.sh --app`, restarts the app wi
 `engineroom app relaunch` and says what changed, and it asks before anything that could lose work.
 Each press starts a new upgrade session, ending one left from an earlier upgrade (APP-UPGRADE-003).
 Settings has the same buttons. The panel opens on the project
-you last chose, and comes back to it after an action. Its gear opens the window, which holds
+you last chose, and comes back to it after an action. The list is worked from the keyboard too
+(D-033): Down and Up choose a project, Return joins or starts it (its session that waits for you,
+else its first running one, else it starts its first checkout; the button Return presses carries a
+return mark), and Escape closes the panel, or goes back from an action's commands. Its gear opens the window, which holds
 everything else: a sidebar of your projects (pinned first), the repositories in your roots (pinned,
 registered by category, here but not registered, and on GitHub but not here), the history and the
-settings. A project's page shows each checkout (the main clone and every worktree) as a card: Join
-or Start and Stop for its session, Run and Stop for its app and its tasks, the links it serves with
-its Forward switch, VS Code, Finder (when the folder is on this Mac) and Ask Claude, and under More info its branch, folder, slot and ports. A project
+settings. A project's page shows each checkout (the main clone and every worktree) as a card: what it
+has unsaved, Join or Start and Stop for its session (and Close, for a worktree), Run and Stop for
+its app and its tasks, the links it serves with its Forward switch, VS Code, Finder (when the
+folder is on this Mac) and Ask Claude, and under More info its branch, folder, slot and ports. A project
 on GitHub has one line under its name linking to the repository's code, issues and pull requests,
 and each checkout whose branch GitHub has links to that branch and the pull requests from it. The
 page also adds a worktree, shows the project's scripts, ports and secrets from your settings, and pins,
@@ -469,7 +473,7 @@ session", with its port, pid, start and folder, and a Stop for that one process
 there). It starts a session three ways: in Zellij with a terminal
 window, with Remote Control and no window, or both. Claude Code always runs inside Zellij, so
 anything started can be joined from the other Mac. It opens VS Code on the engine directly or over
-SSH from a client, gets, creates and registers repositories, and has a Work local switch on a
+SSH from a client, gets, creates and registers repositories, and has a Work local button on a
 client. It runs nothing itself: everything is a `engineroom api` command, shown before it runs where
 it creates something, and kept in the history. Settings chooses the terminal (from those
 installed, Ghostty by default) and opening at login.

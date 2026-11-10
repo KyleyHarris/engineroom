@@ -4,7 +4,9 @@ import SwiftUI
 
 /// Renders the app's real screens to PNG files from sample data, so how the app looks can be seen
 /// and compared with its design after every change, without opening the menu bar panel on anyone's
-/// screen. `engineroom-menu --snapshot <dir> [light|dark]` writes one image per screen and exits.
+/// screen. `--snapshot <dir> [dark]` writes one image per screen and exits: given to the built
+/// product (`macos/.build/debug/EngineRoomMenu`) or to the installed app's executable, which
+/// scripts/install.sh copies into the bundle as `engineroom-menu`.
 ///
 /// Each screen is drawn in an offscreen window rather than with ImageRenderer, which cannot draw
 /// the AppKit-backed controls (buttons, switches, menus) a SwiftUI window uses on macOS. The data
@@ -52,7 +54,68 @@ enum Snapshots {
             s.noteProgress(PlanProgress(side: "the engine", done: 7, total: 16, project: "project-c", command: "ssh -o BatchMode=yes engine.example -- 'engineroom handoff state --json'"))
             s.noteProgress(PlanProgress(side: "this machine", done: 0, total: 0))
         }),
+        // Everything the panel can have to say first, at once, so the banners are seen in both
+        // appearances: the engine on another build, an image just sent, a problem reading the engine.
+        ("panel-notices", false, { s in
+            s.status = sample(Status.self, statusClient); s.sessions = sessions; s.checkouts = checkouts; s.repos = repos
+            s.engineVersionDiffers = "The engine runs another build of engineroom than this Mac (engine 0.9.1, here 0.9.0)."
+            s.engineBehind = "here"
+            s.imageSent = Date()
+            s.problem = "The engine's answer could not be read: unexpected end of input"
+        }),
+        // Nothing running and nothing pinned: the panel's empty screen and its button.
+        ("panel-empty", false, { s in s.status = sample(Status.self, statusClient) }),
+        // The engine not answering: what happened, why, and the two ways on.
+        ("panel-down", false, { s in
+            s.status = sample(Status.self, statusClient)
+            s.engineDown = true
+            s.problem = "the engine did not answer: ssh: connect to host engine.example port 22: Operation timed out"
+        }),
+        // Working local: the header's badge and its button back, the banner, in the panel and on
+        // the Settings page.
+        ("panel-local", false, { s in s.status = sample(Status.self, statusLocal); s.sessions = sessions; s.checkouts = checkouts; s.repos = repos }),
+        ("window-local", true, { s in s.status = sample(Status.self, statusLocal); s.repos = repos; s.windowItem = .settings }),
+        // A project's page that could not be read: the page's own banner.
+        ("window-problem", true, { s in
+            s.status = sample(Status.self, statusClient); s.sessions = sessions; s.repos = repos
+            s.projectError = "project-e is registered, but its folder is not on the engine. Get the repository onto the engine from the repositories list, or take the project off the list, and then read this page again."
+            s.windowItem = .project("project-e")
+        }),
+        // An action's commands before anything has run, in the window and in the panel: the
+        // notes, each command with its copy button, and Run.
+        ("window-action", true, { s in s.status = sample(Status.self, statusClient); s.repos = repos; s.windowItem = .project("project-a"); pendingAction(s, in: .window) }),
+        ("panel-action", false, { s in s.status = sample(Status.self, statusClient); s.sessions = sessions; s.checkouts = checkouts; s.repos = repos; pendingAction(s, in: .panel) }),
+        // The same action stopped at its second command: each command's outcome in words, the
+        // failed one's output and what to do about it, and Done.
+        ("window-action-failed", true, { s in
+            s.status = sample(Status.self, statusClient); s.repos = repos; s.windowItem = .project("project-a"); pendingAction(s, in: .window)
+            s.stepStatus = [0: "ok", 1: "failed", 2: "not run", 3: "not run"]
+            s.stepOutput = [1: "error: could not stop the api on port 7222"]
+            s.stepFail = [1: "The down script failed, so nothing else was stopped or removed. Fix the script and clean up again."]
+            s.finished = false
+        }),
+        // The two forms reached from the repositories: getting or creating one, and registering a
+        // folder that is already here.
+        ("window-add", true, { s in s.status = sample(Status.self, statusEngine); s.repos = repos; s.windowItem = .repositories; s.page = .add(root: nil) }),
+        ("window-register", true, { s in s.status = sample(Status.self, statusEngine); s.repos = repos; s.windowItem = .repositories; s.page = .register(root: "src", folder: "/Users/dev/src/project-f") }),
     ]
+
+    /// Puts an action on screen as it is before it runs: closing project-a's reports worktree, the
+    /// commands in the order they would run.
+    static func pendingAction(_ s: Store, in surface: Store.Surface) {
+        s.actionIn = surface
+        s.page = .action(title: "Clean up reports on project-a")
+        s.pendingAction = ["clean-session", "project-a-reports"]
+        s.planTitle = "Clean up reports on project-a"
+        s.planMachine = "engine.example"
+        s.planNotes = ["The branch reports is merged into main, so it is deleted here and on the remote."]
+        s.planLines = [
+            "git -C /Users/dev/src/project-a fetch origin",
+            "cd /Users/dev/src/project-a-reports && .engineroom/down",
+            "zellij delete-session project-a-reports",
+            "git -C /Users/dev/src/project-a worktree remove /Users/dev/src/project-a-reports",
+        ]
+    }
 
     /// Draws a view in an offscreen window and writes it as a PNG at twice the size, as a Retina
     /// screen shows it.
@@ -95,11 +158,17 @@ enum Snapshots {
     """
     static var repos: ReposReply { sample(ReposReply.self, reposJSON) }
 
+    /// Every sample Mac has one terminal installed and one looked for and not found, so Settings
+    /// shows its picker with a choice in it and names what it did not find.
     static let statusClient = """
-    {"role":"client","engine":"engine.example","offline":false,"where":"the engine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app"}],"forward":false,"forwarding":true}
+    {"role":"client","engine":"engine.example","offline":false,"where":"the engine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app","path":"/Applications/Ghostty.app"},{"name":"WezTerm","bundle":"WezTerm.app"}],"forward":false,"forwarding":true}
+    """
+    /// The client of statusClient after it has taken the work over.
+    static let statusLocal = """
+    {"role":"client","engine":"engine.example","offline":true,"where":"this machine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app","path":"/Applications/Ghostty.app"},{"name":"WezTerm","bundle":"WezTerm.app"}],"forward":false,"forwarding":false}
     """
     static let statusEngine = """
-    {"role":"engine","engine":"","offline":false,"where":"this machine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app"}],"forward":false,"forwarding":false}
+    {"role":"engine","engine":"","offline":false,"where":"this machine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app","path":"/Applications/Ghostty.app"},{"name":"WezTerm","bundle":"WezTerm.app"}],"forward":false,"forwarding":false}
     """
     static let forwardJSON = """
     {"enabled":false,"connected":true,"forwarded":{"5180":"project-a","7202":"project-a"},"sessions":["project-a"]}

@@ -437,6 +437,217 @@ final class EngineRoomKitTests: XCTestCase {
         XCTAssertEqual(PanelProject.list(list, checkouts: facts, keep: "alpha").map(\.project), ["beta", "alpha", "gamma"])
     }
 
+    /// The checkouts the feed sends for the keyboard tests: alpha with a main clone and two
+    /// worktrees, one of them a role's; beta with a main clone and a worktree.
+    private func keyFacts() throws -> [String: [CheckoutFacts]] {
+        try JSONDecoder().decode([String: [CheckoutFacts]].self, from: Data(#"""
+        {"alpha":[{"session":"alpha","path":"/a","main":true,"branch":"main","changes":0,"unpushed":0,"behind":0},
+                  {"session":"alpha-old","path":"/a-old","main":false,"work":"old","branch":"old-fix","changes":0,"unpushed":0,"behind":0},
+                  {"session":"alpha-work","path":"/a-work","main":false,"work":"work","branch":"work","changes":0,"unpushed":0,"behind":0}],
+         "beta":[{"session":"beta","path":"/b","main":true,"branch":"main","changes":0,"unpushed":0,"behind":0},
+                 {"session":"beta-designer","path":"/b-designer","main":false,"role":"designer","branch":"nav","changes":0,"unpushed":0,"behind":0}]}
+        """#.utf8))
+    }
+
+    // The arrow keys walk the panel's rows in the order they are drawn and stop at each end
+    // (D-033). Fails if a key skips a row, wraps round from the last row to the first, moves off
+    // the first row when nothing was chosen (the first row is the one shown then), or answers with
+    // a row for an empty list.
+    func testArrowKeysWalkThePanelsRowsAndStopAtTheEnds() throws {
+        let list = PanelList(sessions: try sessions([
+            ("gamma", "gamma", false, false, false), ("alpha", "alpha", false, false, false),
+        ]), pinned: ["beta"])
+        let rows = PanelProject.list(list, checkouts: [:], keep: "delta")
+        XCTAssertEqual(rows.map(\.id), ["beta", "alpha", "gamma", "delta"])
+        XCTAssertEqual(PanelProject.step(rows, from: "beta", by: 1), "alpha")
+        XCTAssertEqual(PanelProject.step(rows, from: "alpha", by: 1), "gamma")
+        XCTAssertEqual(PanelProject.step(rows, from: "gamma", by: 1), "delta")
+        XCTAssertEqual(PanelProject.step(rows, from: "delta", by: 1), "delta")
+        XCTAssertEqual(PanelProject.step(rows, from: "delta", by: -1), "gamma")
+        XCTAssertEqual(PanelProject.step(rows, from: "beta", by: -1), "beta")
+        // Nothing chosen, or a choice that is no longer listed: the first row is the one shown,
+        // so down moves to the second and up stays on the first.
+        XCTAssertEqual(PanelProject.shown(rows, chosen: nil)?.id, "beta")
+        XCTAssertEqual(PanelProject.shown(rows, chosen: "gone")?.id, "beta")
+        XCTAssertEqual(PanelProject.shown(rows, chosen: "gamma")?.id, "gamma")
+        XCTAssertEqual(PanelProject.step(rows, from: nil, by: 1), "alpha")
+        XCTAssertEqual(PanelProject.step(rows, from: "gone", by: 1), "alpha")
+        XCTAssertEqual(PanelProject.step(rows, from: nil, by: -1), "beta")
+        // One row: both keys stay on it. No rows: there is nowhere to go.
+        XCTAssertEqual(PanelProject.step([rows[0]], from: "beta", by: 1), "beta")
+        XCTAssertEqual(PanelProject.step([rows[0]], from: "beta", by: -1), "beta")
+        XCTAssertNil(PanelProject.step([], from: "beta", by: 1))
+        XCTAssertNil(PanelProject.shown([], chosen: "beta"))
+    }
+
+    // Return joins the session Claude waits in, before any other that runs, and a running one
+    // before starting anything (D-033). Fails if Return joins the first running session while
+    // another of the project waits, starts a checkout while one of the project's sessions runs,
+    // or the card marked for Return is not the one acted on.
+    func testReturnJoinsTheWaitingSessionThenARunningOne() throws {
+        let facts = try keyFacts()
+        // alpha's main clone and its "work" worktree run; the worktree waits.
+        let waiting = PanelProject.list(PanelList(sessions: try sessions([
+            ("alpha", "alpha", false, false, false), ("alpha-work", "alpha", true, false, false),
+        ]), pinned: []), checkouts: facts)[0]
+        XCTAssertEqual(waiting.cards.map(\.id), ["alpha", "alpha-old", "alpha-work"])
+        XCTAssertEqual(waiting.keyCard?.id, "alpha-work")
+        guard case .join(let joined) = waiting.keyAction else { return XCTFail("Return did not join") }
+        XCTAssertEqual(joined.name, "alpha-work")
+        // Nothing waits: the first card that runs, in the order drawn, past one that does not.
+        let running = PanelProject.list(PanelList(sessions: try sessions([
+            ("alpha-old", "alpha", false, false, false), ("alpha-work", "alpha", false, false, false),
+        ]), pinned: []), checkouts: facts)[0]
+        XCTAssertEqual(running.keyCard?.id, "alpha-old")
+        guard case .join(let first) = running.keyAction else { return XCTFail("Return did not join") }
+        XCTAssertEqual(first.name, "alpha-old")
+        // A session on this Mac is joined on this Mac: its target carries --here.
+        let here = try sessions([("project-a", "project-a", false, false, true)])
+        XCTAssertEqual(here[0].target, ["project-a", "--here"])
+    }
+
+    // With nothing of the project running, Return starts what the first card's Start starts: the
+    // main clone by project, a worktree by its work name, a role's worktree by its role; a
+    // project with no cards is started by its name (D-033). Fails if a worktree is started as the
+    // main clone (which would start a second session of the project in the wrong folder), or a
+    // pinned project whose checkouts have not arrived cannot be started from the keyboard.
+    func testReturnStartsWhatTheCardsStartButtonStarts() throws {
+        let facts = try keyFacts()
+        let idle = PanelProject.list(PanelList(sessions: [], pinned: ["alpha", "beta", "gamma"]), checkouts: facts)
+        XCTAssertEqual(idle.map(\.id), ["alpha", "beta", "gamma"])
+        XCTAssertEqual(idle[0].keyCard?.id, "alpha")
+        XCTAssertEqual(idle[0].keyAction, .start(["start", "alpha"]))
+        // Each card's own Start, which the button sends too.
+        XCTAssertEqual(idle[0].cards.map { $0.startAction(project: "alpha") },
+                       [["start", "alpha"], ["new", "alpha", "old"], ["new", "alpha", "work"]])
+        XCTAssertEqual(idle[1].cards.map { $0.startAction(project: "beta") },
+                       [["start", "beta"], ["new", "beta", "designer"]])
+        XCTAssertEqual(idle[0].cards.map { $0.isMain(of: "alpha") }, [true, false, false])
+        // No checkouts sent for it yet: no card, and Return starts the project itself.
+        XCTAssertNil(idle[2].keyCard)
+        XCTAssertEqual(idle[2].keyAction, .start(["start", "gamma"]))
+        // A running session the feed sent no checkout for is the main clone only when it carries
+        // the project's own name.
+        let bare = PanelProject.list(PanelList(sessions: try sessions([
+            ("delta", "delta", false, false, false), ("delta-x", "delta", false, false, false),
+        ]), pinned: []), checkouts: [:])[0]
+        XCTAssertEqual(bare.cards.map { $0.isMain(of: "delta") }, [true, false])
+    }
+
+    // Which key is the panel's. Fails if a key code is mapped to the wrong key (Down walking up
+    // the list), or if any other key, a letter typed or Tab, is taken from the window.
+    func testOnlyTheArrowsReturnAndEscapeAreThePanelsKeys() {
+        XCTAssertEqual(PanelKey(keyCode: 125), .down)
+        XCTAssertEqual(PanelKey(keyCode: 126), .up)
+        XCTAssertEqual(PanelKey(keyCode: 36), .enter)
+        XCTAssertEqual(PanelKey(keyCode: 76), .enter, "the keypad's Enter")
+        XCTAssertEqual(PanelKey(keyCode: 53), .escape)
+        for other: UInt16 in [0, 48, 49, 51, 123, 124] {
+            XCTAssertNil(PanelKey(keyCode: other), "key code \(other) is not the panel's")
+        }
+    }
+
+    // The keys of the panel's list. Fails if an arrow moves the wrong way, Return stops joining,
+    // Escape stops closing the panel, or the engine-down screen (which has no list) starts
+    // answering the arrows and Return with a list that is not on screen.
+    func testThePanelsListAnswersTheArrowsReturnAndEscape() {
+        let list = PanelKey.Place(inPanel: true, screen: .list)
+        XCTAssertEqual(PanelKey.down.effect(at: list), .step(1))
+        XCTAssertEqual(PanelKey.up.effect(at: list), .step(-1))
+        XCTAssertEqual(PanelKey.enter.effect(at: list), .act)
+        XCTAssertEqual(PanelKey.escape.effect(at: list), .closePanel)
+
+        let down = PanelKey.Place(inPanel: true, screen: .engineDown)
+        XCTAssertEqual(PanelKey.down.effect(at: down), .pass)
+        XCTAssertEqual(PanelKey.up.effect(at: down), .pass)
+        XCTAssertEqual(PanelKey.enter.effect(at: down), .pass)
+        XCTAssertEqual(PanelKey.escape.effect(at: down), .closePanel)
+    }
+
+    // Escape is the link back on a page reached from another, and nothing else is taken there.
+    // Fails if Escape on an action's page closes the panel instead of the page, if Return or an
+    // arrow acts on the list hidden behind an action's page, or if Escape is taken on a page of
+    // the window that has nowhere to go back to.
+    func testEscapeIsTheLinkBackOnAPageReachedFromAnother() {
+        let panelAction = PanelKey.Place(inPanel: true, screen: .action)
+        XCTAssertEqual(PanelKey.escape.effect(at: panelAction), .back)
+        for key in [PanelKey.up, .down, .enter] {
+            XCTAssertEqual(key.effect(at: panelAction), .pass, "\(key) behind an action's page")
+        }
+        XCTAssertEqual(PanelKey.escape.effect(at: .init(inPanel: false, screen: .action)), .back)
+        XCTAssertEqual(PanelKey.escape.effect(at: .init(inPanel: false, screen: .task)), .back)
+        XCTAssertEqual(PanelKey.escape.effect(at: .init(inPanel: false, screen: .other)), .pass)
+        // The window's lists and forms keep their own arrows and Return on every page.
+        for screen in [PanelKey.Screen.action, .task, .other] {
+            for key in [PanelKey.up, .down, .enter] {
+                XCTAssertEqual(key.effect(at: .init(inPanel: false, screen: screen)), .pass, "\(key) in the window, \(screen)")
+            }
+        }
+        // From one of the page's fields too, as Escape cancels a dialog while a field is typed into.
+        XCTAssertEqual(PanelKey.escape.effect(at: .init(inPanel: false, screen: .task, typing: true)), .back)
+    }
+
+    // What the keys must leave alone. Fails if a shortcut's key is taken (Command-Down), if a
+    // dialog's Return or Escape is taken from under it, if the next-branch field in the panel
+    // loses its Return, arrows or Escape to the list, or if Escape closes a page while an input
+    // method is part way through a character.
+    func testKeysThatBelongToSomethingElseAreLeftAlone() {
+        let all = [PanelKey.up, .down, .enter, .escape]
+        let places: [PanelKey.Place] = [
+            .init(inPanel: true, screen: .list), .init(inPanel: true, screen: .action),
+            .init(inPanel: false, screen: .action), .init(inPanel: false, screen: .task),
+        ]
+        for place in places {
+            for key in all {
+                var modified = place; modified.modified = true
+                XCTAssertEqual(key.effect(at: modified), .pass, "\(key) with a modifier, \(place.screen)")
+                var dialog = place; dialog.dialog = true
+                XCTAssertEqual(key.effect(at: dialog), .pass, "\(key) under a dialog, \(place.screen)")
+            }
+            var composing = place; composing.composing = true; composing.typing = true
+            XCTAssertEqual(PanelKey.escape.effect(at: composing), .pass, "Escape while composing, \(place.screen)")
+        }
+        let field = PanelKey.Place(inPanel: true, screen: .list, typing: true)
+        for key in all {
+            XCTAssertEqual(key.effect(at: field), .pass, "\(key) while the panel's field is typed into")
+        }
+    }
+
+    // A held key. Fails if holding Return asks to join again and again, if holding Escape goes
+    // back from an action's page and then on out of the panel, or if a held arrow stops walking.
+    func testAHeldKeyWalksTheListButActsAndGoesBackOnce() {
+        let list = PanelKey.Place(inPanel: true, screen: .list, repeated: true)
+        XCTAssertEqual(PanelKey.down.effect(at: list), .step(1))
+        XCTAssertEqual(PanelKey.up.effect(at: list), .step(-1))
+        XCTAssertEqual(PanelKey.enter.effect(at: list), .taken)
+        XCTAssertEqual(PanelKey.escape.effect(at: list), .taken)
+        XCTAssertEqual(PanelKey.escape.effect(at: .init(inPanel: true, screen: .action, repeated: true)), .taken)
+        XCTAssertEqual(PanelKey.escape.effect(at: .init(inPanel: true, screen: .engineDown, repeated: true)), .taken)
+    }
+
+    // A project's light outside the panel is one light for all its sessions: Claude's mark when
+    // one waits, running when one runs, off with none; an Ask Claude session and one on this Mac
+    // count, another project's do not, and one that ended neither runs nor waits (D-015, D-032).
+    // Fails if a waiting session is shown as merely running, another project's session lights
+    // this one, or an ended session keeps a project lit or marked.
+    func testAProjectsLightIsOneLightForAllItsSessions() throws {
+        let feed = try sessions([
+            ("project-a", "project-a", false, false, false), ("project-a-work", "project-a", true, false, false),
+            ("project-b", "project-b", false, false, false),
+            ("project-c-ask", "project-c", true, true, false), ("project-d", "project-d", false, false, true),
+        ])
+        XCTAssertEqual(PanelLight.of(project: "project-a", in: feed), .waiting)
+        XCTAssertEqual(PanelLight.of(project: "project-b", in: feed), .running)
+        XCTAssertEqual(PanelLight.of(project: "project-c", in: feed), .waiting)
+        XCTAssertEqual(PanelLight.of(project: "project-d", in: feed), .running)
+        XCTAssertEqual(PanelLight.of(project: "project-e", in: feed), .idle)
+        XCTAssertEqual(PanelLight.of(project: "project-a", in: []), .idle)
+        let ended = try EngineRoomClient.decode([Session].self, data: Data("""
+        [{"name":"project-a","project":"project-a","ended":true,"waiting":"waiting","question":"Approve the plan?"}]
+        """.utf8), code: 0)
+        XCTAssertEqual(PanelLight.of(project: "project-a", in: ended), .idle)
+    }
+
     func testTheLoginShellIsRead() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

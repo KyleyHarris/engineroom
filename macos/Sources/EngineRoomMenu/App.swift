@@ -2,7 +2,9 @@ import AppKit
 import EngineRoomKit
 import SwiftUI
 
-/// The menu bar icon: the grid, and Claude's mark beside it while Claude is waiting.
+/// The menu bar icon: the grid, and Claude's mark beside it while Claude is waiting. It is named
+/// in words for VoiceOver, which has no use for a grid and an asterisk: the app, and that Claude
+/// waits while it does.
 struct MenuBarIcon: View {
     let waiting: Bool
     var body: some View {
@@ -12,8 +14,10 @@ struct MenuBarIcon: View {
                 Text("✻")
             }
             .help("Claude is waiting for you")
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("engineroom, Claude is waiting for you")
         } else {
-            Image(systemName: "square.grid.2x2")
+            Image(systemName: "square.grid.2x2").accessibilityLabel("engineroom")
         }
     }
 }
@@ -81,21 +85,31 @@ struct RootView: View {
     @EnvironmentObject var store: Store
     @Environment(\.openWindow) private var openWindow
 
+    /// Whether the panel shows an action's page in place of its list.
+    private var inAction: Bool {
+        if case .action = store.page, store.actionIn == .panel { return true }
+        return false
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Header()
             if store.status?.offline == true {
-                OfflineBanner()
+                // The header just above carries the button that hands the work back, so the
+                // panel's banner only says the state; the window has no header and keeps it.
+                OfflineBanner(button: false)
             }
-            if case .action = store.page, store.actionIn == .panel {
-                ActionView()
-            } else if store.engineDown {
-                EngineDownView()
-            } else {
-                PanelView()
+            ActionSwap(inAction: inAction) {
+                if inAction {
+                    ActionView().transition(.arrives)
+                } else if store.engineDown {
+                    EngineDownView().transition(.identity)
+                } else {
+                    PanelView().transition(.identity)
+                }
             }
         }
-        .font(.system(size: 14))
+        .font(.app(.body))
         .onAppear {
             // Opening the window always closes the panel first, so the two never sit one over the
             // other.
@@ -114,16 +128,16 @@ struct Header: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text("engineroom").font(.system(size: 17, weight: .bold))
+            Text("engineroom").font(.app(.heading, weight: .bold))
             if let s = store.status {
                 Text(s.isClient ? "client of \(store.engineLabel(s))" : "engine · this Mac")
-                    .font(.system(size: 13))
+                    .font(.app(.detail))
                     .padding(.horizontal, 7).padding(.vertical, 2)
                     .background(Capsule().fill(Color.secondary.opacity(0.12)))
                 if s.offline {
-                    Text("WORKING LOCAL").font(.system(size: 12, weight: .bold))
+                    Text("WORKING LOCAL").font(.app(.caption, weight: .bold))
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary))
+                        .background(RoundedRectangle(cornerRadius: Radius.badge).fill(Color.primary))
                         .foregroundColor(Color(nsColor: .windowBackgroundColor))
                 }
             }
@@ -132,83 +146,109 @@ struct Header: View {
                 Button { store.showRunning() } label: {
                     HStack(spacing: 4) { ProgressView().controlSize(.small); Text(store.planTitle.isEmpty ? "Running…" : store.planTitle).lineLimit(1) }
                 }
-                .buttonStyle(.borderless).font(.system(size: 12)).help("An action is running; click to see it").pointer()
+                .buttonStyle(.borderless).font(.app(.caption)).help("An action is running; click to see it").pointer()
             } else if let w = store.working {
                 ProgressView().controlSize(.small)
-                Text(w).font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1)
+                Text(w).font(.app(.caption)).foregroundColor(.secondary).lineLimit(1)
             } else if store.loading {
                 ProgressView().controlSize(.small)
             }
             if let s = store.status, s.isClient {
-                Toggle("Work local", isOn: Binding(
-                    get: { s.offline },
-                    set: { v in Task { await store.switchOffline(v) } }))
-                    .toggleStyle(.switch).controlSize(.mini)
-                    .help("Take the work over from the engine and work on this Mac, until switched off. Both Macs should be on, so the engine's work is pushed first.")
+                // A button in words, not a switch (D-032): pressing it shows a handover and changes
+                // nothing until that is run, which a switch that looks flipped at once does not
+                // say. The badge on the left is what says working local is on. The two names are
+                // the app's own for the two directions (D-017).
+                Button(s.offline ? "Hand back to the engine" : "Work local") { Task { await store.switchOffline(!s.offline) } }
+                    .controlSize(.small).pointer()
+                    .help(s.offline
+                        ? "Hand the work back to the engine. The handover's commands are shown first."
+                        : "Take the work over from the engine and work on this Mac, until it is handed back. Both Macs should be on, so the engine's work is pushed first. The handover's commands are shown first.")
             }
             if let s = store.status, s.isClient, !s.offline {
                 // A terminal sends only text, and Claude Code takes a pasted image from the engine's own
                 // clipboard; this puts this Mac's clipboard image there (internal/clip).
                 Button { Task { await store.sendImage() } } label: { Image(systemName: "photo.on.rectangle.angled") }
                     .buttonStyle(.borderless).help("Send the image on this Mac's clipboard to the engine, then paste it in the session").pointer()
+                    .accessibilityLabel("Send the clipboard's image to the engine")
             }
             Button { Task { await store.refresh(everything: true) } } label: { Image(systemName: "arrow.clockwise") }.pointer()
                 .buttonStyle(.borderless).help("Read everything again, the repositories too")
+                .accessibilityLabel("Read everything again")
             Button {
                 if store.windowItem == nil { store.windowItem = store.registeredProjects.first.map { .project($0.name) } ?? .repositories }
                 store.showWindow?()
             } label: { Image(systemName: "gearshape") }.pointer()
                 .buttonStyle(.borderless).help("Projects, repositories, history and settings")
+                .accessibilityLabel("Open the window")
+            // Quit stands apart from refresh and the gear (D-032): it is the one icon here that
+            // ends something, and a rule and a wider gap keep a click meant for the gear off it.
+            Divider().frame(height: 14).padding(.horizontal, 3)
             QuitButton(icon: true).buttonStyle(.borderless)
         }
-        .padding(.horizontal, 12).padding(.top, 10).padding(.bottom, 8)
+        .padding(.horizontal, Gutter.panel).padding(.top, 10).padding(.bottom, 8)
     }
 }
 
+/// Says this Mac is working local, on every screen while it is. It carries the button that hands
+/// the work back unless the screen already has one in sight (the panel's header does), and sits
+/// at the gutter of the surface it is on, so it lines up with what is under it.
 struct OfflineBanner: View {
     @EnvironmentObject var store: Store
+    var button = true
+    var gutter = Gutter.panel
     var body: some View {
-        HStack {
-            Text("Working local: this Mac has the work. Hand it back to the engine when you are done.")
-                .font(.system(size: 13))
-            Spacer()
-            Button("Hand back to the engine") { Task { await store.switchOffline(false) } }.controlSize(.small).pointer()
+        Banner(tone: .attention, text: "Working local: this Mac has the work. Hand it back to the engine when you are done.") {
+            if button {
+                Button("Hand back to the engine") { Task { await store.switchOffline(false) } }.controlSize(.small).pointer()
+            }
         }
-        .padding(8)
-        .background(RoundedRectangle(cornerRadius: 7).fill(Color.orange.opacity(0.15)))
-        .padding(.horizontal, 12).padding(.bottom, 6)
+        .padding(.horizontal, gutter).padding(.bottom, 6)
     }
 }
 
-/// The engine did not answer: retry, or work offline (CONN-DOWN, CONN-OFFLINE-001).
+/// The engine did not answer: retry, or work offline (CONN-DOWN, CONN-OFFLINE-001). Drawn as the
+/// empty screen every other one is, marked as a failure: what happened, what it means for the work,
+/// why in the engine's own words, and the two ways on side by side, Retry filled as the one tried
+/// first.
 struct EngineDownView: View {
     @EnvironmentObject var store: Store
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("The engine did not answer.").font(.system(size: 16, weight: .bold)).foregroundColor(.red)
-            Text(store.problem ?? "").font(.system(size: 13, design: .monospaced)).foregroundColor(.secondary)
-            Text("Nothing has been started on either machine. Sessions already running on the engine keep running.")
-            Button("Retry the engine") { Task { await store.refresh(everything: true) } }.buttonStyle(.borderedProminent).pointer()
-            Button("Work local on this Mac") { Task { await store.switchOffline(true) } }.pointer()
+        VStack(alignment: .leading, spacing: 0) {
+            EmptyState(tone: .bad, title: "The engine did not answer.",
+                       detail: "Nothing has been started on either machine. Sessions already running on the engine keep running.") {
+                VStack(alignment: .leading, spacing: 10) {
+                    // The reason as it was given, selectable so it can be copied into a search.
+                    if let p = store.problem, !p.isEmpty {
+                        Text(p).font(.app(.detail, design: .monospaced)).foregroundColor(.secondary).textSelection(.enabled)
+                    }
+                    HStack(spacing: 8) {
+                        Button("Retry the engine") { Task { await store.refresh(everything: true) } }.buttonStyle(.borderedProminent).pointer()
+                        Button("Work local on this Mac") { Task { await store.switchOffline(true) } }.pointer()
+                    }
+                }
+            }
             Spacer()
         }
-        .padding(14)
+        .padding(Gutter.panel)
     }
 }
 
-/// A row of small buttons that sits at the bottom of a page.
+/// The bar at the bottom of an action's page: its buttons stay in sight while its commands scroll,
+/// at the gutter of the surface it is on, so they line up with the commands above them.
 struct Footer<Content: View>: View {
+    var gutter = Gutter.panel
     @ViewBuilder var content: Content
     var body: some View {
         VStack(spacing: 0) {
             Divider()
-            HStack(spacing: 8) { content }.padding(10)
+            HStack(spacing: 8) { content }.padding(.horizontal, gutter).padding(.vertical, 10)
         }
     }
 }
 
 /// Quits engineroom: the power icon in the panel's header, and the button at the foot of Settings.
-/// The panel's is one click from the menu bar, as a menu bar app's Quit is expected to be.
+/// The panel's is one click from the menu bar, as a menu bar app's Quit is expected to be, and
+/// stands apart from the icons beside it, in the header and in the window's toolbar (D-032).
 /// Command-Q quits from the panel or the window (the power icon is in both): the app has no menu
 /// bar of its own (LSUIElement), so the shortcut sits on those buttons rather than on a menu item
 /// nothing shows. The one in Settings has none, so the window does not carry the shortcut twice. An
@@ -229,6 +269,8 @@ struct QuitButton: View {
         }
         .keyboardShortcut(icon ? KeyboardShortcut("q", modifiers: .command) : nil)
         .help(icon ? "Quit engineroom (⌘Q)" : "Quit engineroom")
+        // The icon has no words of its own; the worded button in Settings is read as it is drawn.
+        .accessibilityLabel("Quit engineroom")
         .pointer()
         .confirmationDialog("An action is running: \(store.planTitle.isEmpty ? "untitled" : store.planTitle)", isPresented: $asking) {
             Button("Quit anyway", role: .destructive) { NSApplication.shared.terminate(nil) }
@@ -239,16 +281,17 @@ struct QuitButton: View {
     }
 }
 
-/// The back link at the top of a page.
+/// The back link at the top of a page reached from another, at the gutter of the surface it is on.
 struct BackLink: View {
     @EnvironmentObject var store: Store
     var label = "Back"
+    var gutter = Gutter.panel
     var body: some View {
         HStack {
             Button("‹ \(label)") { store.close() }.buttonStyle(.link).pointer()
             Spacer()
         }
-        .padding(.horizontal, 12).padding(.bottom, 4)
+        .padding(.horizontal, gutter).padding(.bottom, 4)
     }
 }
 
@@ -274,9 +317,51 @@ enum Panel {
 extension View {
     /// Shows the pointing hand over something clickable, as a link does in a browser; SwiftUI on
     /// macOS keeps the arrow over buttons.
-    func pointer() -> some View {
-        onHover { inside in
-            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-        }
+    func pointer() -> some View { modifier(PointingHand()) }
+}
+
+/// The pointing hand, put on the cursor stack while the pointer is over a view and taken off
+/// again exactly once: when the pointer leaves, or when the view goes while the pointer is still
+/// over it (a Join pressed, which swaps the panel to the action's page under the pointer). A view
+/// that went without its hand taken off would leave the hand as the cursor over whatever came
+/// next. The hand is counted in a box the two closures share, not in the view's state, so a view
+/// that has gone still knows it has taken its hand off and cannot take off another view's.
+private struct PointingHand: ViewModifier {
+    private final class Held { var hand = false }
+    @State private var held = Held()
+
+    func body(content: Content) -> some View {
+        content
+            .onHover { inside in
+                guard inside != held.hand else { return }
+                held.hand = inside
+                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+            .onDisappear {
+                guard held.hand else { return }
+                held.hand = false
+                NSCursor.pop()
+            }
     }
+}
+
+/// Where a surface swaps between its own content and an action's page (D-033): the action's page
+/// arrives with a short fade, so the swap reads as one surface changing what it shows and not as
+/// a jump. Only the arrival fades. A page that is left is emptied as it closes (Store.close), so
+/// fading it out would show it blank on the way; what was underneath comes back at once. With
+/// Reduce Motion on in System Settings nothing fades.
+struct ActionSwap<Content: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let inAction: Bool
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ZStack { content }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: inAction)
+    }
+}
+
+extension AnyTransition {
+    /// How an action's page comes and goes inside an ActionSwap: fades in, leaves at once.
+    static var arrives: AnyTransition { .asymmetric(insertion: .opacity, removal: .identity) }
 }

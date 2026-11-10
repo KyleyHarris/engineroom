@@ -11,20 +11,33 @@ import SwiftUI
 /// card per checkout, running or not, with what is unsaved, unpushed, behind or merged, as the
 /// feed sent it, and every action as a button; the project's Ask Claude sessions follow as one
 /// line each. The project last chosen is remembered (Store.panelSelected).
+///
+/// The list is also worked from the keyboard (D-033, Store.key): Down and Up choose a project,
+/// Return joins or starts it as the button carrying the return mark does, Escape closes the panel.
 struct PanelView: View {
     @EnvironmentObject var store: Store
 
     var body: some View {
-        let list = PanelList(sessions: store.sessions, pinned: store.pinnedProjects)
+        let list = store.panelList
         // The project last chosen stays shown, kept in the list even when nothing of it runs any
-        // more; the first project when none was chosen yet.
-        let projects = PanelProject.list(list, checkouts: store.checkouts, keep: store.panelSelected)
-        let current = projects.first { $0.id == store.panelSelected } ?? projects.first
+        // more; the first project when none was chosen yet. The same rows and the same choice
+        // are what the keys act on.
+        let projects = store.panelProjects
+        let current = PanelProject.shown(projects, chosen: store.panelSelected)
         VStack(spacing: 0) {
             banners
             if projects.isEmpty && list.here.isEmpty {
-                Text("There are no sessions running. Start one from Repositories, or pin a project to keep it here.")
-                    .foregroundColor(.secondary).padding(16)
+                // Nothing runs and nothing is pinned: say so, with the button that goes where a
+                // session is started, so the empty panel is not a dead end.
+                EmptyState(title: "There are no sessions running.",
+                           detail: "Start one from Repositories, or pin a project to keep it here.") {
+                    Button("Open Repositories") {
+                        store.windowItem = .repositories
+                        store.showWindow?()
+                    }
+                    .buttonStyle(.borderedProminent).pointer()
+                }
+                .padding(Gutter.panel)
                 Spacer()
             } else {
                 HStack(spacing: 0) {
@@ -34,9 +47,9 @@ struct PanelView: View {
                     Divider()
                     ScrollView {
                         if let current {
-                            ProjectDetail(item: current).padding(12)
+                            ProjectDetail(item: current).padding(Gutter.panel)
                         } else if !list.here.isEmpty {
-                            HereDetail(sessions: list.here).padding(12)
+                            HereDetail(sessions: list.here).padding(Gutter.panel)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -46,13 +59,12 @@ struct PanelView: View {
     }
 
     /// What the panel must say before anything else: an engine on another build, an image just sent,
-    /// a problem reading the engine.
+    /// a problem reading the engine. Each is a banner, the buttons that deal with it on its right.
     @ViewBuilder private var banners: some View {
-        if let v = store.engineVersionDiffers {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(v).font(.system(size: 12)).foregroundColor(.orange).textSelection(.enabled)
-                // The machine that is behind is the one offered; when git cannot say which, both.
-                HStack(spacing: 8) {
+        VStack(spacing: 6) {
+            if let v = store.engineVersionDiffers {
+                Banner(tone: .attention, text: v) {
+                    // The machine that is behind is the one offered; when git cannot say which, both.
                     if store.engineBehind != "engine" {
                         Button("Upgrade this Mac…") { Task { await store.preview(["upgrade"]) } }.controlSize(.small).pointer()
                     }
@@ -60,20 +72,29 @@ struct PanelView: View {
                         Button("Upgrade the engine…") { Task { await store.preview(["upgrade", "--engine"]) } }.controlSize(.small).pointer()
                     }
                 }
-            }.padding(8)
+            }
+            if let sent = store.imageSent, Date().timeIntervalSince(sent) < 120 {
+                Banner(.good, "The image is on the engine's clipboard: paste it in the session now (Control-V in Claude Code).")
+            }
+            if let p = store.problem, !store.engineDown {
+                Banner(.bad, p)
+            }
         }
-        if let sent = store.imageSent, Date().timeIntervalSince(sent) < 120 {
-            Text("The image is on the engine's clipboard: paste it in the session now (Control-V in Claude Code).")
-                .font(.system(size: 13)).foregroundColor(.green).padding(8)
-        }
-        if let p = store.problem, !store.engineDown {
-            Text(p).foregroundColor(.red).padding(8)
-        }
+        // With nothing to say the stack is empty and takes no room, so the list starts at the top.
+        .padding(.horizontal, Gutter.panel).padding(.bottom, bannerShown ? 6 : 0)
+    }
+
+    /// Whether any banner is drawn, so the room under them is given only when one is.
+    private var bannerShown: Bool {
+        if store.engineVersionDiffers != nil { return true }
+        if let sent = store.imageSent, Date().timeIntervalSince(sent) < 120 { return true }
+        return store.problem != nil && !store.engineDown
     }
 
     // MARK: the list on the left
 
     @ViewBuilder private func sidebar(_ projects: [PanelProject], here: [Session], current: String?) -> some View {
+        ScrollViewReader { scroll in
         ScrollView {
             VStack(alignment: .leading, spacing: 2) {
                 let pinned = projects.filter(\.pinned), rest = projects.filter { !$0.pinned && !$0.recent }
@@ -88,7 +109,7 @@ struct PanelView: View {
                     ForEach(here) { s in
                         HStack(spacing: 9) {
                             Light(state: s.isWaiting ? .waiting : .running)
-                            Text(s.name).font(.system(size: 14)).lineLimit(1).truncationMode(.middle)
+                            Text(s.name).font(.app(.body)).lineLimit(1).truncationMode(.middle)
                             Spacer(minLength: 4)
                             Button("Join") { Task { await store.runNow(["join"] + s.target, opensWindow: true) } }
                                 .controlSize(.small).pointer()
@@ -99,29 +120,53 @@ struct PanelView: View {
             }
             .padding(.horizontal, 8).padding(.vertical, 6)
         }
+        // A project chosen with a key is brought into sight when the list is longer than the
+        // panel. Only a key does this (Store.keySteps), never pointing at a row.
+        .onChange(of: store.keySteps) { _ in if let id = store.panelSelected { scroll.scrollTo(id) } }
+        }
     }
 
     @ViewBuilder private func row(_ item: PanelProject, current: String?) -> some View {
         let on = item.id == current
         HStack(spacing: 9) {
             Light(state: RunState(item.light))
-            Text(item.project).font(.system(size: 15, weight: on ? .semibold : .regular)).lineLimit(1).truncationMode(.middle)
+            Text(item.project).font(.app(.name, weight: on ? .semibold : .regular)).lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 4)
             if item.sessions.count > 1 {
-                Text("\(item.sessions.count)").font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+                Text("\(item.sessions.count)").font(.app(.fine, weight: .semibold)).foregroundColor(.secondary)
                     .padding(.horizontal, 5).padding(.vertical, 1)
                     .background(Capsule().fill(Color.secondary.opacity(0.15)))
                     .help("\(item.sessions.count) sessions running")
             }
         }
         .padding(.horizontal, 8).padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 6).fill(on ? Color.accentColor.opacity(0.22) : .clear))
+        .background(RoundedRectangle(cornerRadius: Radius.row).fill(on ? Color.accentColor.opacity(0.22) : .clear))
         .contentShape(Rectangle())
         // Pointing shows it, and it stays shown while the pointer moves across to it: moving
-        // straight right crosses no other row.
-        .onHover { if $0 { store.panelSelected = item.id } }
+        // straight right crosses no other row. Moving the pointer inside a row chooses it too,
+        // so after the arrow keys chose another row the pointer takes the choice back by moving,
+        // not only by leaving the row and coming back; a pointer that has not moved since the
+        // key chooses nothing (Store.pointerChooses).
+        .onContinuousHover { phase in
+            guard case .active = phase, store.panelSelected != item.id, store.pointerChooses() else { return }
+            store.panelSelected = item.id
+        }
         .onTapGesture { store.panelSelected = item.id }
         .pointer()
+        .id(item.id)
+        // Read out as one thing that can be chosen: its name, what its sessions are doing and
+        // how many run, not a dot and a number with no words.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(rowLabel(item))
+        .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { store.panelSelected = item.id }
+    }
+
+    /// A row of the list in words: the project, its light, and its count when more than one runs.
+    private func rowLabel(_ item: PanelProject) -> String {
+        var parts = [item.project, RunState(item.light).words]
+        if item.sessions.count > 1 { parts.append("\(item.sessions.count) sessions running") }
+        return parts.joined(separator: ", ")
     }
 }
 
@@ -134,15 +179,15 @@ struct ProjectDetail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(item.project).font(.system(size: 18, weight: .bold)).lineLimit(1)
+                Text(item.project).font(.app(.heading, weight: .bold)).lineLimit(1)
                 Button { Task { await store.openProject(item.project) } } label: {
-                    HStack(spacing: 2) { Text("Page"); Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)) }
+                    HStack(spacing: 2) { Text("Page"); Image(systemName: "chevron.right").font(.app(.glyph, weight: .semibold)) }
                 }
-                .buttonStyle(.plain).foregroundColor(.accentColor).font(.system(size: 13)).pointer()
+                .buttonStyle(.plain).foregroundColor(.accentColor).font(.app(.detail)).pointer()
                 .help("Open its page in the window: worktrees, tasks, settings")
                 Spacer()
                 let state = RunState(item.light)
-                Text(state.words).font(.system(size: 12, weight: .medium)).foregroundColor(state.color)
+                Text(state.words).font(.app(.caption, weight: .medium)).foregroundColor(state.color)
             }
             if let g = store.repos?.github?[item.project] {
                 GitHubRow(label: g.repo, links: [("Code", g.code), ("Issues", g.issues), ("Pull requests", g.pulls)])
@@ -152,15 +197,17 @@ struct ProjectDetail: View {
                 HStack {
                     Text("Not running").foregroundColor(.secondary)
                     Spacer()
-                    Button("Start") {
+                    Button {
                         let mode = store.status?.start ?? "zellij"
                         Task { await store.runNow(["start", item.project, "--mode", mode], opensWindow: mode != "remote") }
-                    }
+                    } label: { ReturnMarked("Start", marked: true) }
                     .buttonStyle(.borderedProminent).pointer()
+                    .help("Start its session, as set in Settings (Return)")
                 }
-                .compactCard()
+                .card(.compact)
             }
-            ForEach(item.cards) { CheckoutTile(project: item.project, card: $0) }
+            // One card's Join or Start is what Return presses; that card carries the mark.
+            ForEach(item.cards) { CheckoutTile(project: item.project, card: $0, returns: $0.id == item.keyCard?.id) }
             ForEach(item.helpers) { h in
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles").foregroundColor(.secondary)
@@ -172,7 +219,7 @@ struct ProjectDetail: View {
                     Button("Open") { Task { await store.runNow(["join"] + h.target, opensWindow: true) } }
                         .controlSize(.small).pointer().help("Open it in your terminal")
                 }
-                .compactCard()
+                .card(.compact)
             }
         }
     }
@@ -184,7 +231,7 @@ struct HereDetail: View {
     let sessions: [Session]
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text("Still running on this Mac, started while it was offline").font(.system(size: 13, weight: .semibold)).foregroundColor(.secondary)
+            Text("Still running on this Mac, started while it was offline").font(.app(.detail, weight: .semibold)).foregroundColor(.secondary)
             ForEach(sessions) { s in
                 HStack {
                     Light(state: s.isWaiting ? .waiting : .running)
@@ -193,30 +240,43 @@ struct HereDetail: View {
                     Button("Join") { Task { await store.runNow(["join"] + s.target, opensWindow: true) } }
                         .buttonStyle(.borderedProminent).controlSize(.small).pointer()
                 }
-                .compactCard()
+                .card(.compact)
             }
         }
     }
 }
 
-/// One checkout of the shown project (D-025): its light, which checkout it is, VS Code, Ask Claude,
-/// its branch and pull requests on GitHub and copying the branch name as icons; then what is
-/// unsaved, unpushed, behind or merged, and every action as a button in sight: Join, Restart and
-/// Stop while it runs, or Start; Next branch for a role worktree; Close for any worktree. Claude's
-/// question when it waits; its links and Forward.
+/// One checkout of the shown project (D-025), every action a button in sight, in rows that are the
+/// same on every tile so a button is found in the same place whatever the checkout:
+///
+/// - its light, which checkout it is, and as icons VS Code, Ask Claude, its branch and pull requests
+///   on GitHub and copying the branch name;
+/// - under the name, what is unsaved, unpushed, behind or merged, when anything is;
+/// - one row of actions: Join or Start first on the left, then Restart and, for a role worktree,
+///   Next branch; at the far end, away from Join, the two that end something: Stop and Close;
+/// - Claude's question when it waits; then the app row, its links, Run app, Stop app and Forward.
 struct CheckoutTile: View {
     @EnvironmentObject var store: Store
     let project: String
     let card: PanelProject.Card
+    /// Whether this is the card Return acts on (PanelProject.keyCard): its Join or Start then
+    /// carries the return mark, so which of a project's sessions the key joins is seen before
+    /// it is pressed.
+    var returns = false
     /// Asking for the branch a role worktree moves on to, in place, as its page does.
     @State private var nextBranching = false
     @State private var nextBranch = ""
+    /// The branch name was copied a moment ago: its icon is a tick until this is cleared, since
+    /// the panel has no line of its own to say "Copied" on.
+    @State private var branchCopied = false
+    /// Counts the copies, so the wait started by one click does not clear the tick of a later one.
+    @State private var copies = 0
 
     private var facts: CheckoutFacts? { card.facts }
     private var session: Session? { card.session }
     private var path: String? { facts?.path ?? session?.path }
     private var sessionName: String { facts?.session ?? session?.name ?? "" }
-    private var isMain: Bool { facts?.main ?? (session?.name == project) }
+    private var isMain: Bool { card.isMain(of: project) }
 
     /// The main clone by its branch; a role worktree by its role; any other by its name.
     private var title: String {
@@ -240,32 +300,39 @@ struct CheckoutTile: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 7) {
                 Light(state: RunState(card.light))
-                Text(title).font(.system(size: 14, weight: .semibold)).lineLimit(1).truncationMode(.middle)
-                if let kind { Text(kind).font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1).truncationMode(.tail) }
+                Text(title).font(.app(.body, weight: .semibold)).lineLimit(1).truncationMode(.middle)
+                if let kind { Text(kind).font(.app(.caption)).foregroundColor(.secondary).lineLimit(1).truncationMode(.tail) }
                 Spacer(minLength: 6)
                 icons
             }
-            HStack(spacing: 6) {
-                if let f = facts {
-                    if f.changes > 0 { Chip(text: "\(f.changes) unsaved", color: .orange) }
-                    if f.unpushed > 0 { Chip(text: "\(f.unpushed) not pushed", color: .orange) }
+            // The facts sit under the name and take a row only when there is one to show. Every row
+            // under the header starts at the card's edge, so the tile reads down one line.
+            if let f = facts, f.changes > 0 || f.unpushed > 0 || f.behind > 0 || f.isMerged {
+                HStack(spacing: 6) {
+                    if f.changes > 0 { Chip(text: "\(f.changes) unsaved", color: .attention) }
+                    if f.unpushed > 0 { Chip(text: "\(f.unpushed) not pushed", color: .attention) }
                     if f.behind > 0 { Chip(text: "\(f.behind) behind main", color: .secondary) }
-                    if f.isMerged { Chip(text: f.role != nil ? "merged: move on" : "merged: close it", color: .green) }
+                    if f.isMerged { Chip(text: f.role != nil ? "merged: move on" : "merged: close it", color: .good) }
                 }
-                Spacer(minLength: 6)
+            }
+            HStack(spacing: 6) {
                 actions
+                Spacer(minLength: 6)
+                endings
             }
             if nextBranching, let role = facts?.role {
                 HStack(spacing: 6) {
                     TextField("next branch, e.g. search-fix", text: $nextBranch).textFieldStyle(.roundedBorder)
                         .onSubmit { moveOn(role) }
+                        // Escape in the field is its Cancel; the panel's own Escape waits for it.
+                        .onExitCommand { nextBranching = false }
                     Button("Move on") { moveOn(role) }.controlSize(.small).pointer()
                         .disabled(nextBranch.trimmingCharacters(in: .whitespaces).isEmpty)
                     Button("Cancel") { nextBranching = false }.controlSize(.small).pointer()
                 }
             }
             if let s = session, let q = s.question, s.isWaiting {
-                Text(q).font(.system(size: 12)).foregroundColor(.orange)
+                Text(q).font(.app(.caption)).foregroundColor(.attention)
             }
             // Its addresses and Forward whether or not its session runs: a stopped worktree's
             // switch takes effect when its session starts.
@@ -280,7 +347,7 @@ struct CheckoutTile: View {
                 }
             }
         }
-        .compactCard()
+        .card(.compact)
     }
 
     /// VS Code, Ask Claude, the branch and its pull requests on GitHub, and copying the branch
@@ -303,33 +370,56 @@ struct CheckoutTile: View {
             if let p = g.pulls { IconButton(symbol: "arrow.triangle.pull", help: "Its pull requests on GitHub") { open(p) } }
         }
         if let b = facts?.branch {
-            IconButton(symbol: "doc.on.doc", help: "Copy the branch name \(b)") { store.copy(b, label: b) }
+            // Copying shows nothing by itself, so the icon answers: a green tick for a moment,
+            // then the copy icon again. One wait per click; nothing runs unless it was pressed.
+            // Pressed again while the tick shows, the tick stays for the full moment after the
+            // last press: only the newest wait clears it.
+            IconButton(symbol: branchCopied ? "checkmark" : "doc.on.doc", help: branchCopied ? "Copied \(b)" : "Copy the branch name \(b)",
+                       tint: branchCopied ? .good : nil) {
+                store.copy(b, label: b)
+                branchCopied = true
+                copies += 1
+                let mine = copies
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_600_000_000)
+                    if copies == mine { branchCopied = false }
+                }
+            }
         }
     }
 
-    /// Every action in sight: Join, Restart (started again the way this Mac starts sessions; the
-    /// page has the other ways) and Stop while it runs, or Start; Next branch for a role worktree
-    /// and Close for any worktree, each shown before it runs where it changes something.
+    /// What carries the work on, from the left: Join (filled, the one most often pressed) and
+    /// Restart (started again the way this Mac starts sessions; the page has the other ways) while
+    /// it runs, or Start; then Next branch for a role worktree. Each is shown before it runs where
+    /// it changes something.
     @ViewBuilder private var actions: some View {
         if let s = session {
-            Button("Join") { Task { await store.runNow(["join"] + s.target, opensWindow: true) } }
+            Button { Task { await store.runNow(["join"] + s.target, opensWindow: true) } } label: { ReturnMarked("Join", marked: returns) }
                 .buttonStyle(.borderedProminent).controlSize(.small).pointer()
-                .help("Join it in \(store.status?.terminal ?? "your terminal")")
+                .help("Join it in \(store.status?.terminal ?? "your terminal")\(returns ? " (Return)" : "")")
             Button("Restart") {
                 Task { await store.preview(["restart", s.name, "--mode", store.status?.start ?? "zellij"]) }
             }
             .controlSize(.small).pointer().help("End it and start it fresh, as set in Settings; its commands are shown first")
+        } else {
+            Button { start() } label: { ReturnMarked("Start", marked: returns) }
+                .buttonStyle(.borderedProminent).controlSize(.small).pointer()
+                .help("Start its session, as set in Settings\(returns ? " (Return)" : "")")
+        }
+        if !isMain, !sessionName.isEmpty, facts?.role != nil {
+            Button("Next branch") { nextBranching = true }.controlSize(.small).pointer()
+                .help("Move this role worktree on to its next branch; its work must be saved or pushed first")
+        }
+    }
+
+    /// What ends something, together at the far end of the row and so never beside Join: Stop
+    /// while its session runs, and Close for any worktree. Both show their commands first.
+    @ViewBuilder private var endings: some View {
+        if let s = session {
             Button("Stop") { Task { await store.preview(["stop"] + s.target) } }
                 .controlSize(.small).pointer().help("End the session; its commands are shown first")
-        } else {
-            Button("Start") { start() }.buttonStyle(.borderedProminent).controlSize(.small).pointer()
-                .help("Start its session, as set in Settings")
         }
         if !isMain, !sessionName.isEmpty {
-            if facts?.role != nil {
-                Button("Next branch") { nextBranching = true }.controlSize(.small).pointer()
-                    .help("Move this role worktree on to its next branch; its work must be saved or pushed first")
-            }
             Button("Close") { Task { await store.preview(["clean-session", sessionName]) } }
                 .controlSize(.small).pointer()
                 .help("Stop its session and remove the worktree; refused, with ways to keep it, while work would be lost")
@@ -361,30 +451,18 @@ struct CheckoutTile: View {
     }
 
     /// Starts the checkout's session as this Mac starts them: the main clone's by project, a
-    /// worktree's by its work name (which opens the existing worktree).
+    /// worktree's by its work name (which opens the existing worktree). The action is the card's
+    /// own (PanelProject.Card.startAction), the one Return sends for it.
     private func start() {
         let mode = store.status?.start ?? "zellij"
-        let action = isMain ? ["start", project] : ["new", project, facts?.work ?? title]
-        Task { await store.runNow(action + ["--mode", mode], opensWindow: mode != "remote") }
+        Task { await store.runNow(card.startAction(project: project) + ["--mode", mode], opensWindow: mode != "remote") }
     }
 
     private func open(_ address: String) { if let u = URL(string: address) { NSWorkspace.shared.open(u) } }
 }
 
-/// The light beside a project or checkout: Claude's mark when Claude is waiting, a dot otherwise.
-struct Light: View {
-    let state: RunState
-    var body: some View {
-        if state == .waiting {
-            Text("✻").font(.system(size: 15, weight: .black)).foregroundColor(state.color).frame(width: 12)
-                .help("Claude is waiting for you")
-        } else {
-            Circle().fill(state.color).frame(width: 8, height: 8).frame(width: 12)
-        }
-    }
-}
-
 extension RunState {
+    /// The kit's light, as the state the app draws it in.
     init(_ light: PanelLight) {
         switch light {
         case .waiting: self = .waiting
@@ -394,14 +472,37 @@ extension RunState {
     }
 }
 
-/// A small icon button with a tooltip.
+/// A small icon button with a tooltip. A tint draws the icon in a colour that carries a meaning
+/// (green for something just copied); without one it is the colour of any button's label. Its
+/// tooltip is also its name to VoiceOver, which would otherwise read the symbol's own name or
+/// nothing: one sentence, so what is read out and what is shown cannot come to differ, and the
+/// copy icon is read as "Copied ..." for as long as it shows its tick.
 struct IconButton: View {
     let symbol: String
     let help: String
+    var tint: Color? = nil
     let action: () -> Void
     var body: some View {
-        Button(action: action) { Image(systemName: symbol).font(.system(size: 12)) }
-            .buttonStyle(.bordered).controlSize(.small).help(help).pointer()
+        Button(action: action) { Image(systemName: symbol).font(.app(.caption)).foregroundColor(tint) }
+            .buttonStyle(.bordered).controlSize(.small).help(help).accessibilityLabel(help).pointer()
+    }
+}
+
+/// The words of a card's Join or Start, with the return mark after them on the one button of the
+/// shown project that the Return key presses (D-033). The mark is for the eye; the button is
+/// still read out by its word.
+struct ReturnMarked: View {
+    let word: String
+    let marked: Bool
+    init(_ word: String, marked: Bool) {
+        self.word = word
+        self.marked = marked
+    }
+    var body: some View {
+        // One line of text, mark and all, so the word sits on the line its neighbours' words do;
+        // a mark laid out beside the word moved the word down.
+        (marked ? Text("\(word) \(Text(Image(systemName: "return")).font(.app(.glyph, weight: .semibold)))") : Text(word))
+            .accessibilityLabel(word)
     }
 }
 
@@ -409,17 +510,7 @@ struct SideTitle: View {
     let title: String
     init(_ title: String) { self.title = title }
     var body: some View {
-        Text(title).font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+        Text(title).font(.app(.fine, weight: .semibold)).foregroundColor(.secondary)
             .padding(.horizontal, 8).padding(.top, 8).padding(.bottom, 2)
-    }
-}
-
-extension View {
-    /// A card with less padding than a page's card, for the panel's detail.
-    func compactCard() -> some View {
-        padding(.horizontal, 10).padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .controlBackgroundColor)))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5))
     }
 }

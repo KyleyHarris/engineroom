@@ -1,20 +1,10 @@
 import EngineRoomKit
 import SwiftUI
 
-struct Chip: View {
-    let text: String
-    let color: Color
-    var body: some View {
-        Text(text).font(.system(size: 12))
-            .padding(.horizontal, 6).padding(.vertical, 1)
-            .background(Capsule().fill(color.opacity(0.15)))
-            .foregroundColor(color == .secondary ? .secondary : color)
-    }
-}
-
-/// Every repository the engine knows of, in four sections: pinned projects, registered ones by
-/// category, folders here that are not registered, and repositories on GitHub that are not here. A
-/// registered project opens its page.
+/// Every repository the engine knows of, as a page of cards: pinned projects, registered ones by
+/// category, folders here that are not registered, repositories on GitHub that are not here, and
+/// those hidden from that list. A registered project opens its page. Adding a repository, the one
+/// thing done to them as a whole, is in the page's title line.
 struct ReposView: View {
     @EnvironmentObject var store: Store
     @State private var search = ""
@@ -31,80 +21,92 @@ struct ReposView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
+            PageHeader(title: "Repositories", detail: "Click a project to open its page") {
+                Button("Add a repository…") { store.page = .add(root: nil) }.buttonStyle(.borderedProminent).pointer()
+            }
+            // The search stays above the scroll, so it is in reach however far down the list is.
             TextField("Search every root, here and on GitHub", text: $search)
-                .textFieldStyle(.roundedBorder).padding(.horizontal, 12).padding(.bottom, 4)
-            List {
-                if let r = store.repos {
-                    let registered = registeredOf(r).filter { matches($0.name, nil) }
-                    let pinned = registered.filter(\.pinned)
-                    if !pinned.isEmpty {
-                        Section("Pinned") { ForEach(pinned) { ProjectRow(project: $0) } }
+                .textFieldStyle(.roundedBorder).padding(.horizontal, Gutter.page).padding(.vertical, 10)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    if let r = store.repos {
+                        lists(r)
+                    } else {
+                        Text("Reading repositories …").foregroundColor(.secondary)
                     }
-                    Section("Registered") {
-                        if registered.isEmpty { Text("No registered project matches.").foregroundColor(.secondary) }
-                        ForEach(byCategory(registered.filter { !$0.pinned }), id: \.0) { cat, items in
-                            Text(cat.isEmpty ? "no category" : cat).font(.system(size: 13, weight: .semibold)).foregroundColor(.secondary)
-                            ForEach(items) { ProjectRow(project: $0) }
-                        }
-                    }
-                    let folders = r.roots.flatMap { l in l.repos.filter { $0.isUnregisteredFolder && matches($0.name, $0.description) }.map { (l.root, $0) } }
-                    if !folders.isEmpty {
-                        Section("Here, not registered") {
-                            ForEach(folders, id: \.1.name) { root, repo in RepoRow(root: root, repo: repo) }
-                        }
-                    }
-                    let remote = r.roots.flatMap { l in l.repos.filter { $0.isOnGitHubOnly && $0.hidden != true && matches($0.name, $0.description) }.map { (l.root, $0) } }
-                    let hidden = r.roots.flatMap { l in l.repos.filter { $0.isOnGitHubOnly && $0.hidden == true && matches($0.name, $0.description) }.map { (l.root, $0) } }
-                    Section {
-                        if showGitHub || !search.isEmpty {
-                            ForEach(remote, id: \.1.name) { root, repo in RepoRow(root: root, repo: repo) }
-                        }
-                    } header: {
-                        HStack {
-                            Text("On GitHub, not here (\(remote.count))")
-                            Spacer()
-                            Button(showGitHub || !search.isEmpty ? "Hide" : "Show") { showGitHub.toggle() }.buttonStyle(.link).disabled(!search.isEmpty).pointer()
-                        }
-                    }
-                    if !hidden.isEmpty {
-                        Section {
-                            if showHidden {
-                                ForEach(hidden, id: \.1.name) { root, repo in
-                                    HStack {
-                                        Text(repo.name).foregroundColor(.secondary)
-                                        Spacer()
-                                        Button("Show again") { Task { await store.runQuietly(["unhide", root.name, repo.name], saying: "Listing \(repo.name) again…") } }.controlSize(.small).pointer()
-                                    }
-                                }
-                            }
-                        } header: {
-                            HStack {
-                                Text("Hidden (\(hidden.count))")
-                                Spacer()
-                                Button(showHidden ? "Hide" : "Show") { showHidden.toggle() }.buttonStyle(.link).pointer()
-                            }
-                        }
-                    }
-                    ForEach(r.roots.compactMap { l in l.problem.map { (l.root, $0) } }, id: \.0.name) { root, p in
-                        VStack(alignment: .leading) {
-                            Text("\(root.name): \(p.reason)").foregroundColor(.red).font(.system(size: 13))
-                            if let fix = p.fix { Text("Fix on the engine: \(fix)").font(.system(size: 13, design: .monospaced)) }
-                        }
-                    }
-                    if r.roots.isEmpty {
-                        Text("No roots are registered. A root is a folder for one GitHub owner's repositories:\nengineroom root add <folder> --owner <owner> --account <gh account>")
-                            .font(.system(size: 13)).foregroundColor(.secondary)
-                    }
-                } else {
-                    Text("Reading repositories …").foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Gutter.page).padding(.bottom, Gutter.page)
+            }
+        }
+    }
+
+    @ViewBuilder private func lists(_ r: ReposReply) -> some View {
+        // A root that could not be read comes first: it is why what is under it may be short.
+        ForEach(r.roots.compactMap { l in l.problem.map { (l.root, $0) } }, id: \.0.name) { root, p in
+            VStack(alignment: .leading, spacing: 4) {
+                Banner(.bad, "\(root.name): \(p.reason)")
+                if let fix = p.fix {
+                    Text("Fix on the engine: \(fix)").font(.app(.detail, design: .monospaced)).textSelection(.enabled)
                 }
             }
-            .listStyle(.inset)
-            Footer {
-                Button("Add a repository…") { store.page = .add(root: nil) }.buttonStyle(.borderedProminent).pointer()
-                Spacer()
-                Text("Click a project to open its page").font(.system(size: 12)).foregroundColor(.secondary)
+        }
+        if r.roots.isEmpty {
+            EmptyState(title: "No roots are registered", detail: "A root is a folder for one GitHub owner's repositories:") {
+                Text("engineroom root add <folder> --owner <owner> --account <gh account>")
+                    .font(.app(.detail, design: .monospaced)).textSelection(.enabled)
+            }
+            .padding(.top, 4)
+        }
+        let registered = registeredOf(r).filter { matches($0.name, nil) }
+        let pinned = registered.filter(\.pinned)
+        let categories = byCategory(registered.filter { !$0.pinned })
+        if !pinned.isEmpty {
+            GroupTitle("Pinned")
+            ListCard(items: pinned) { ProjectRow(project: $0) }
+        }
+        if registered.isEmpty || !categories.isEmpty {
+            GroupTitle("Registered")
+            if registered.isEmpty {
+                Text("No registered project matches.").font(.app(.detail)).foregroundColor(.secondary)
+            }
+            // A card per category, named in its first line; a lone card of projects with no
+            // category needs no name, as in the window's sidebar.
+            ForEach(categories, id: \.0) { cat, items in
+                ListCard(items: items, title: categories.count > 1 || !cat.isEmpty ? (cat.isEmpty ? "no category" : cat) : nil) {
+                    ProjectRow(project: $0)
+                }
+            }
+        }
+        let folders = r.roots.flatMap { l in l.repos.filter { $0.isUnregisteredFolder && matches($0.name, $0.description) }.map { (l.root, $0) } }
+        if !folders.isEmpty {
+            GroupTitle("Here, not registered")
+            ListCard(items: folders) { root, repo in RepoRow(root: root, repo: repo) }
+        }
+        let remote = r.roots.flatMap { l in l.repos.filter { $0.isOnGitHubOnly && $0.hidden != true && matches($0.name, $0.description) }.map { (l.root, $0) } }
+        let hidden = r.roots.flatMap { l in l.repos.filter { $0.isOnGitHubOnly && $0.hidden == true && matches($0.name, $0.description) }.map { (l.root, $0) } }
+        GroupTitle(title: "On GitHub, not here (\(remote.count))") {
+            // A search lists what it finds whatever this is set to, so the link is offered only
+            // when there is no search.
+            if search.isEmpty { LinkButton(title: showGitHub ? "Hide" : "Show") { showGitHub.toggle() } }
+        }
+        if (showGitHub || !search.isEmpty) && !remote.isEmpty {
+            // An owner can have hundreds of repositories, so only the rows in sight are drawn.
+            ListCard(items: remote, lazy: true) { root, repo in RepoRow(root: root, repo: repo) }
+        }
+        if !hidden.isEmpty {
+            GroupTitle(title: "Hidden (\(hidden.count))") {
+                LinkButton(title: showHidden ? "Hide" : "Show") { showHidden.toggle() }
+            }
+            if showHidden {
+                ListCard(items: hidden) { root, repo in
+                    HStack {
+                        Text(repo.name).foregroundColor(.secondary)
+                        Spacer()
+                        Button("Show again") { Task { await store.runQuietly(["unhide", root.name, repo.name], saying: "Listing \(repo.name) again…") } }.controlSize(.small).pointer()
+                    }
+                }
             }
         }
     }
@@ -137,7 +139,9 @@ struct ReposView: View {
     }
 }
 
-/// A registered project: click to open its page.
+/// A registered project: click to open its page. Its light says what its sessions are doing, as the
+/// panel's list does (green only while one runs, Claude's mark while one waits), and a pinned one
+/// carries a quiet star, the mark for pinned on every screen (D-032).
 struct ProjectRow: View {
     @EnvironmentObject var store: Store
     let project: ReposView.Registered
@@ -145,13 +149,16 @@ struct ProjectRow: View {
     var body: some View {
         Button { Task { await store.openProject(project.name) } } label: {
             HStack {
-                if project.pinned { Image(systemName: "pin.fill").foregroundColor(.orange).font(.system(size: 11)) }
-                else { Circle().fill(Color.green).frame(width: 7, height: 7) }
+                Light(state: store.runState(of: project.name))
                 Text(project.name)
-                Text(project.detail).font(.system(size: 12)).foregroundColor(.secondary)
+                if project.pinned {
+                    Image(systemName: "star.fill").foregroundColor(.secondary).font(.app(.glyph)).help("Pinned to the panel")
+                        .accessibilityLabel("Pinned to the panel")
+                }
+                Text(project.detail).font(.app(.caption)).foregroundColor(.secondary)
                 Spacer()
                 let running = store.sessions.filter { $0.project == project.name && !$0.ended }.count
-                if running > 0 { Chip(text: "\(running) running", color: .green) }
+                if running > 0 { Chip(text: "\(running) running", color: .good) }
                 Image(systemName: "chevron.right").foregroundColor(.secondary)
             }
             .contentShape(Rectangle())
@@ -160,14 +167,9 @@ struct ProjectRow: View {
     }
 }
 
-struct Legend: View {
-    let color: Color
-    let text: String
-    var body: some View {
-        HStack(spacing: 4) { Circle().fill(color).frame(width: 7, height: 7); Text(text).font(.system(size: 12)).foregroundColor(.secondary) }
-    }
-}
-
+/// A repository that is not a registered project yet: a folder here, or one on GitHub only, each
+/// with the one thing done to it. Its icon says which, quietly; a colour would claim a state it
+/// does not have (D-032).
 struct RepoRow: View {
     @EnvironmentObject var store: Store
     let root: Root
@@ -175,10 +177,10 @@ struct RepoRow: View {
 
     var body: some View {
         HStack {
-            Circle().fill(repo.isRegistered ? Color.green : repo.isUnregisteredFolder ? Color.orange : Color.blue).frame(width: 7, height: 7)
+            Image(systemName: repo.isOnGitHubOnly ? "cloud" : "folder").font(.app(.fine)).foregroundColor(.secondary).frame(width: 14)
             Text(repo.name)
-            if let v = repo.visibility { Text(v).font(.system(size: 12)).foregroundColor(.secondary) }
-            if let p = repo.project, p != repo.name { Text("as \(p)").font(.system(size: 12)).foregroundColor(.secondary) }
+            if let v = repo.visibility { Text(v).font(.app(.caption)).foregroundColor(.secondary) }
+            if let p = repo.project, p != repo.name { Text("as \(p)").font(.app(.caption)).foregroundColor(.secondary) }
             Spacer()
             if repo.isRegistered {
                 Button("Open") { Task { await store.openProject(repo.project ?? repo.name) } }.controlSize(.small).pointer()
@@ -188,14 +190,15 @@ struct RepoRow: View {
                 Button("Get…") { store.page = .add(root: root.name + "/" + repo.name) }.controlSize(.small).pointer()
                 Button { Task { await store.runQuietly(["hide", root.name, repo.name], saying: "Hiding \(repo.name)…") } } label: { Image(systemName: "eye.slash") }
                     .buttonStyle(.borderless).help("Hide it from this list; nothing changes on GitHub").pointer()
+                    .accessibilityLabel("Hide \(repo.name) from this list")
             }
         }
         .help(repo.description ?? "")
     }
 }
 
-/// Every action run on this machine, newest first, with its commands to copy: one scroll of cards,
-/// a card per day, each action a line in it. An action opens in place to show its commands, so the
+/// Every action run on this machine, newest first, with its commands to copy: under the page's
+/// title, one scroll of cards, a card per day, each action a line in it. An action opens in place to show its commands, so the
 /// list keeps its place and nothing has to be read in a second pane. A failed action shows its
 /// commands without being opened, since that is what it is looked at for.
 struct HistoryView: View {
@@ -206,24 +209,21 @@ struct HistoryView: View {
     private let shown = 200
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                if store.history.isEmpty {
-                    Text("Nothing has been run on this machine yet. Every action the app or the terminal runs is listed here, with its commands to copy.")
-                        .font(.system(size: 13)).foregroundColor(.secondary).padding(.top, 14)
-                }
-                ForEach(days, id: \.title) { day in
-                    GroupTitle(day.title)
-                    VStack(spacing: 0) {
-                        ForEach(Array(day.entries.enumerated()), id: \.element.id) { i, e in
-                            if i > 0 { Divider().padding(.vertical, 2) }
-                            HistoryRow(entry: e, open: isOpen(e)) { toggle(e) }
-                        }
+        VStack(alignment: .leading, spacing: 0) {
+            PageHeader(title: "History").padding(.bottom, 10)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    if store.history.isEmpty {
+                        EmptyState(title: "Nothing has been run on this machine yet",
+                                   detail: "Every action the app or the terminal runs is listed here, with its commands to copy.")
                     }
-                    .card()
+                    ForEach(days, id: \.title) { day in
+                        GroupTitle(day.title)
+                        ListCard(items: day.entries) { e in HistoryRow(entry: e, open: isOpen(e)) { toggle(e) } }
+                    }
                 }
+                .padding(.horizontal, Gutter.page).padding(.bottom, Gutter.page)
             }
-            .padding(.horizontal, 20).padding(.bottom, 20)
         }
     }
 
@@ -262,14 +262,14 @@ struct HistoryRow: View {
             Button(action: toggle) {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Image(systemName: open ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.secondary).frame(width: 12)
-                    Text(entry.started, style: .time).font(.system(size: 13).monospacedDigit()).foregroundColor(.secondary).frame(width: 64, alignment: .leading)
-                    Text(entry.title).font(.system(size: 13)).lineLimit(1).truncationMode(.tail)
+                        .font(.app(.glyph, weight: .semibold)).foregroundColor(.secondary).frame(width: 12)
+                    Text(entry.started, style: .time).font(.app(.detail).monospacedDigit()).foregroundColor(.secondary).frame(width: 64, alignment: .leading)
+                    Text(entry.title).font(.app(.detail)).lineLimit(1).truncationMode(.tail)
                     Spacer(minLength: 8)
-                    Text(entry.machine).font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1)
+                    Text(entry.machine).font(.app(.caption)).foregroundColor(.secondary).lineLimit(1)
                     HStack(spacing: 5) {
                         Circle().fill(color).frame(width: 7, height: 7)
-                        Text(entry.status).font(.system(size: 12, weight: .medium)).foregroundColor(color)
+                        Text(entry.status).font(.app(.caption, weight: .medium)).foregroundColor(color)
                     }
                     .frame(width: 72, alignment: .leading)
                 }
@@ -280,7 +280,7 @@ struct HistoryRow: View {
             if open {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array((entry.notes ?? []).enumerated()), id: \.offset) { _, n in
-                        Text(n).font(.system(size: 12)).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+                        Text(n).font(.app(.caption)).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                     ForEach(Array(entry.commands.enumerated()), id: \.offset) { i, c in
                         CommandLine(index: i, text: c.display, status: c.status, output: c.output, why: c.why)
@@ -289,20 +289,20 @@ struct HistoryRow: View {
                         LinkButton(title: entry.commands.count == 1 ? "Copy the command" : "Copy all \(entry.commands.count) commands") {
                             store.copy(joinAll(entry.commands.map(\.display)), label: entry.commands.count == 1 ? "the command" : "all \(entry.commands.count) commands")
                         }
-                        if let c = store.copied { Text("Copied \(c).").font(.system(size: 12)).foregroundColor(.green) }
+                        if let c = store.copied { Text("Copied \(c).").font(.app(.caption)).foregroundColor(.good) }
                     }
                 }
                 .padding(.leading, 22).padding(.bottom, 6)
             }
         }
-        .padding(.vertical, 4)
     }
 
     private var color: Color {
         switch entry.status {
-        case "done": return .green
-        case "running": return .orange
-        default: return .red
+        case "done": return .good
+        // Under way and needing nothing, so never the colour that asks for the developer (D-032).
+        case "running": return .busy
+        default: return .bad
         }
     }
 }
@@ -319,19 +319,19 @@ struct CommandLine: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Text(label).font(.system(size: 12, weight: .semibold)).foregroundColor(color).frame(width: 64, alignment: .leading)
+            Text(label).font(.app(.caption, weight: .semibold)).foregroundColor(color).frame(width: 64, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
-                Text(text).font(.system(size: 13, design: .monospaced)).textSelection(.enabled)
-                if let why { Text(why).font(.system(size: 12)).foregroundColor(.secondary) }
+                Text(text).font(.app(.detail, design: .monospaced)).textSelection(.enabled)
+                if let why { Text(why).font(.app(.caption)).foregroundColor(.secondary) }
                 if let output, !output.isEmpty {
                     Text(output.split(separator: "\n").suffix(8).joined(separator: "\n"))
-                        .font(.system(size: 12, design: .monospaced)).foregroundColor(status == "failed" ? .red : .secondary)
+                        .font(.app(.caption, design: .monospaced)).foregroundColor(status == "failed" ? .bad : .secondary)
                 }
-                if let onFail { Text(onFail).font(.system(size: 13)).foregroundColor(.orange) }
+                if let onFail { Text(onFail).font(.app(.detail)).foregroundColor(.attention) }
             }
             Spacer(minLength: 0)
             Button { store.copy(text, label: "command \(index + 1)") } label: { Image(systemName: "doc.on.doc") }.pointer()
-                .buttonStyle(.borderless).help("Copy this command")
+                .buttonStyle(.borderless).help("Copy this command").accessibilityLabel("Copy command \(index + 1)")
         }
     }
 
@@ -339,7 +339,8 @@ struct CommandLine: View {
         switch status {
         case nil, "pending": return "\(index + 1)."
         case "ok": return "ok, done"
-        case "failed": return "FAILED"
+        // In the word the history's own outcome uses, so one failure is said one way.
+        case "failed": return "failed"
         case "running": return "running"
         case "not run": return "not run"
         default: return status ?? ""
@@ -348,9 +349,9 @@ struct CommandLine: View {
 
     private var color: Color {
         switch status {
-        case "ok": return .green
-        case "failed": return .red
-        case "running": return .orange
+        case "ok": return .good
+        case "failed": return .bad
+        case "running": return .busy
         default: return .secondary
         }
     }

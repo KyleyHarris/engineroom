@@ -1098,3 +1098,128 @@ Decision:   - On a Mac, when the program runs outside the desktop login (`launch
               Access) treat a session started this way as they treat one started from a terminal at
               the screen; they are granted per application.
 Status:     accepted
+
+## D-032  2026-11-10  The app has one meaning per colour, one kind of button per job, and its sizes named once
+
+Context:    The app's screens were drawn alike (D-019) by convention, not by anything shared: text at
+            eleven sizes, corners at five radii, two cards, two state lights and two chips written
+            in different files. Colours carried no fixed meaning: orange meant Claude is waiting,
+            unsaved work, a warning, a command under way, a pinned project and a folder not
+            registered; green meant a running session, an action done and every registered
+            repository, so a list of repositories was a column of green dots that said nothing. The
+            project page offered the three ways to start a session in a menu, against "every
+            action is a button in sight" (D-025). Working local was a small switch among the
+            header's icons, and Quit sat beside refresh as one more icon.
+Options:    (a) Leave the screens as they are and correct each inconsistency where it is noticed
+                - rejected: nothing stops the next screen from drifting, and a colour with six
+                meanings cannot be made to mean one by correcting one use.
+            (b) Name the sizes, the radii, the gutters and the colour meanings once, in the file
+                that holds the visual language, draw each shared piece once (card, light, chip,
+                banner, empty screen, page title), and move every screen onto them [CHOSEN]
+            (c) Replace the app's own look with the system's stock lists and forms throughout
+                - rejected: the cards with a label column are what make a checkout's state and its
+                actions readable at once, and the panel has no stock equivalent.
+Decision:   - A colour says one thing wherever it is used. Orange: something needs the developer
+              (Claude is waiting, work that would be lost, a step that cannot run). Green: as it
+              should be (a session running, an action done, something copied). Red: it failed or
+              cannot be reached. The accent colour: under way and needing nothing (a command being
+              run), and anything that is clicked like a link. Everything else is quiet: a pinned
+              project's star is grey, a repository that is not a project yet has a grey icon for
+              where it is, and a project is lit only while a session of it runs.
+            - A project's light is the same on every screen: Claude's mark when any of its running
+              sessions waits, a green dot when one runs. The window's sidebar and the repositories
+              list show it as the panel's list does.
+            - A button in words changes something (Join, Stop, Close). A button that is only an icon
+              opens something elsewhere or copies (VS Code, Finder, GitHub, the branch name), and
+              has a tooltip. One button of a card is filled: the one most often pressed, Join while
+              its session runs and the usual way to start it otherwise.
+            - On a project's page a checkout that is not running shows the three ways to start it
+              as three buttons, in the words of the Restart row: the terminal with Remote Control,
+              the terminal only, Remote Control only. The way chosen in Settings is the filled one,
+              so the usual start is still one click (APP-START-001 to 003).
+            - The text sizes, corner radii and page gutters are named by what they are for, in
+              macos/Sources/EngineRoomMenu/Style.swift, and no screen writes a number of its own.
+              The card, the state light, the chip, the banner (what a screen must say first, with
+              the buttons that deal with it), the empty screen (what is missing and the button that
+              supplies it) and the page title are each drawn once there.
+            - Working local is turned on and off by a button in words, in the header and in
+              Settings, and the header's badge says when it is on. Quit stands apart from refresh
+              and the gear; Command-Q is unchanged.
+            - Every page of the window starts with its title line and shows what it has as cards
+              on the grey window: a project, the repositories, the history, the settings, and the
+              forms that add or register a repository. A page reached from another has the link
+              back above its title. A list is a card of rows with a hairline between them; a
+              setting is a row of its card with its control at the far end.
+            - What a checkout would lose is a chip under its name, on the panel and on the page.
+              Close, which only a worktree has, is at the far end of the row that joins or starts
+              its session, apart from those buttons.
+            - An action's commands have one way back, the link at the top, in sight before, during
+              and after a run. The bar at the foot holds what goes on: Copy, then Run or Done. A
+              failed command is said in one word, "failed", wherever the app shows it.
+Status:     accepted. Refines D-019's one visual language and D-025's buttons in sight; changes no
+            function of either.
+
+## D-033  2026-11-10  The panel's list is worked from the keyboard, and what the app shows by an icon or a colour it also says in words
+
+Context:    The panel is opened many times a day and was worked only by pointing: choosing a
+            project, joining its session and closing the panel each needed the pointer. The
+            buttons that are only an icon (D-032) had a tooltip and no name, so VoiceOver read a
+            symbol's name or nothing, and a state light said its state by a colour and a mark
+            alone. A surface swapped to an action's page between one frame and the next, which
+            reads as a jump to somewhere else. The pointing hand was put on the cursor when the
+            pointer came over something clickable and taken off when it left, so a button that
+            went from under the pointer when it was pressed could leave the hand behind.
+Options:    (a) Make the panel's list a stock list and let the system move its selection
+                - rejected: the rows are the app's own drawing (D-032) and a stock list restyles
+                them, and a list answers keys only once it has the focus, which in a panel opened
+                from the menu bar is after a click, the thing the keys are there to save.
+            (b) The panel answers a small fixed set of keys itself, whenever it is the window
+                being typed into: the arrows, Return and Escape [CHOSEN]
+            (c) A letter per action (join, stop, restart, close)
+                - rejected: a letter is not in sight, against every action being a button in
+                sight (D-025), and a wrong letter would stop a session. Return carries the one
+                action that changes nothing that cannot be left again, and the rest stay buttons.
+            For which session Return joins when a project has several:
+            (d) Always the first card, the main clone's
+                - rejected: the panel is opened most often because Claude is waiting, and that
+                session is often a worktree's.
+            (e) The session that is waiting, else the first that runs, else start the first
+                checkout, with that card's button marked so it is seen before the key is pressed
+                [CHOSEN]
+Decision:   - In the panel's list Down and Up choose the next and the previous project, in the
+              order the list is drawn, and stop at each end. The choice is the one pointing makes:
+              it is shown on the right and remembered (D-025). A chosen row is brought into sight
+              when the list is longer than the panel. This Mac's own sessions, listed apart, are
+              not projects and are not part of the walk; each keeps its Join.
+            - Return joins or starts the chosen project: its session that waits for the developer,
+              else its first running session in the order its cards are drawn, else it starts its
+              first checkout. That card's Join or Start carries a return mark, and the key sends
+              exactly what the button sends.
+            - Escape closes the panel from its list. On a page reached from another it is the link
+              back: an action's page in the panel or the window, and the window's pages that get
+              or register a repository, from one of their fields too, as Escape cancels a dialog.
+            - The keys are left alone when they belong to something else: held with Command,
+              Option, Control or Shift; while a dialog is up; in the panel's list while a field is
+              typed into (the next branch of a role, where Escape is the field's Cancel); Escape
+              while an input method is part way through a character. A held arrow walks the list;
+              a held Return asks once; a held Escape goes back one step.
+            - Pointing and clicking are unchanged. After an arrow key the pointer chooses again as
+              soon as it moves; while it rests, the row under it does not take the choice back.
+            - Every button that is only an icon has a name in words, read by VoiceOver: a card's
+              icons are named by their tooltips, so the copy icon is read as "Copied" with the
+              branch for as long as it shows its tick. A state light is read as its state in words,
+              a row of the panel's list as one thing (the project, its state, and how many
+              sessions run when more than one), and the menu bar icon as the app, with "Claude is
+              waiting for you" while it carries the mark.
+            - An action's page arrives with a short fade. Only the arrival fades: a page that is
+              left is emptied as it closes, so what was underneath comes back at once. Nothing
+              fades while Reduce Motion is on in System Settings.
+            - The pointing hand is taken off the cursor exactly once: when the pointer leaves, or
+              when the view goes while the pointer is still over it.
+            - Which key does what, where, and what Return acts on are decided in EngineRoomKit
+              (PanelKey, PanelProject.step, PanelProject.keyAction) and checked by its tests; the
+              app reads the place off the window and carries the effect out.
+            - Not covered: keys for the window's own lists and forms, which keep the system's;
+              Return as the Run button of an action's page.
+Status:     accepted. Adds to D-025 (pointing and clicking are kept) and D-032 (an icon's tooltip
+            is also its name); changes no function of either.
