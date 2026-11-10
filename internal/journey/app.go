@@ -4,33 +4,62 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/KyleyHarris/engineroom/internal/terminal"
 )
 
 // launcherStandIn stands in for macOS's open and osascript, which the program uses to open a
-// terminal window. It records the window that would have opened instead of opening one, so no
-// journey puts a window on the screen of the machine running it.
+// terminal window, quit and open the menu bar app, and reach the clipboard. It records what would
+// have run instead of running it, so no journey puts a window on the screen of the machine running
+// it, or starts an application there: an application started from a journey keeps the journey's
+// environment (its home, configuration and Zellij folders) for as long as it runs, and everything
+// it opens afterwards inherits them.
 const launcherStandIn = `#!/bin/sh
 echo "$(basename "$0") $*" >> "$HOME/windows.log"
 `
 
-// FakeTerminals installs the named terminal applications (bundle folders such as
-// "Ghostty.app") as the only ones this machine has, and the stand-ins that record the windows
-// they would open.
-func (m *Machine) FakeTerminals(bundles ...string) {
+// DefaultTerminals is what every machine has installed until a journey says otherwise: Ghostty, the
+// terminal the program chooses first.
+var DefaultTerminals = []string{"Ghostty.app"}
+
+// standInLaunchers puts the stand-ins for open and osascript on this machine's PATH in front of
+// the real ones. Every machine has them from the start (NewMachine), so a journey that asks the
+// program to open a window cannot reach the real terminal, whether or not it looks at the
+// windows.
+func (m *Machine) standInLaunchers() {
 	m.t.Helper()
-	apps := filepath.Join(m.Home, "Applications")
-	for _, b := range bundles {
-		if err := os.MkdirAll(filepath.Join(apps, b), 0o755); err != nil {
-			m.t.Fatal(err)
-		}
-	}
-	m.Extra = append(m.Extra, "ENGINEROOM_APP_DIRS="+apps)
 	for _, name := range []string{"open", "osascript"} {
 		m.write(filepath.Join(m.Bin, name), launcherStandIn)
 		if err := os.Chmod(filepath.Join(m.Bin, name), 0o755); err != nil {
 			m.t.Fatal(err)
 		}
 	}
+}
+
+// FakeTerminals installs the named terminal applications (bundle folders such as
+// "Ghostty.app") as the only terminals this machine has, removing the others it had; other
+// applications in its folder (the menu bar app) are left. Applications are looked for only in
+// this machine's own folder, never the real machine's.
+func (m *Machine) FakeTerminals(bundles ...string) {
+	m.t.Helper()
+	apps := m.AppsDir()
+	for _, t := range terminal.Known {
+		if err := os.RemoveAll(filepath.Join(apps, t.Bundle)); err != nil {
+			m.t.Fatal(err)
+		}
+	}
+	for _, b := range bundles {
+		if err := os.MkdirAll(filepath.Join(apps, b), 0o755); err != nil {
+			m.t.Fatal(err)
+		}
+	}
+	setting := "ENGINEROOM_APP_DIRS=" + apps
+	for _, kv := range m.Extra {
+		if kv == setting {
+			return
+		}
+	}
+	m.Extra = append(m.Extra, setting)
 }
 
 // AppsDir is where FakeTerminals put the applications.
