@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -21,6 +23,16 @@ type Config struct {
 	Repository string `toml:"repository"` // the repository's web address, for links to files
 	Branch     string `toml:"branch"`     // the branch those links point at
 
+	// URL is the address the site is published at, ending in a slash. Pages link to each other
+	// relatively, so the site still opens from disk; the address is only for what has to be whole:
+	// each page's canonical address, the link preview tags, the sitemap, and the page for an
+	// address that is not there, which is served from any depth and so cannot link relatively.
+	URL string `toml:"url"`
+	// Images is a repository folder of pictures the hand-written pages show, copied to images/ in
+	// the built site. Share is the one of them a link preview shows, as a path in the built site.
+	Images string `toml:"images"`
+	Share  string `toml:"share"`
+
 	// Style is the look the site is built with: assets/styles/<style>.css over assets/base.css.
 	// Styles names every look there is, by file name, with the label the dev server's style switch
 	// shows, so looks can be compared on the running site before one is chosen.
@@ -33,6 +45,21 @@ type Config struct {
 
 	Docs  []DocConfig `toml:"doc"`
 	Stack []Layer     `toml:"stack"`
+}
+
+// RepositoryPath is the repository as GitHub names it, "owner/name": what a Claude Code plugin
+// marketplace is added by.
+func (c *Config) RepositoryPath() string {
+	u, err := url.Parse(c.Repository)
+	if err != nil {
+		return ""
+	}
+	return strings.Trim(u.Path, "/")
+}
+
+// RepositoryName is the folder a clone of the repository lands in.
+func (c *Config) RepositoryName() string {
+	return path.Base(c.RepositoryPath())
 }
 
 // DocConfig says how one doc becomes pages. Every heading at a level from 2 to Split starts a
@@ -64,11 +91,18 @@ func loadConfig(path string) (*Config, error) {
 	// product's name belongs and nothing would say so.
 	for _, f := range []struct{ name, value string }{
 		{"product", c.Product}, {"command", c.Command}, {"folder", c.Folder}, {"tagline", c.Tagline},
-		{"platform", c.Platform}, {"repository", c.Repository}, {"branch", c.Branch},
+		{"platform", c.Platform}, {"repository", c.Repository}, {"branch", c.Branch}, {"url", c.URL},
 	} {
 		if strings.TrimSpace(f.value) == "" {
 			return nil, fmt.Errorf("%s: %q is not set", path, f.name)
 		}
+	}
+	// A whole address is joined to page paths as it stands, so it is refused unless it can be.
+	if u, err := url.Parse(c.URL); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || !strings.HasSuffix(c.URL, "/") {
+		return nil, fmt.Errorf("%s: url %q must be the site's whole address, ending in a slash", path, c.URL)
+	}
+	if c.Share != "" && c.Images == "" {
+		return nil, fmt.Errorf("%s: share names a picture, but images names no folder to take it from", path)
 	}
 	if _, ok := c.Styles[c.Style]; !ok {
 		return nil, fmt.Errorf("%s: style %q is not one of [styles]", path, c.Style)

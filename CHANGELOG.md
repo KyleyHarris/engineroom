@@ -16,6 +16,11 @@ All notable changes are recorded here. The format follows
   it, and run it). Each shows an action's commands first and runs it only when you say; none
   stops a session you did not name. Update the plugin with `/plugin update engineroom@engineroom`.
 
+- **The website shows the app and how to install it, and can be found and shared.** The front
+  page has the app's two pictures and the install steps. Every page has its own description, its
+  address and link preview tags; the site has an icon, a sitemap and a page for an address that is
+  not there. `site/site.toml` gains `url`, `images` and `share`.
+
 ### Changed
 
 - **A session on the engine runs inside your desktop login, however it was started.** A session

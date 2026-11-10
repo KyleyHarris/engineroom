@@ -16,6 +16,9 @@
 //
 // Every build is checked: a link or an anchor that goes nowhere, a missing image, and an em or
 // en dash all fail it. Nothing is fetched from the network, so the check is the same offline.
+//
+// Beside the pages, a build writes sitemap.xml and robots.txt from the published address in
+// site.toml, and copies the pictures folder it names to images/.
 package main
 
 import (

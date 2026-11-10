@@ -83,7 +83,7 @@ if [ -f go.mod ]; then
   go test ./... || fail "go test"
 
   # The website is built from the docs, so a doc change can break it: a link to a heading that
-  # was renamed, a decision named that does not exist. Built into a temporary folder and checked
+  # was renamed, an image that was moved. Built into a temporary folder and checked
   # there; nothing is fetched, and nothing in site/out is touched.
   step "website (built from docs/ and site/, then checked)"
   go run ./tools/site -check || fail "website: a link, an anchor or an image goes nowhere, or a page has a dash"

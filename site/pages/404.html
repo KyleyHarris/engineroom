@@ -1,0 +1,34 @@
+{{/*
+  The page a host shows for an address that is not on the site: a moved page, a mistyped link.
+  It is served from whatever address was asked for, at any depth, so the layout gives this page
+  whole addresses (the generator sets .Root to the site's published address here).
+
+  The product's name comes from site.toml; never spell it here.
+*/}}{{define "title"}}Page not found{{end}}
+{{define "description"}}This page is not on the {{.Site.Product}} site. Start from the front page, the setup or the guide.{{end}}
+{{define "main"}}
+<main id="main" class="story">
+  <header class="story-head">
+    <h1>That page is not here</h1>
+    <p class="story-lead">The address may be mistyped, or the page may have moved when the docs
+      were reorganised. Everything on the site is reached from these:</p>
+  </header>
+  <section class="readon readon-plain" aria-label="Where to go">
+    <div class="readon-docs">
+      <div class="readon-doc">
+        <h3><a href="{{.Root}}index.html">The front page</a></h3>
+        <p>What {{.Site.Product}} is, and how to install it.</p>
+      </div>
+      <div class="readon-doc">
+        <h3><a href="{{.Root}}how-it-works.html">How it works</a></h3>
+        <p>The pieces and how they connect, with every job shown step by step.</p>
+      </div>
+      {{range .Docs}}<div class="readon-doc">
+        <h3><a href="{{$.Root}}{{.Config.Slug}}/index.html">{{.Title}}</a></h3>
+        <p>{{.Config.About}}</p>
+      </div>
+      {{end}}
+    </div>
+  </section>
+</main>
+{{end}}
