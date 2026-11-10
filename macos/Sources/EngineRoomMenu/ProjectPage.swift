@@ -198,11 +198,14 @@ struct ProjectPageView: View {
     }
 
     /// The settings are a repository cloned on every machine, so they open here, on this Mac.
+    /// open runs with an empty environment, so VS Code, when this starts it, gets the developer's
+    /// own session environment as when opened from the Dock, not the app's (D-030).
     private func openSettings(_ path: String) {
         let full = (path as NSString).expandingTildeInPath
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         task.arguments = ["-a", "Visual Studio Code", full]
+        task.environment = [:]
         try? task.run()
     }
 }

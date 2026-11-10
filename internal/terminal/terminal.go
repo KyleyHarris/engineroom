@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/KyleyHarris/engineroom/internal/action"
+	"github.com/KyleyHarris/engineroom/internal/launch"
 	"github.com/KyleyHarris/engineroom/internal/shell"
 )
 
@@ -183,38 +184,46 @@ var ghosttyScript = []string{
 
 // Open is the command that opens session in t running argv: in Ghostty, a tab of the one window
 // that holds the sessions (or the tab already joined to it); in the others, a new window.
+//
+// Each is run with an empty environment (launch.Clean), so a terminal it has to start gets the
+// developer's own session environment, as one opened from the Dock does, whatever ran this program
+// (D-030). The command in the window is given this program's PATH, as the app gives engineroom the
+// login shell's (D-011): a window's shell may not have the folders zellij and ssh are installed in.
 func Open(t Terminal, session string, argv []string) action.Command {
 	why := "open a " + t.Name + " window joined to the session"
-	line := shell.Join(argv)
+	path := os.Getenv("PATH")
 	switch t.Name {
 	case "Ghostty":
 		// Through Ghostty's own scripting, so the session joins the running Ghostty rather than
 		// a copy of it started for each join. Ghostty runs the command line through a shell,
-		// which undoes the quoting. The tab starts with the running Ghostty's environment,
-		// whose PATH is the bare one macOS gives an app, without the folders zellij and ssh
-		// are installed in, so it is given this program's PATH (the app gives engineroom the login
-		// shell's, D-011).
+		// which undoes the quoting. The tab is given the PATH as a variable of its own, the one
+		// thing it takes from this program.
 		args := []string{"osascript"}
 		for _, l := range ghosttyScript {
 			args = append(args, "-e", l)
 		}
 		return action.Command{
-			Argv: append(args, TabPrefix+session, line, os.Getenv("PATH")),
+			Argv: launch.Clean(append(args, TabPrefix+session, shell.Join(argv), path)...),
 			Why:  "join the session in a tab of the Ghostty window that holds the sessions",
 			OnFail: "Ghostty did not take the request. The first time, macOS asks whether engineroom may control Ghostty; " +
 				"if that was refused, allow it in System Settings, Privacy & Security, Automation. " +
 				"Ghostty's macos-applescript setting must also be left on.",
 		}
+	}
+	// The other terminals take only a command, so the PATH goes into it.
+	withPath := append([]string{launch.Env, "PATH=" + path}, argv...)
+	line := shell.Join(withPath)
+	switch t.Name {
 	case "iTerm2":
-		return action.Command{Argv: []string{"osascript", "-e", `tell application "iTerm" to create window with default profile command ` + appleString(line)}, Why: why}
+		return action.Command{Argv: launch.Clean("osascript", "-e", `tell application "iTerm" to create window with default profile command `+appleString(line)), Why: why}
 	case "Terminal":
-		return action.Command{Argv: []string{"osascript", "-e", `tell application "Terminal" to do script ` + appleString(line), "-e", `tell application "Terminal" to activate`}, Why: why}
+		return action.Command{Argv: launch.Clean("osascript", "-e", `tell application "Terminal" to do script `+appleString(line), "-e", `tell application "Terminal" to activate`), Why: why}
 	case "WezTerm":
-		return action.Command{Argv: append([]string{"open", "-na", t.Path, "--args", "start", "--"}, argv...), Why: why}
+		return action.Command{Argv: launch.Clean(append([]string{"open", "-na", t.Path, "--args", "start", "--"}, withPath...)...), Why: why}
 	case "kitty":
-		return action.Command{Argv: append([]string{"open", "-na", t.Path, "--args"}, argv...), Why: why}
+		return action.Command{Argv: launch.Clean(append([]string{"open", "-na", t.Path, "--args"}, withPath...)...), Why: why}
 	default: // Alacritty
-		return action.Command{Argv: append([]string{"open", "-na", t.Path, "--args", "-e"}, argv...), Why: why}
+		return action.Command{Argv: launch.Clean(append([]string{"open", "-na", t.Path, "--args", "-e"}, withPath...)...), Why: why}
 	}
 }
 

@@ -75,7 +75,9 @@ if [ "${with_app}" -eq 1 ]; then
     run codesign --force --sign - "${app}" || exit 1
   fi
   echo
-  echo "Installed the app at ${app}. Open it with: open \"${app}\""
+  # An empty environment, so the app starts as when opened from the Dock, not with this shell's
+  # variables (docs/decisions.md D-030).
+  echo "Installed the app at ${app}. Open it with: env -i open \"${app}\""
   echo "If an older copy is running, quit it from its Settings first."
 fi
 
