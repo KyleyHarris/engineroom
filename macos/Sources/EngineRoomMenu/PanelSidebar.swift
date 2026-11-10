@@ -24,7 +24,7 @@ struct PanelView: View {
             banners
             if projects.isEmpty && list.here.isEmpty {
                 Text("There are no sessions running. Start one from Repositories, or pin a project to keep it here.")
-                    .foregroundColor(.secondary).padding(16)
+                    .foregroundColor(.secondary).padding(Gutter.panel)
                 Spacer()
             } else {
                 HStack(spacing: 0) {
@@ -34,9 +34,9 @@ struct PanelView: View {
                     Divider()
                     ScrollView {
                         if let current {
-                            ProjectDetail(item: current).padding(12)
+                            ProjectDetail(item: current).padding(Gutter.panel)
                         } else if !list.here.isEmpty {
-                            HereDetail(sessions: list.here).padding(12)
+                            HereDetail(sessions: list.here).padding(Gutter.panel)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -46,13 +46,12 @@ struct PanelView: View {
     }
 
     /// What the panel must say before anything else: an engine on another build, an image just sent,
-    /// a problem reading the engine.
+    /// a problem reading the engine. Each is a banner, the buttons that deal with it on its right.
     @ViewBuilder private var banners: some View {
-        if let v = store.engineVersionDiffers {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(v).font(.system(size: 12)).foregroundColor(.orange).textSelection(.enabled)
-                // The machine that is behind is the one offered; when git cannot say which, both.
-                HStack(spacing: 8) {
+        VStack(spacing: 6) {
+            if let v = store.engineVersionDiffers {
+                Banner(tone: .attention, text: v) {
+                    // The machine that is behind is the one offered; when git cannot say which, both.
                     if store.engineBehind != "engine" {
                         Button("Upgrade this Mac…") { Task { await store.preview(["upgrade"]) } }.controlSize(.small).pointer()
                     }
@@ -60,15 +59,23 @@ struct PanelView: View {
                         Button("Upgrade the engine…") { Task { await store.preview(["upgrade", "--engine"]) } }.controlSize(.small).pointer()
                     }
                 }
-            }.padding(8)
+            }
+            if let sent = store.imageSent, Date().timeIntervalSince(sent) < 120 {
+                Banner(.good, "The image is on the engine's clipboard: paste it in the session now (Control-V in Claude Code).")
+            }
+            if let p = store.problem, !store.engineDown {
+                Banner(.bad, p)
+            }
         }
-        if let sent = store.imageSent, Date().timeIntervalSince(sent) < 120 {
-            Text("The image is on the engine's clipboard: paste it in the session now (Control-V in Claude Code).")
-                .font(.system(size: 13)).foregroundColor(.green).padding(8)
-        }
-        if let p = store.problem, !store.engineDown {
-            Text(p).foregroundColor(.red).padding(8)
-        }
+        // With nothing to say the stack is empty and takes no room, so the list starts at the top.
+        .padding(.horizontal, Gutter.panel).padding(.bottom, bannerShown ? 6 : 0)
+    }
+
+    /// Whether any banner is drawn, so the room under them is given only when one is.
+    private var bannerShown: Bool {
+        if store.engineVersionDiffers != nil { return true }
+        if let sent = store.imageSent, Date().timeIntervalSince(sent) < 120 { return true }
+        return store.problem != nil && !store.engineDown
     }
 
     // MARK: the list on the left
@@ -88,7 +95,7 @@ struct PanelView: View {
                     ForEach(here) { s in
                         HStack(spacing: 9) {
                             Light(state: s.isWaiting ? .waiting : .running)
-                            Text(s.name).font(.system(size: 14)).lineLimit(1).truncationMode(.middle)
+                            Text(s.name).font(.app(.body)).lineLimit(1).truncationMode(.middle)
                             Spacer(minLength: 4)
                             Button("Join") { Task { await store.runNow(["join"] + s.target, opensWindow: true) } }
                                 .controlSize(.small).pointer()
@@ -105,17 +112,17 @@ struct PanelView: View {
         let on = item.id == current
         HStack(spacing: 9) {
             Light(state: RunState(item.light))
-            Text(item.project).font(.system(size: 15, weight: on ? .semibold : .regular)).lineLimit(1).truncationMode(.middle)
+            Text(item.project).font(.app(.name, weight: on ? .semibold : .regular)).lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 4)
             if item.sessions.count > 1 {
-                Text("\(item.sessions.count)").font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+                Text("\(item.sessions.count)").font(.app(.fine, weight: .semibold)).foregroundColor(.secondary)
                     .padding(.horizontal, 5).padding(.vertical, 1)
                     .background(Capsule().fill(Color.secondary.opacity(0.15)))
                     .help("\(item.sessions.count) sessions running")
             }
         }
         .padding(.horizontal, 8).padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 6).fill(on ? Color.accentColor.opacity(0.22) : .clear))
+        .background(RoundedRectangle(cornerRadius: Radius.row).fill(on ? Color.accentColor.opacity(0.22) : .clear))
         .contentShape(Rectangle())
         // Pointing shows it, and it stays shown while the pointer moves across to it: moving
         // straight right crosses no other row.
@@ -134,15 +141,15 @@ struct ProjectDetail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(item.project).font(.system(size: 18, weight: .bold)).lineLimit(1)
+                Text(item.project).font(.app(.heading, weight: .bold)).lineLimit(1)
                 Button { Task { await store.openProject(item.project) } } label: {
-                    HStack(spacing: 2) { Text("Page"); Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)) }
+                    HStack(spacing: 2) { Text("Page"); Image(systemName: "chevron.right").font(.app(.glyph, weight: .semibold)) }
                 }
-                .buttonStyle(.plain).foregroundColor(.accentColor).font(.system(size: 13)).pointer()
+                .buttonStyle(.plain).foregroundColor(.accentColor).font(.app(.detail)).pointer()
                 .help("Open its page in the window: worktrees, tasks, settings")
                 Spacer()
                 let state = RunState(item.light)
-                Text(state.words).font(.system(size: 12, weight: .medium)).foregroundColor(state.color)
+                Text(state.words).font(.app(.caption, weight: .medium)).foregroundColor(state.color)
             }
             if let g = store.repos?.github?[item.project] {
                 GitHubRow(label: g.repo, links: [("Code", g.code), ("Issues", g.issues), ("Pull requests", g.pulls)])
@@ -158,7 +165,7 @@ struct ProjectDetail: View {
                     }
                     .buttonStyle(.borderedProminent).pointer()
                 }
-                .compactCard()
+                .card(.compact)
             }
             ForEach(item.cards) { CheckoutTile(project: item.project, card: $0) }
             ForEach(item.helpers) { h in
@@ -172,7 +179,7 @@ struct ProjectDetail: View {
                     Button("Open") { Task { await store.runNow(["join"] + h.target, opensWindow: true) } }
                         .controlSize(.small).pointer().help("Open it in your terminal")
                 }
-                .compactCard()
+                .card(.compact)
             }
         }
     }
@@ -184,7 +191,7 @@ struct HereDetail: View {
     let sessions: [Session]
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text("Still running on this Mac, started while it was offline").font(.system(size: 13, weight: .semibold)).foregroundColor(.secondary)
+            Text("Still running on this Mac, started while it was offline").font(.app(.detail, weight: .semibold)).foregroundColor(.secondary)
             ForEach(sessions) { s in
                 HStack {
                     Light(state: s.isWaiting ? .waiting : .running)
@@ -193,7 +200,7 @@ struct HereDetail: View {
                     Button("Join") { Task { await store.runNow(["join"] + s.target, opensWindow: true) } }
                         .buttonStyle(.borderedProminent).controlSize(.small).pointer()
                 }
-                .compactCard()
+                .card(.compact)
             }
         }
     }
@@ -240,17 +247,17 @@ struct CheckoutTile: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 7) {
                 Light(state: RunState(card.light))
-                Text(title).font(.system(size: 14, weight: .semibold)).lineLimit(1).truncationMode(.middle)
-                if let kind { Text(kind).font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1).truncationMode(.tail) }
+                Text(title).font(.app(.body, weight: .semibold)).lineLimit(1).truncationMode(.middle)
+                if let kind { Text(kind).font(.app(.caption)).foregroundColor(.secondary).lineLimit(1).truncationMode(.tail) }
                 Spacer(minLength: 6)
                 icons
             }
             HStack(spacing: 6) {
                 if let f = facts {
-                    if f.changes > 0 { Chip(text: "\(f.changes) unsaved", color: .orange) }
-                    if f.unpushed > 0 { Chip(text: "\(f.unpushed) not pushed", color: .orange) }
+                    if f.changes > 0 { Chip(text: "\(f.changes) unsaved", color: .attention) }
+                    if f.unpushed > 0 { Chip(text: "\(f.unpushed) not pushed", color: .attention) }
                     if f.behind > 0 { Chip(text: "\(f.behind) behind main", color: .secondary) }
-                    if f.isMerged { Chip(text: f.role != nil ? "merged: move on" : "merged: close it", color: .green) }
+                    if f.isMerged { Chip(text: f.role != nil ? "merged: move on" : "merged: close it", color: .good) }
                 }
                 Spacer(minLength: 6)
                 actions
@@ -265,7 +272,7 @@ struct CheckoutTile: View {
                 }
             }
             if let s = session, let q = s.question, s.isWaiting {
-                Text(q).font(.system(size: 12)).foregroundColor(.orange)
+                Text(q).font(.app(.caption)).foregroundColor(.attention)
             }
             // Its addresses and Forward whether or not its session runs: a stopped worktree's
             // switch takes effect when its session starts.
@@ -280,7 +287,7 @@ struct CheckoutTile: View {
                 }
             }
         }
-        .compactCard()
+        .card(.compact)
     }
 
     /// VS Code, Ask Claude, the branch and its pull requests on GitHub, and copying the branch
@@ -371,20 +378,8 @@ struct CheckoutTile: View {
     private func open(_ address: String) { if let u = URL(string: address) { NSWorkspace.shared.open(u) } }
 }
 
-/// The light beside a project or checkout: Claude's mark when Claude is waiting, a dot otherwise.
-struct Light: View {
-    let state: RunState
-    var body: some View {
-        if state == .waiting {
-            Text("✻").font(.system(size: 15, weight: .black)).foregroundColor(state.color).frame(width: 12)
-                .help("Claude is waiting for you")
-        } else {
-            Circle().fill(state.color).frame(width: 8, height: 8).frame(width: 12)
-        }
-    }
-}
-
 extension RunState {
+    /// The kit's light, as the state the app draws it in.
     init(_ light: PanelLight) {
         switch light {
         case .waiting: self = .waiting
@@ -400,7 +395,7 @@ struct IconButton: View {
     let help: String
     let action: () -> Void
     var body: some View {
-        Button(action: action) { Image(systemName: symbol).font(.system(size: 12)) }
+        Button(action: action) { Image(systemName: symbol).font(.app(.caption)) }
             .buttonStyle(.bordered).controlSize(.small).help(help).pointer()
     }
 }
@@ -409,17 +404,7 @@ struct SideTitle: View {
     let title: String
     init(_ title: String) { self.title = title }
     var body: some View {
-        Text(title).font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+        Text(title).font(.app(.fine, weight: .semibold)).foregroundColor(.secondary)
             .padding(.horizontal, 8).padding(.top, 8).padding(.bottom, 2)
-    }
-}
-
-extension View {
-    /// A card with less padding than a page's card, for the panel's detail.
-    func compactCard() -> some View {
-        padding(.horizontal, 10).padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .controlBackgroundColor)))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5))
     }
 }

@@ -27,20 +27,20 @@ struct ProjectPageView: View {
                 header(p)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
-                        if let problem = p.problem { Text(problem).foregroundColor(.red).font(.system(size: 13)) }
+                        if let problem = p.problem { Banner(.bad, problem) }
                         ForEach(p.checkouts.filter(\.main)) { c in CheckoutCard(project: p, checkout: c) }
                         worktrees(p)
                         if let loose = p.loose, !loose.isEmpty { looseServers(p, loose) }
                         GroupTitle("Project")
                         VStack(alignment: .leading, spacing: 10) { details(p) }.card()
                     }
-                    .padding(.horizontal, 20).padding(.bottom, 20)
+                    .padding(.horizontal, Gutter.page).padding(.bottom, Gutter.page)
                 }
             } else if let e = store.projectError {
-                Text(e).foregroundColor(.red).padding(20)
+                Banner(.bad, e).padding(Gutter.page)
                 Spacer()
             } else {
-                HStack { ProgressView().controlSize(.small); Text("Reading \(name)…").foregroundColor(.secondary) }.padding(14)
+                HStack { ProgressView().controlSize(.small); Text("Reading \(name)…").foregroundColor(.secondary) }.padding(Gutter.page)
                 Spacer()
             }
         }
@@ -52,12 +52,7 @@ struct ProjectPageView: View {
     /// done to the project as a whole: ask Claude about it, and add a worktree.
     @ViewBuilder private func header(_ p: ProjectPage) -> some View {
         let pinned = store.pendingPin[name] ?? (p.pinned == true)
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(name).font(.system(size: 22, weight: .bold))
-            if let category = p.category, !category.isEmpty {
-                Text(category).font(.system(size: 13)).foregroundColor(.secondary)
-            }
-            Spacer()
+        PageHeader(title: name, detail: p.category) {
             Button { Task { await store.setPinned(name, !pinned) } } label: {
                 Label(pinned ? "Pinned" : "Pin", systemImage: pinned ? "star.fill" : "star")
             }
@@ -68,11 +63,11 @@ struct ProjectPageView: View {
                     .help("A Claude session that knows this project: say what you want done").pointer()
             }
         }
-        .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, p.github == nil ? 10 : 2)
+        .padding(.bottom, p.github == nil ? 10 : 2)
         if let g = p.github {
             // One line to the repository on GitHub, APP-PAGE-005.
             GitHubRow(label: g.repo, links: [("Code", g.code), ("Issues", g.issues), ("Pull requests", g.pulls)])
-                .padding(.horizontal, 20).padding(.bottom, 10)
+                .padding(.horizontal, Gutter.page).padding(.bottom, 10)
         }
     }
 
@@ -106,7 +101,7 @@ struct ProjectPageView: View {
                 Text(forRole
                      ? "Kept: named for its role, it holds one branch after another, with the same session and ports."
                      : "For one piece of work: named for its branch, and closed when the branch is done.")
-                    .font(.system(size: 12)).foregroundColor(.secondary)
+                    .font(.app(.caption)).foregroundColor(.secondary)
                 HStack {
                     if forRole {
                         TextField("role, e.g. designer", text: $role).textFieldStyle(.roundedBorder).frame(maxWidth: 180)
@@ -121,7 +116,7 @@ struct ProjectPageView: View {
         let others = p.checkouts.filter { !$0.main }
         if others.isEmpty {
             Text("None yet. A worktree is a second folder on its own branch, with its own session and ports.")
-                .font(.system(size: 12)).foregroundColor(.secondary)
+                .font(.app(.caption)).foregroundColor(.secondary)
         }
         LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
             ForEach(others) { c in CheckoutCard(project: p, checkout: c) }
@@ -138,13 +133,13 @@ struct ProjectPageView: View {
                 HStack(alignment: .top, spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Port \(s.ports.map(String.init).joined(separator: ", ")) · pid \(s.pid)")
-                            .font(.system(size: 13, weight: .medium))
-                        Text(s.command).font(.system(size: 11, design: .monospaced)).foregroundColor(.secondary).lineLimit(1)
+                            .font(.app(.detail, weight: .medium))
+                        Text(s.command).font(.app(.fine, design: .monospaced)).foregroundColor(.secondary).lineLimit(1)
                         Text([s.folder, "since " + s.started].compactMap { $0 }.joined(separator: " · "))
-                            .font(.system(size: 11)).foregroundColor(.secondary)
+                            .font(.app(.fine)).foregroundColor(.secondary)
                         if let session = s.session {
                             Text("Started for \(session), which has ended; the sweep stops it two minutes after.")
-                                .font(.system(size: 11)).foregroundColor(.orange)
+                                .font(.app(.fine)).foregroundColor(.attention)
                         }
                     }
                     Spacer()
@@ -178,7 +173,7 @@ struct ProjectPageView: View {
             }
             .padding(.top, 4)
         } label: {
-            Text("Scripts, ports and secrets").font(.system(size: 13, weight: .medium))
+            Text("Scripts, ports and secrets").font(.app(.detail, weight: .medium))
         }
         DisclosureGroup {
             VStack(alignment: .leading, spacing: 8) {
@@ -189,11 +184,11 @@ struct ProjectPageView: View {
                 }
                 Button("Unregister…") { Task { await store.preview(["unregister", name]) } }.pointer()
                     .help("Forget the project in engineroom. Its folder and worktrees are left as they are.")
-                Text([p.identity, p.checkout].compactMap { $0 }.joined(separator: " · ")).font(.system(size: 11)).foregroundColor(.secondary)
+                Text([p.identity, p.checkout].compactMap { $0 }.joined(separator: " · ")).font(.app(.fine)).foregroundColor(.secondary)
             }
             .padding(.top, 4)
         } label: {
-            Text("Organise").font(.system(size: 13, weight: .medium))
+            Text("Organise").font(.app(.detail, weight: .medium))
         }
     }
 
@@ -229,24 +224,33 @@ struct CheckoutCard: View {
             // "main" title hid. A role worktree is titled by its role, the branch it holds now
             // beside it in the kind (D-024); any other by the branch it has out.
             CardHeader(state: state, name: checkout.role ?? checkout.branch ?? (checkout.main ? "main clone" : (checkout.work ?? "worktree")), kind: kind)
-            if let q = checkout.question, checkout.isWaiting { Text(q).font(.system(size: 13)).foregroundColor(.orange) }
+            if let q = checkout.question, checkout.isWaiting { Text(q).font(.app(.detail)).foregroundColor(.attention) }
             if let clash = checkout.clash {
-                Text(clash).font(.system(size: 12)).foregroundColor(.orange).fixedSize(horizontal: false, vertical: true)
+                Text(clash).font(.app(.caption)).foregroundColor(.attention).fixedSize(horizontal: false, vertical: true)
             } else {
-                FieldRow("Session") {
-                    if checkout.running {
+                if checkout.running {
+                    FieldRow("Session") {
                         Button("Join") { Task { await store.runNow(["join", checkout.session], opensWindow: true) } }
                             .buttonStyle(.borderedProminent).pointer()
                         Button("Stop") { Task { await store.preview(["stop", checkout.session]) } }.pointer()
-                    } else {
-                        Menu("Start") {
-                            Button("In \(store.status?.terminal ?? "the terminal") and Remote Control") { start("both") }
-                            Button("In \(store.status?.terminal ?? "the terminal") only") { start("zellij") }
-                            Button("Remote Control only, no window") { start("remote") }
-                        } primaryAction: { start(store.status?.start ?? "zellij") }
-                        .fixedSize().pointer()
+                        Spacer()
                     }
-                    Spacer()
+                } else {
+                    // The three ways to start it (APP-START-001 to 003), each a button in sight and
+                    // none in a menu (D-025, D-032), in the words and the order of the Restart row
+                    // a running session has. The way chosen in Settings is the filled one, so the
+                    // usual start is still one click and the eye lands on it first. Short words
+                    // that wrap rather than cut off, so all three read in a narrow card.
+                    FieldRow("Start", wraps: true) {
+                        FlowRow(spacing: 8) {
+                            Button("\(terminal) + Remote") { start("both") }.filled(usual == "both").pointer()
+                                .help("Start it with Remote Control, and open it in \(terminal)")
+                            Button("\(terminal) only") { start("zellij") }.filled(usual == "zellij").pointer()
+                                .help("Start it without Remote Control, and open it in \(terminal)")
+                            Button("Remote only") { start("remote") }.filled(usual == "remote").pointer()
+                                .help("Start it with Remote Control, and open no window")
+                        }
+                    }
                 }
                 // Restarting chooses how the session comes back, as starting does, each way a
                 // button of its own; each ends the session and starts it fresh with the current
@@ -254,7 +258,7 @@ struct CheckoutCard: View {
                 // Claude starts, so a restart is how a running session gets it, or loses it.
                 if checkout.running {
                     // Short words that wrap rather than cut off, so all three read in a narrow card.
-                    FieldRow("Restart") {
+                    FieldRow("Restart", wraps: true) {
                         FlowRow(spacing: 8) {
                             Button("\(terminal) + Remote") { restart("both") }.pointer()
                                 .help("Restart it with Remote Control, and open it in \(terminal)")
@@ -278,7 +282,7 @@ struct CheckoutCard: View {
                 }
                 if let tasks = project.tasks, !tasks.isEmpty {
                     HStack(alignment: .top, spacing: 10) {
-                        Text("Tasks").font(.system(size: 12)).foregroundColor(.secondary).frame(width: 52, alignment: .leading).padding(.top, 4)
+                        Text("Tasks").font(.app(.caption)).foregroundColor(.secondary).frame(width: 52, alignment: .leading).padding(.top, 4)
                         FlowRow(spacing: 8) {
                             ForEach(tasks, id: \.name) { t in
                                 Button(t.name) { Task { await store.preview(["task", checkout.session, t.name]) } }
@@ -321,7 +325,7 @@ struct CheckoutCard: View {
             // The code, Claude and cleaning up are buttons in sight, drawn like every other; the
             // row wraps rather than squeezing its words when the card is narrow.
             HStack(alignment: .top, spacing: 10) {
-                Text("Code").font(.system(size: 12)).foregroundColor(.secondary).frame(width: 52, alignment: .leading).padding(.top, 4)
+                Text("Code").font(.app(.caption)).foregroundColor(.secondary).frame(width: 52, alignment: .leading).padding(.top, 4)
                 FlowRow(spacing: 8) {
                     Button { Task { await store.runNow(["edit-path", project.name, checkout.path], opensWindow: true) } } label: {
                         Label("VS Code", systemImage: "chevron.left.forwardslash.chevron.right")
@@ -375,6 +379,10 @@ struct CheckoutCard: View {
 
     private var terminal: String { store.status?.terminal ?? "Terminal" }
 
+    /// The way to start a session chosen in Settings, which the filled Start button is; in the
+    /// terminal alone until the settings have been read, as every other start in the app assumes.
+    private var usual: String { store.status?.start ?? "zellij" }
+
     /// Shows the move to the next branch first, as every action is shown.
     private func moveOn(_ role: String) {
         let b = nextBranch.trimmingCharacters(in: .whitespaces)
@@ -420,7 +428,7 @@ struct LinksRow: View {
                                 Text(l.name).underline().foregroundColor(.accentColor)
                                 Text(":\(url.port.map(String.init) ?? "")").foregroundColor(.secondary)
                             }
-                            .font(.system(size: 13))
+                            .font(.app(.detail))
                         }.pointer()
                         .buttonStyle(.plain)
                         .help("Open \(l.url) in the browser")
@@ -439,11 +447,11 @@ struct GitHubRow: View {
     let links: [(String, String)]
     var body: some View {
         FlowRow(spacing: 12) {
-            if let label { Text(label).font(.system(size: 12)).foregroundColor(.secondary) }
+            if let label { Text(label).font(.app(.caption)).foregroundColor(.secondary) }
             ForEach(links, id: \.1) { name, address in
                 if let url = URL(string: address) {
                     Button { NSWorkspace.shared.open(url) } label: {
-                        Text(name).underline().foregroundColor(.accentColor).font(.system(size: 13))
+                        Text(name).underline().foregroundColor(.accentColor).font(.app(.detail))
                     }
                     .buttonStyle(.plain).pointer()
                     .help("Open \(address) in the browser")
@@ -488,7 +496,7 @@ struct ForwardSwitch: View {
     var body: some View {
         if let s = store.status, s.isClient, !s.offline {
             HStack(spacing: 5) {
-                Text("Forward").font(.system(size: 12)).foregroundColor(.secondary)
+                Text("Forward").font(.app(.caption)).foregroundColor(.secondary)
                 Toggle("Forward", isOn: Binding(get: { store.forwards(session) }, set: { v in Task { await store.setSessionForward(session, v) } }))
                     .toggleStyle(.switch).controlSize(.mini).labelsHidden()
             }
@@ -511,9 +519,9 @@ struct ForwardRow: View {
         let wanted = f?.wants(session) == true
         let here = ports.filter { f?.forwarded[String($0.port)] == session }
         VStack(alignment: .leading, spacing: 2) {
-            Text(summary(f, wanted: wanted, here: here)).font(.system(size: 12)).foregroundColor(here.count == ports.count && running ? .green : .secondary)
+            Text(summary(f, wanted: wanted, here: here)).font(.app(.caption)).foregroundColor(here.count == ports.count && running ? .good : .secondary)
             ForEach((f?.last?.notes ?? []).filter { $0.hasPrefix(session + "'s") }, id: \.self) { n in
-                Text(n).font(.system(size: 12)).foregroundColor(.orange)
+                Text(n).font(.app(.caption)).foregroundColor(.attention)
             }
         }
     }
@@ -527,26 +535,14 @@ struct ForwardRow: View {
     }
 }
 
-struct SectionTitle: View {
-    let title: String
-    let detail: String
-    init(_ title: String, detail: String) { self.title = title; self.detail = detail }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(title).font(.system(size: 14, weight: .bold))
-            Text(detail).font(.system(size: 12)).foregroundColor(.secondary)
-        }
-    }
-}
-
 struct LabeledRow: View {
     let label: String
     let value: String
     init(_ label: String, _ value: String) { self.label = label; self.value = value }
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(label).font(.system(size: 13, weight: .semibold)).frame(width: 64, alignment: .leading)
-            Text(value).font(.system(size: 12, design: .monospaced)).foregroundColor(.secondary).lineLimit(2).truncationMode(.middle)
+            Text(label).font(.app(.detail, weight: .semibold)).frame(width: 64, alignment: .leading)
+            Text(value).font(.app(.caption, design: .monospaced)).foregroundColor(.secondary).lineLimit(2).truncationMode(.middle)
         }
     }
 }

@@ -1098,3 +1098,52 @@ Decision:   - On a Mac, when the program runs outside the desktop login (`launch
               Access) treat a session started this way as they treat one started from a terminal at
               the screen; they are granted per application.
 Status:     accepted
+
+## D-032  2026-11-10  The app has one meaning per colour, one kind of button per job, and its sizes named once
+
+Context:    The app's screens were drawn alike (D-019) by convention, not by anything shared: text at
+            eleven sizes, corners at five radii, two cards, two state lights and two chips written
+            in different files. Colours carried no fixed meaning: orange meant Claude is waiting,
+            unsaved work, a warning, a command under way, a pinned project and a folder not
+            registered; green meant a running session, an action done and every registered
+            repository, so a list of repositories was a column of green dots that said nothing. The
+            project page offered the three ways to start a session in a menu, against "every
+            action is a button in sight" (D-025). Working local was a small switch among the
+            header's icons, and Quit sat beside refresh as one more icon.
+Options:    (a) Leave the screens as they are and correct each inconsistency where it is noticed
+                - rejected: nothing stops the next screen from drifting, and a colour with six
+                meanings cannot be made to mean one by correcting one use.
+            (b) Name the sizes, the radii, the gutters and the colour meanings once, in the file
+                that holds the visual language, draw each shared piece once (card, light, chip,
+                banner, empty screen, page title), and move every screen onto them [CHOSEN]
+            (c) Replace the app's own look with the system's stock lists and forms throughout
+                - rejected: the cards with a label column are what make a checkout's state and its
+                actions readable at once, and the panel has no stock equivalent.
+Decision:   - A colour says one thing wherever it is used. Orange: something needs the developer
+              (Claude is waiting, work that would be lost, a step that cannot run). Green: as it
+              should be (a session running, an action done, something copied). Red: it failed or
+              cannot be reached. The accent colour: under way and needing nothing (a command being
+              run), and anything that is clicked like a link. Everything else is quiet: a pinned
+              project's star is grey, a repository that is not a project yet has a grey icon for
+              where it is, and a project is lit only while a session of it runs.
+            - A project's light is the same on every screen: Claude's mark when any of its running
+              sessions waits, a green dot when one runs. The window's sidebar and the repositories
+              list show it as the panel's list does.
+            - A button in words changes something (Join, Stop, Close). A button that is only an icon
+              opens something elsewhere or copies (VS Code, Finder, GitHub, the branch name), and
+              has a tooltip. One button of a card is filled: the one most often pressed, Join while
+              its session runs and the usual way to start it otherwise.
+            - On a project's page a checkout that is not running shows the three ways to start it
+              as three buttons, in the words of the Restart row: the terminal with Remote Control,
+              the terminal only, Remote Control only. The way chosen in Settings is the filled one,
+              so the usual start is still one click (APP-START-001 to 003).
+            - The text sizes, corner radii and page gutters are named by what they are for, in
+              macos/Sources/EngineRoomMenu/Style.swift, and no screen writes a number of its own.
+              The card, the state light, the chip, the banner (what a screen must say first, with
+              the buttons that deal with it), the empty screen (what is missing and the button that
+              supplies it) and the page title are each drawn once there.
+            - Working local is turned on and off by a button in words, in the header and in
+              Settings, and the header's badge says when it is on. Quit stands apart from refresh
+              and the gear; Command-Q is unchanged.
+Status:     accepted. Refines D-019's one visual language and D-025's buttons in sight; changes no
+            function of either.

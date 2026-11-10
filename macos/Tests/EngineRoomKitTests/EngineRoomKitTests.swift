@@ -437,6 +437,29 @@ final class EngineRoomKitTests: XCTestCase {
         XCTAssertEqual(PanelProject.list(list, checkouts: facts, keep: "alpha").map(\.project), ["beta", "alpha", "gamma"])
     }
 
+    // A project's light outside the panel is one light for all its sessions: Claude's mark when
+    // one waits, running when one runs, off with none; an Ask Claude session and one on this Mac
+    // count, another project's do not, and one that ended neither runs nor waits (D-015, D-032).
+    // Fails if a waiting session is shown as merely running, another project's session lights
+    // this one, or an ended session keeps a project lit or marked.
+    func testAProjectsLightIsOneLightForAllItsSessions() throws {
+        let feed = try sessions([
+            ("project-a", "project-a", false, false, false), ("project-a-work", "project-a", true, false, false),
+            ("project-b", "project-b", false, false, false),
+            ("project-c-ask", "project-c", true, true, false), ("project-d", "project-d", false, false, true),
+        ])
+        XCTAssertEqual(PanelLight.of(project: "project-a", in: feed), .waiting)
+        XCTAssertEqual(PanelLight.of(project: "project-b", in: feed), .running)
+        XCTAssertEqual(PanelLight.of(project: "project-c", in: feed), .waiting)
+        XCTAssertEqual(PanelLight.of(project: "project-d", in: feed), .running)
+        XCTAssertEqual(PanelLight.of(project: "project-e", in: feed), .idle)
+        XCTAssertEqual(PanelLight.of(project: "project-a", in: []), .idle)
+        let ended = try EngineRoomClient.decode([Session].self, data: Data("""
+        [{"name":"project-a","project":"project-a","ended":true,"waiting":"waiting","question":"Approve the plan?"}]
+        """.utf8), code: 0)
+        XCTAssertEqual(PanelLight.of(project: "project-a", in: ended), .idle)
+    }
+
     func testTheLoginShellIsRead() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

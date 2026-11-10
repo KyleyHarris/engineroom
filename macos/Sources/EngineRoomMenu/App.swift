@@ -95,7 +95,7 @@ struct RootView: View {
                 PanelView()
             }
         }
-        .font(.system(size: 14))
+        .font(.app(.body))
         .onAppear {
             // Opening the window always closes the panel first, so the two never sit one over the
             // other.
@@ -114,16 +114,16 @@ struct Header: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text("engineroom").font(.system(size: 17, weight: .bold))
+            Text("engineroom").font(.app(.heading, weight: .bold))
             if let s = store.status {
                 Text(s.isClient ? "client of \(store.engineLabel(s))" : "engine · this Mac")
-                    .font(.system(size: 13))
+                    .font(.app(.detail))
                     .padding(.horizontal, 7).padding(.vertical, 2)
                     .background(Capsule().fill(Color.secondary.opacity(0.12)))
                 if s.offline {
-                    Text("WORKING LOCAL").font(.system(size: 12, weight: .bold))
+                    Text("WORKING LOCAL").font(.app(.caption, weight: .bold))
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 4).fill(Color.primary))
+                        .background(RoundedRectangle(cornerRadius: Radius.badge).fill(Color.primary))
                         .foregroundColor(Color(nsColor: .windowBackgroundColor))
                 }
             }
@@ -132,10 +132,10 @@ struct Header: View {
                 Button { store.showRunning() } label: {
                     HStack(spacing: 4) { ProgressView().controlSize(.small); Text(store.planTitle.isEmpty ? "Running…" : store.planTitle).lineLimit(1) }
                 }
-                .buttonStyle(.borderless).font(.system(size: 12)).help("An action is running; click to see it").pointer()
+                .buttonStyle(.borderless).font(.app(.caption)).help("An action is running; click to see it").pointer()
             } else if let w = store.working {
                 ProgressView().controlSize(.small)
-                Text(w).font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1)
+                Text(w).font(.app(.caption)).foregroundColor(.secondary).lineLimit(1)
             } else if store.loading {
                 ProgressView().controlSize(.small)
             }
@@ -161,22 +161,17 @@ struct Header: View {
                 .buttonStyle(.borderless).help("Projects, repositories, history and settings")
             QuitButton(icon: true).buttonStyle(.borderless)
         }
-        .padding(.horizontal, 12).padding(.top, 10).padding(.bottom, 8)
+        .padding(.horizontal, Gutter.panel).padding(.top, 10).padding(.bottom, 8)
     }
 }
 
 struct OfflineBanner: View {
     @EnvironmentObject var store: Store
     var body: some View {
-        HStack {
-            Text("Working local: this Mac has the work. Hand it back to the engine when you are done.")
-                .font(.system(size: 13))
-            Spacer()
+        Banner(tone: .attention, text: "Working local: this Mac has the work. Hand it back to the engine when you are done.") {
             Button("Hand back to the engine") { Task { await store.switchOffline(false) } }.controlSize(.small).pointer()
         }
-        .padding(8)
-        .background(RoundedRectangle(cornerRadius: 7).fill(Color.orange.opacity(0.15)))
-        .padding(.horizontal, 12).padding(.bottom, 6)
+        .padding(.horizontal, Gutter.panel).padding(.bottom, 6)
     }
 }
 
@@ -185,14 +180,14 @@ struct EngineDownView: View {
     @EnvironmentObject var store: Store
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("The engine did not answer.").font(.system(size: 16, weight: .bold)).foregroundColor(.red)
-            Text(store.problem ?? "").font(.system(size: 13, design: .monospaced)).foregroundColor(.secondary)
+            Text("The engine did not answer.").font(.app(.heading, weight: .bold)).foregroundColor(.bad)
+            Text(store.problem ?? "").font(.app(.detail, design: .monospaced)).foregroundColor(.secondary)
             Text("Nothing has been started on either machine. Sessions already running on the engine keep running.")
             Button("Retry the engine") { Task { await store.refresh(everything: true) } }.buttonStyle(.borderedProminent).pointer()
             Button("Work local on this Mac") { Task { await store.switchOffline(true) } }.pointer()
             Spacer()
         }
-        .padding(14)
+        .padding(Gutter.panel)
     }
 }
 
@@ -248,7 +243,7 @@ struct BackLink: View {
             Button("‹ \(label)") { store.close() }.buttonStyle(.link).pointer()
             Spacer()
         }
-        .padding(.horizontal, 12).padding(.bottom, 4)
+        .padding(.horizontal, Gutter.panel).padding(.bottom, 4)
     }
 }
 

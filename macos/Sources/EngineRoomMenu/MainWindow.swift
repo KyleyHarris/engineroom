@@ -21,7 +21,7 @@ struct MainWindow: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(Color(nsColor: .windowBackgroundColor))
         }
-        .font(.system(size: 14))
+        .font(.app(.body))
         .toolbar {
             ToolbarItemGroup {
                 if store.running, store.actionIn == .panel || store.page == .none {
@@ -59,7 +59,6 @@ struct MainWindow: View {
             ActionView()
         } else {
             switch store.page {
-            case .start(let project): StartView(project: project)
             case .add(let root): AddView(initialRoot: root)
             case .register(let root, let folder): RegisterView(root: root, folder: folder)
             default:
@@ -69,7 +68,8 @@ struct MainWindow: View {
                 case .history: HistoryView()
                 case .settings: SettingsView()
                 case nil:
-                    Text("Choose a project, or the repositories, history or settings.").foregroundColor(.secondary).padding(20)
+                    EmptyState(title: "Nothing is chosen", detail: "Choose a project on the left, or the repositories, the history or the settings.")
+                        .padding(Gutter.page)
                 }
             }
         }
@@ -77,10 +77,10 @@ struct MainWindow: View {
 }
 
 extension Store.Page {
-    /// A page that belongs to the window: getting, registering or starting a repository.
+    /// A page that belongs to the window: getting or registering a repository.
     var isWindowTask: Bool {
         switch self {
-        case .start, .add, .register: return true
+        case .add, .register: return true
         default: return false
         }
     }
@@ -105,7 +105,7 @@ struct Sidebar: View {
                     ForEach(g.categories, id: \.category) { c in
                         if g.categories.count > 1 || !c.category.isEmpty {
                             Text(c.category.isEmpty ? "no category" : c.category)
-                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+                                .font(.app(.fine, weight: .semibold)).foregroundColor(.secondary)
                         }
                         ForEach(c.projects, id: \.self) { row($0, pinned: false) }
                     }
@@ -122,21 +122,20 @@ struct Sidebar: View {
 }
 
 extension Sidebar {
-    /// One project in the sidebar: a star when pinned, and a dot when it has a session running
-    /// (green) or waiting for the developer (orange).
+    /// One project in the sidebar: a star when pinned, and the same light as the panel's list
+    /// while it has a session: Claude's mark when one waits for the developer, a green dot when
+    /// one runs. A project with no session has no light, so the lights that are there stand out.
+    /// The star is quiet: pinned is where a project is listed, not something to act on (D-032).
     @ViewBuilder func row(_ name: String, pinned: Bool) -> some View {
         Label {
             HStack {
                 Text(name)
                 Spacer()
-                if store.sessions.contains(where: { $0.project == name && $0.isWaiting }) {
-                    Circle().fill(Color.orange).frame(width: 7, height: 7)
-                } else if store.sessions.contains(where: { $0.project == name && !$0.ended }) {
-                    Circle().fill(Color.green).frame(width: 7, height: 7)
-                }
+                let state = store.runState(of: name)
+                if state != .idle { Light(state: state) }
             }
         } icon: {
-            Image(systemName: pinned ? "star.fill" : "folder").foregroundColor(pinned ? .orange : .secondary)
+            Image(systemName: pinned ? "star.fill" : "folder").foregroundColor(.secondary)
         }
         .tag(Store.WindowItem.project(name))
     }

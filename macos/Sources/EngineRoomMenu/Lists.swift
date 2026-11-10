@@ -1,17 +1,6 @@
 import EngineRoomKit
 import SwiftUI
 
-struct Chip: View {
-    let text: String
-    let color: Color
-    var body: some View {
-        Text(text).font(.system(size: 12))
-            .padding(.horizontal, 6).padding(.vertical, 1)
-            .background(Capsule().fill(color.opacity(0.15)))
-            .foregroundColor(color == .secondary ? .secondary : color)
-    }
-}
-
 /// Every repository the engine knows of, in four sections: pinned projects, registered ones by
 /// category, folders here that are not registered, and repositories on GitHub that are not here. A
 /// registered project opens its page.
@@ -33,7 +22,7 @@ struct ReposView: View {
     var body: some View {
         VStack(spacing: 0) {
             TextField("Search every root, here and on GitHub", text: $search)
-                .textFieldStyle(.roundedBorder).padding(.horizontal, 12).padding(.bottom, 4)
+                .textFieldStyle(.roundedBorder).padding(.horizontal, Gutter.panel).padding(.bottom, 4)
             List {
                 if let r = store.repos {
                     let registered = registeredOf(r).filter { matches($0.name, nil) }
@@ -44,7 +33,7 @@ struct ReposView: View {
                     Section("Registered") {
                         if registered.isEmpty { Text("No registered project matches.").foregroundColor(.secondary) }
                         ForEach(byCategory(registered.filter { !$0.pinned }), id: \.0) { cat, items in
-                            Text(cat.isEmpty ? "no category" : cat).font(.system(size: 13, weight: .semibold)).foregroundColor(.secondary)
+                            Text(cat.isEmpty ? "no category" : cat).font(.app(.detail, weight: .semibold)).foregroundColor(.secondary)
                             ForEach(items) { ProjectRow(project: $0) }
                         }
                     }
@@ -88,13 +77,13 @@ struct ReposView: View {
                     }
                     ForEach(r.roots.compactMap { l in l.problem.map { (l.root, $0) } }, id: \.0.name) { root, p in
                         VStack(alignment: .leading) {
-                            Text("\(root.name): \(p.reason)").foregroundColor(.red).font(.system(size: 13))
-                            if let fix = p.fix { Text("Fix on the engine: \(fix)").font(.system(size: 13, design: .monospaced)) }
+                            Text("\(root.name): \(p.reason)").foregroundColor(.bad).font(.app(.detail))
+                            if let fix = p.fix { Text("Fix on the engine: \(fix)").font(.app(.detail, design: .monospaced)) }
                         }
                     }
                     if r.roots.isEmpty {
                         Text("No roots are registered. A root is a folder for one GitHub owner's repositories:\nengineroom root add <folder> --owner <owner> --account <gh account>")
-                            .font(.system(size: 13)).foregroundColor(.secondary)
+                            .font(.app(.detail)).foregroundColor(.secondary)
                     }
                 } else {
                     Text("Reading repositories …").foregroundColor(.secondary)
@@ -104,7 +93,7 @@ struct ReposView: View {
             Footer {
                 Button("Add a repository…") { store.page = .add(root: nil) }.buttonStyle(.borderedProminent).pointer()
                 Spacer()
-                Text("Click a project to open its page").font(.system(size: 12)).foregroundColor(.secondary)
+                Text("Click a project to open its page").font(.app(.caption)).foregroundColor(.secondary)
             }
         }
     }
@@ -137,7 +126,9 @@ struct ReposView: View {
     }
 }
 
-/// A registered project: click to open its page.
+/// A registered project: click to open its page. Its light says what its sessions are doing, as the
+/// panel's list does (green only while one runs, Claude's mark while one waits), and a pinned one
+/// carries a quiet star, the mark for pinned on every screen (D-032).
 struct ProjectRow: View {
     @EnvironmentObject var store: Store
     let project: ReposView.Registered
@@ -145,13 +136,15 @@ struct ProjectRow: View {
     var body: some View {
         Button { Task { await store.openProject(project.name) } } label: {
             HStack {
-                if project.pinned { Image(systemName: "pin.fill").foregroundColor(.orange).font(.system(size: 11)) }
-                else { Circle().fill(Color.green).frame(width: 7, height: 7) }
+                Light(state: store.runState(of: project.name))
                 Text(project.name)
-                Text(project.detail).font(.system(size: 12)).foregroundColor(.secondary)
+                if project.pinned {
+                    Image(systemName: "star.fill").foregroundColor(.secondary).font(.app(.glyph)).help("Pinned to the panel")
+                }
+                Text(project.detail).font(.app(.caption)).foregroundColor(.secondary)
                 Spacer()
                 let running = store.sessions.filter { $0.project == project.name && !$0.ended }.count
-                if running > 0 { Chip(text: "\(running) running", color: .green) }
+                if running > 0 { Chip(text: "\(running) running", color: .good) }
                 Image(systemName: "chevron.right").foregroundColor(.secondary)
             }
             .contentShape(Rectangle())
@@ -160,14 +153,9 @@ struct ProjectRow: View {
     }
 }
 
-struct Legend: View {
-    let color: Color
-    let text: String
-    var body: some View {
-        HStack(spacing: 4) { Circle().fill(color).frame(width: 7, height: 7); Text(text).font(.system(size: 12)).foregroundColor(.secondary) }
-    }
-}
-
+/// A repository that is not a registered project yet: a folder here, or one on GitHub only, each
+/// with the one thing done to it. Its icon says which, quietly; a colour would claim a state it
+/// does not have (D-032).
 struct RepoRow: View {
     @EnvironmentObject var store: Store
     let root: Root
@@ -175,10 +163,10 @@ struct RepoRow: View {
 
     var body: some View {
         HStack {
-            Circle().fill(repo.isRegistered ? Color.green : repo.isUnregisteredFolder ? Color.orange : Color.blue).frame(width: 7, height: 7)
+            Image(systemName: repo.isOnGitHubOnly ? "cloud" : "folder").font(.app(.fine)).foregroundColor(.secondary).frame(width: 14)
             Text(repo.name)
-            if let v = repo.visibility { Text(v).font(.system(size: 12)).foregroundColor(.secondary) }
-            if let p = repo.project, p != repo.name { Text("as \(p)").font(.system(size: 12)).foregroundColor(.secondary) }
+            if let v = repo.visibility { Text(v).font(.app(.caption)).foregroundColor(.secondary) }
+            if let p = repo.project, p != repo.name { Text("as \(p)").font(.app(.caption)).foregroundColor(.secondary) }
             Spacer()
             if repo.isRegistered {
                 Button("Open") { Task { await store.openProject(repo.project ?? repo.name) } }.controlSize(.small).pointer()
@@ -209,8 +197,9 @@ struct HistoryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 if store.history.isEmpty {
-                    Text("Nothing has been run on this machine yet. Every action the app or the terminal runs is listed here, with its commands to copy.")
-                        .font(.system(size: 13)).foregroundColor(.secondary).padding(.top, 14)
+                    EmptyState(title: "Nothing has been run on this machine yet",
+                               detail: "Every action the app or the terminal runs is listed here, with its commands to copy.")
+                        .padding(.top, 14)
                 }
                 ForEach(days, id: \.title) { day in
                     GroupTitle(day.title)
@@ -223,7 +212,7 @@ struct HistoryView: View {
                     .card()
                 }
             }
-            .padding(.horizontal, 20).padding(.bottom, 20)
+            .padding(.horizontal, Gutter.page).padding(.bottom, Gutter.page)
         }
     }
 
@@ -262,14 +251,14 @@ struct HistoryRow: View {
             Button(action: toggle) {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Image(systemName: open ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.secondary).frame(width: 12)
-                    Text(entry.started, style: .time).font(.system(size: 13).monospacedDigit()).foregroundColor(.secondary).frame(width: 64, alignment: .leading)
-                    Text(entry.title).font(.system(size: 13)).lineLimit(1).truncationMode(.tail)
+                        .font(.app(.glyph, weight: .semibold)).foregroundColor(.secondary).frame(width: 12)
+                    Text(entry.started, style: .time).font(.app(.detail).monospacedDigit()).foregroundColor(.secondary).frame(width: 64, alignment: .leading)
+                    Text(entry.title).font(.app(.detail)).lineLimit(1).truncationMode(.tail)
                     Spacer(minLength: 8)
-                    Text(entry.machine).font(.system(size: 12)).foregroundColor(.secondary).lineLimit(1)
+                    Text(entry.machine).font(.app(.caption)).foregroundColor(.secondary).lineLimit(1)
                     HStack(spacing: 5) {
                         Circle().fill(color).frame(width: 7, height: 7)
-                        Text(entry.status).font(.system(size: 12, weight: .medium)).foregroundColor(color)
+                        Text(entry.status).font(.app(.caption, weight: .medium)).foregroundColor(color)
                     }
                     .frame(width: 72, alignment: .leading)
                 }
@@ -280,7 +269,7 @@ struct HistoryRow: View {
             if open {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array((entry.notes ?? []).enumerated()), id: \.offset) { _, n in
-                        Text(n).font(.system(size: 12)).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+                        Text(n).font(.app(.caption)).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                     ForEach(Array(entry.commands.enumerated()), id: \.offset) { i, c in
                         CommandLine(index: i, text: c.display, status: c.status, output: c.output, why: c.why)
@@ -289,7 +278,7 @@ struct HistoryRow: View {
                         LinkButton(title: entry.commands.count == 1 ? "Copy the command" : "Copy all \(entry.commands.count) commands") {
                             store.copy(joinAll(entry.commands.map(\.display)), label: entry.commands.count == 1 ? "the command" : "all \(entry.commands.count) commands")
                         }
-                        if let c = store.copied { Text("Copied \(c).").font(.system(size: 12)).foregroundColor(.green) }
+                        if let c = store.copied { Text("Copied \(c).").font(.app(.caption)).foregroundColor(.good) }
                     }
                 }
                 .padding(.leading, 22).padding(.bottom, 6)
@@ -300,9 +289,10 @@ struct HistoryRow: View {
 
     private var color: Color {
         switch entry.status {
-        case "done": return .green
-        case "running": return .orange
-        default: return .red
+        case "done": return .good
+        // Under way and needing nothing, so never the colour that asks for the developer (D-032).
+        case "running": return .busy
+        default: return .bad
         }
     }
 }
@@ -319,15 +309,15 @@ struct CommandLine: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Text(label).font(.system(size: 12, weight: .semibold)).foregroundColor(color).frame(width: 64, alignment: .leading)
+            Text(label).font(.app(.caption, weight: .semibold)).foregroundColor(color).frame(width: 64, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
-                Text(text).font(.system(size: 13, design: .monospaced)).textSelection(.enabled)
-                if let why { Text(why).font(.system(size: 12)).foregroundColor(.secondary) }
+                Text(text).font(.app(.detail, design: .monospaced)).textSelection(.enabled)
+                if let why { Text(why).font(.app(.caption)).foregroundColor(.secondary) }
                 if let output, !output.isEmpty {
                     Text(output.split(separator: "\n").suffix(8).joined(separator: "\n"))
-                        .font(.system(size: 12, design: .monospaced)).foregroundColor(status == "failed" ? .red : .secondary)
+                        .font(.app(.caption, design: .monospaced)).foregroundColor(status == "failed" ? .bad : .secondary)
                 }
-                if let onFail { Text(onFail).font(.system(size: 13)).foregroundColor(.orange) }
+                if let onFail { Text(onFail).font(.app(.detail)).foregroundColor(.attention) }
             }
             Spacer(minLength: 0)
             Button { store.copy(text, label: "command \(index + 1)") } label: { Image(systemName: "doc.on.doc") }.pointer()
@@ -348,9 +338,9 @@ struct CommandLine: View {
 
     private var color: Color {
         switch status {
-        case "ok": return .green
-        case "failed": return .red
-        case "running": return .orange
+        case "ok": return .good
+        case "failed": return .bad
+        case "running": return .busy
         default: return .secondary
         }
     }

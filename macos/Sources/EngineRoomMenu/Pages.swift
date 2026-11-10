@@ -1,64 +1,6 @@
 import EngineRoomKit
 import SwiftUI
 
-/// Start a project's session one of three ways, or open it in VS Code (APP-START-001 to 003,
-/// APP-EDIT-001). Claude Code always runs inside Zellij, so anything started can be joined later
-/// from any machine.
-struct StartView: View {
-    @EnvironmentObject var store: Store
-    let project: String
-    @State private var mode = ""
-    @State private var work = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            BackLink(label: "Repositories")
-            Text(project).font(.system(size: 18, weight: .bold)).padding(.horizontal, 12)
-            Text("Start Claude Code, always inside Zellij").font(.system(size: 13, weight: .semibold)).foregroundColor(.secondary).padding(.horizontal, 12)
-            Picker("", selection: $mode) {
-                Text("Zellij: start it and open it in \(store.status?.terminal ?? "the terminal")").tag("zellij")
-                Text("Remote Control: start it, open no window; pick it up in the Claude app").tag("remote")
-                Text("Both: Remote Control on, and open it in \(store.status?.terminal ?? "the terminal")").tag("both")
-            }
-            .pickerStyle(.radioGroup).labelsHidden().padding(.horizontal, 12)
-            Text("On a new branch (optional)").font(.system(size: 13, weight: .semibold)).foregroundColor(.secondary).padding(.horizontal, 12).padding(.top, 6)
-            TextField("name, e.g. fix-login", text: $work).textFieldStyle(.roundedBorder).padding(.horizontal, 12)
-            Text("A worktree beside the main clone, on a new branch from the remote's main.").font(.system(size: 12)).foregroundColor(.secondary).padding(.horizontal, 12)
-            Divider().padding(.vertical, 6)
-            HStack {
-                Image(systemName: "chevron.left.forwardslash.chevron.right")
-                VStack(alignment: .leading) {
-                    Text("Open in VS Code").bold()
-                    Text(store.status?.isClient == true && store.status?.offline != true ? "the engine's folder, over SSH" : "the folder on this Mac").font(.system(size: 12)).foregroundColor(.secondary)
-                }
-                Spacer()
-                Button("Open") { Task { await store.runNow(["edit-project", project], opensWindow: true) } }.pointer()
-            }
-            .padding(.horizontal, 12)
-            Spacer()
-            Footer {
-                Text("The choice is remembered").font(.system(size: 12)).foregroundColor(.secondary)
-                Spacer()
-                Button("Show commands") { Task { await store.preview(action) } }.pointer()
-                Button("Start") {
-                    Task {
-                        if mode != store.status?.start { await store.set("start", mode) }
-                        // Starting with Remote Control alone opens no window, so the panel stays.
-                        await store.runNow(action, opensWindow: mode != "remote")
-                    }
-                }.pointer()
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .onAppear { if mode.isEmpty { mode = store.status?.start ?? "zellij" } }
-    }
-
-    private var action: [String] {
-        let w = work.trimmingCharacters(in: .whitespaces)
-        return (w.isEmpty ? ["start", project] : ["new", project, w]) + ["--mode", mode]
-    }
-}
-
 /// Get a repository from GitHub, or create a new one, into a chosen root and category
 /// (APP-ADD-001, 002). Both show their commands before anything runs (APP-PREVIEW-001).
 struct AddView: View {
@@ -78,7 +20,7 @@ struct AddView: View {
                 Text("Get from GitHub").tag(false)
                 Text("Create new").tag(true)
             }
-            .pickerStyle(.segmented).labelsHidden().padding(.horizontal, 12)
+            .pickerStyle(.segmented).labelsHidden().padding(.horizontal, Gutter.panel)
             Form {
                 Picker("Root", selection: $root) {
                     ForEach(roots, id: \.root.name) { l in Text("\(l.root.name) · \(l.root.owner)").tag(l.root.name) }
@@ -89,7 +31,7 @@ struct AddView: View {
                     TextField("Repository", text: $filter, prompt: Text("filter the owner's repositories"))
                     List(selection: Binding(get: { name.isEmpty ? nil : name }, set: { name = $0 ?? "" })) {
                         ForEach(candidates) { r in
-                            HStack { Text(r.name); Spacer(); Text(r.visibility ?? "").foregroundColor(.secondary).font(.system(size: 12)) }.tag(r.name)
+                            HStack { Text(r.name); Spacer(); Text(r.visibility ?? "").foregroundColor(.secondary).font(.app(.caption)) }.tag(r.name)
                         }
                     }
                     .frame(height: 150)
@@ -97,12 +39,12 @@ struct AddView: View {
                 CategoryField(category: $category)
                 if create { Toggle("Public on GitHub", isOn: $isPublic) }
                 if let l = roots.first(where: { $0.root.name == root }), !name.isEmpty {
-                    LabeledContent("Folder") { Text("\(l.root.path)/\(name)").font(.system(size: 13, design: .monospaced)) }
+                    LabeledContent("Folder") { Text("\(l.root.path)/\(name)").font(.app(.detail, design: .monospaced)) }
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Gutter.panel)
             Text(create ? "Makes the folder with a first commit, creates the repository on GitHub with the root's account, pushes, and registers it." : "Clones with the engine's own git and SSH key, then registers it. A category is a label in engineroom only; nothing moves.")
-                .font(.system(size: 13)).foregroundColor(.secondary).padding(.horizontal, 12)
+                .font(.app(.detail)).foregroundColor(.secondary).padding(.horizontal, Gutter.panel)
             Spacer()
             Footer {
                 Spacer()
@@ -165,9 +107,9 @@ struct RegisterView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             BackLink(label: "Repositories")
-            Text("Register \((folder as NSString).lastPathComponent)").font(.system(size: 18, weight: .bold)).padding(.horizontal, 12)
-            Text(folder).font(.system(size: 13, design: .monospaced)).foregroundColor(.secondary).padding(.horizontal, 12)
-            Form { CategoryField(category: $category) }.padding(.horizontal, 12)
+            Text("Register \((folder as NSString).lastPathComponent)").font(.app(.heading, weight: .bold)).padding(.horizontal, Gutter.panel)
+            Text(folder).font(.app(.detail, design: .monospaced)).foregroundColor(.secondary).padding(.horizontal, Gutter.panel)
+            Form { CategoryField(category: $category) }.padding(.horizontal, Gutter.panel)
             Spacer()
             Footer {
                 Spacer()
@@ -200,7 +142,7 @@ struct ReadingProgress: View {
             if store.planProgress.isEmpty {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text("Working out what this needs…").font(.system(size: 13)).foregroundColor(.secondary)
+                    Text("Working out what this needs…").font(.app(.detail)).foregroundColor(.secondary)
                 }
             }
             ForEach(store.planProgress, id: \.side) { p in
@@ -210,17 +152,17 @@ struct ReadingProgress: View {
                             Text(p.done < p.total
                                  ? "Reading \(name(p.side)): \(p.done) of \(p.total) projects\(p.project.map { ", last \($0)" } ?? "")"
                                  : "Read \(name(p.side)): \(p.total) projects")
-                                .font(.system(size: 13))
+                                .font(.app(.detail))
                         }
                         .animation(.easeOut(duration: 0.25), value: p.done)
                     } else {
                         HStack(spacing: 8) {
                             ProgressView().controlSize(.small)
-                            Text("Asking \(name(p.side)) what it holds that GitHub does not…").font(.system(size: 13))
+                            Text("Asking \(name(p.side)) what it holds that GitHub does not…").font(.app(.detail))
                         }
                     }
                     if let c = p.command {
-                        Text(c).font(.system(size: 11, design: .monospaced)).foregroundColor(.secondary)
+                        Text(c).font(.app(.fine, design: .monospaced)).foregroundColor(.secondary)
                             .lineLimit(2).truncationMode(.middle).textSelection(.enabled)
                     }
                 }
@@ -236,26 +178,27 @@ struct ActionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             BackLink()
-            Text(store.planTitle.isEmpty ? "Getting the commands ready" : store.planTitle).font(.system(size: 18, weight: .bold)).padding(.horizontal, 12)
+            Text(store.planTitle.isEmpty ? "Getting the commands ready" : store.planTitle).font(.app(.heading, weight: .bold)).padding(.horizontal, Gutter.panel)
             // While the plan is made (a handover reads both Macs first), or a run reads them again
             // before its first step, a meter per machine says how far it has got; with nothing
             // counted yet, a spinner says the app is waiting, never a blank screen.
             if (store.planTitle.isEmpty && store.actionError == nil) || (store.running && store.stepStatus.isEmpty && !store.planProgress.isEmpty) {
-                ReadingProgress().padding(.horizontal, 12)
+                ReadingProgress().padding(.horizontal, Gutter.panel)
             }
             if !store.planMachine.isEmpty {
                 Text(store.running || store.finished != nil ? "on \(store.planMachine)" : "These commands will run on \(store.planMachine), in this order. Nothing has run yet.")
-                    .font(.system(size: 13)).foregroundColor(.secondary).padding(.horizontal, 12)
+                    .font(.app(.detail)).foregroundColor(.secondary).padding(.horizontal, Gutter.panel)
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     // A blocked plan ends with a heading saying it cannot run, and what to clear
-                    // under it: both in orange, so they stand out from what it would have done.
+                    // under it: both in the colour of what needs the developer, so they stand out from what it
+                    // would have done.
                     let heading = store.planBlocked ? store.planNotes.lastIndex(where: { $0.hasPrefix("This handover cannot run yet") }) : nil
                     ForEach(Array(store.planNotes.enumerated()), id: \.offset) { i, n in
                         let blocker = heading.map { i >= $0 } ?? false
-                        Text(n).font(.system(size: 13, weight: heading == i ? .semibold : .regular))
-                            .foregroundColor(blocker ? .orange : .primary)
+                        Text(n).font(.app(.detail, weight: heading == i ? .semibold : .regular))
+                            .foregroundColor(blocker ? .attention : .primary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if !store.planTitle.isEmpty && store.planLines.isEmpty && store.finished == nil && !store.planBlocked {
@@ -265,17 +208,17 @@ struct ActionView: View {
                         CommandLine(index: i, text: line, status: store.stepStatus[i], output: store.stepOutput[i], onFail: store.stepFail[i])
                     }
                     if !store.planOffers.isEmpty && store.finished != true {
-                        Text("You may also want:").font(.system(size: 13, weight: .semibold))
+                        Text("You may also want:").font(.app(.detail, weight: .semibold))
                         ForEach(Array(store.planOffers.enumerated()), id: \.offset) { _, o in
                             Button(o.label) { Task { await store.preview(o.action) } }.controlSize(.small).pointer()
                         }
                     }
-                    if let e = store.actionError { Text(e).foregroundColor(.red) }
-                    if store.finished == true { Text("Done.").foregroundColor(.green).bold() }
-                    if store.finished == false && store.actionError == nil { Text("Stopped at the failed command; the commands after it were not run.").foregroundColor(.red) }
-                    if let c = store.copied { Text("Copied \(c).").font(.system(size: 13)).foregroundColor(.green) }
+                    if let e = store.actionError { Text(e).foregroundColor(.bad) }
+                    if store.finished == true { Text("Done.").foregroundColor(.good).bold() }
+                    if store.finished == false && store.actionError == nil { Text("Stopped at the failed command; the commands after it were not run.").foregroundColor(.bad) }
+                    if let c = store.copied { Text("Copied \(c).").font(.app(.detail)).foregroundColor(.good) }
                 }
-                .padding(12)
+                .padding(Gutter.panel)
             }
             Footer {
                 Button("Copy all (joined with &&)") { store.copy(joinAll(store.planLines), label: "all \(store.planLines.count) commands") }.pointer()
@@ -302,7 +245,7 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Settings for this Mac").font(.system(size: 22, weight: .bold)).padding(.horizontal, 20).padding(.top, 16)
+            PageHeader(title: "Settings for this Mac")
             Form {
                 if let s = store.status {
                     Section("This Mac") {
@@ -311,14 +254,14 @@ struct SettingsView: View {
                             Toggle("Work local", isOn: Binding(get: { s.offline }, set: { v in Task { await store.switchOffline(v) } }))
                             Toggle("Forward every running session", isOn: Binding(get: { s.forward == true }, set: { v in Task { await store.setForward(v) } }))
                             Text("Each session also has its own Forward switch, and opening one of its links forwards it. Off closes every forward.")
-                                .font(.system(size: 12)).foregroundColor(.secondary)
+                                .font(.app(.caption)).foregroundColor(.secondary)
                         }
                         if !s.isClient {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Release to GitHub").bold()
                                     Text(s.released.map { "Last released \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "Push the work checked out, and see what is uncommitted, before working local on a client.")
-                                        .font(.system(size: 12)).foregroundColor(.secondary)
+                                        .font(.app(.caption)).foregroundColor(.secondary)
                                 }
                                 Spacer()
                                 Button("Release…") { Task { await store.preview(["handoff", "release"]) } }.pointer()
@@ -331,7 +274,7 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("engineroom \(s.version ?? "")").bold()
                                 Text("Upgrade pulls the latest main, installs it and restarts the app, through a Claude session that fixes what gets in the way and asks before anything that could lose work.")
-                                    .font(.system(size: 12)).foregroundColor(.secondary)
+                                    .font(.app(.caption)).foregroundColor(.secondary)
                             }
                             Spacer()
                             Button("Upgrade this Mac…") { Task { await store.preview(["upgrade"]) } }.pointer()
@@ -345,10 +288,10 @@ struct SettingsView: View {
                         Picker("Terminal", selection: Binding(get: { s.terminal ?? "" }, set: { v in Task { await store.set("terminal", v) } })) {
                             ForEach(s.terminals.filter(\.installed)) { t in Text(t.name).tag(t.name) }
                         }
-                        if let p = s.terminalProblem { Text(p).foregroundColor(.red) }
-                        if let note = s.terminals.first(where: { $0.name == s.terminal })?.note { Text(note).font(.system(size: 13)).foregroundColor(.orange) }
+                        if let p = s.terminalProblem { Text(p).foregroundColor(.bad) }
+                        if let note = s.terminals.first(where: { $0.name == s.terminal })?.note { Text(note).font(.app(.detail)).foregroundColor(.attention) }
                         Text("Found on this Mac. Also looked for \(s.terminals.filter { !$0.installed }.map(\.name).joined(separator: ", ")).")
-                            .font(.system(size: 12)).foregroundColor(.secondary)
+                            .font(.app(.caption)).foregroundColor(.secondary)
                     }
                     Section("New sessions") {
                         Picker("Start with", selection: Binding(get: { s.start }, set: { v in Task { await store.set("start", v) } })) {
@@ -358,7 +301,7 @@ struct SettingsView: View {
                     Section("Your settings") {
                         HStack {
                             Text(store.settingsSync.isEmpty ? "Synced when you open engineroom, at most once an hour." : store.settingsSync)
-                                .font(.system(size: 12)).foregroundColor(.secondary)
+                                .font(.app(.caption)).foregroundColor(.secondary)
                             Spacer()
                             Button(store.settingsSyncing ? "Syncing…" : "Sync now") { Task { await store.syncSettings() } }.pointer()
                                 .disabled(store.settingsSyncing)
@@ -367,11 +310,11 @@ struct SettingsView: View {
                     Section {
                         DisclosureGroup("More info") {
                             Text(store.settingsStatus.isEmpty ? "Reading…" : store.settingsStatus)
-                                .font(.system(size: 11, design: .monospaced)).textSelection(.enabled)
+                                .font(.app(.fine, design: .monospaced)).textSelection(.enabled)
                             Text("\(store.client?.executable ?? "engineroom not found") \(s.version ?? "")")
-                                .font(.system(size: 11, design: .monospaced)).foregroundColor(.secondary).textSelection(.enabled)
+                                .font(.app(.fine, design: .monospaced)).foregroundColor(.secondary).textSelection(.enabled)
                         }
-                        .font(.system(size: 13))
+                        .font(.app(.detail))
                     }
                 }
             }

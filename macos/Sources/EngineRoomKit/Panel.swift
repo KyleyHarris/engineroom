@@ -63,6 +63,18 @@ public struct PanelList: Equatable, Sendable {
 /// What one checkout's light says, on the panel's list and on its card.
 public enum PanelLight: Equatable, Sendable {
     case waiting, running, idle
+
+    /// The light of one project wherever it is listed outside the panel (the window's sidebar,
+    /// the repositories list), from the feed's sessions: Claude's mark when any of its running
+    /// sessions waits for the developer, running when one runs, off otherwise. Every session of
+    /// the project counts, an Ask Claude one and one on this Mac included, since each of these
+    /// lists has one line for the whole project. A session that ended is not running and waits
+    /// for nobody (D-015).
+    public static func of(project: String, in sessions: [Session]) -> PanelLight {
+        let live = sessions.filter { $0.project == project && !$0.ended }
+        if live.contains(where: \.isWaiting) { return .waiting }
+        return live.isEmpty ? .idle : .running
+    }
 }
 
 /// One row of the panel's list and what its detail shows (D-025): a project, its light for all its

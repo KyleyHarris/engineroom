@@ -12,7 +12,6 @@ final class Store: ObservableObject {
     /// or registering a repository.
     enum Page: Equatable {
         case none
-        case start(project: String)
         case add(root: String?)
         case register(root: String, folder: String)
         case action(title: String)
@@ -299,6 +298,10 @@ final class Store: ObservableObject {
         if project?.name != name { project = nil }
         await loadProject(name)
     }
+
+    /// What a project's sessions are doing, as one light for the whole project: what the window's
+    /// sidebar and the repositories list show beside its name.
+    func runState(of project: String) -> RunState { RunState(PanelLight.of(project: project, in: sessions)) }
 
     /// One group of the window's sidebar: the registered projects of one GitHub owner's root (or
     /// in no root), not pinned, by category, categories in name order and those with none last.

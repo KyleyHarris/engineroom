@@ -4,7 +4,7 @@ import SwiftUI
 
 /// Renders the app's real screens to PNG files from sample data, so how the app looks can be seen
 /// and compared with its design after every change, without opening the menu bar panel on anyone's
-/// screen. `engineroom-menu --snapshot <dir> [light|dark]` writes one image per screen and exits.
+/// screen. `EngineRoomMenu --snapshot <dir> [dark]` writes one image per screen and exits.
 ///
 /// Each screen is drawn in an offscreen window rather than with ImageRenderer, which cannot draw
 /// the AppKit-backed controls (buttons, switches, menus) a SwiftUI window uses on macOS. The data
@@ -51,6 +51,21 @@ enum Snapshots {
             s.page = .action(title: "")
             s.noteProgress(PlanProgress(side: "the engine", done: 7, total: 16, project: "project-c", command: "ssh -o BatchMode=yes engine.example -- 'engineroom handoff state --json'"))
             s.noteProgress(PlanProgress(side: "this machine", done: 0, total: 0))
+        }),
+        // Everything the panel can have to say first, at once, so the banners are seen in both
+        // appearances: the engine on another build, an image just sent, a problem reading the engine.
+        ("panel-notices", false, { s in
+            s.status = sample(Status.self, statusClient); s.sessions = sessions; s.checkouts = checkouts; s.repos = repos
+            s.engineVersionDiffers = "The engine runs another build of engineroom than this Mac (engine 0.9.1, here 0.9.0)."
+            s.engineBehind = "here"
+            s.imageSent = Date()
+            s.problem = "The engine's answer could not be read: unexpected end of input"
+        }),
+        // A project's page that could not be read: the page's own banner.
+        ("window-problem", true, { s in
+            s.status = sample(Status.self, statusClient); s.sessions = sessions; s.repos = repos
+            s.projectError = "project-e is registered, but its folder is not on the engine. Get the repository onto the engine from the repositories list, or take the project off the list, and then read this page again."
+            s.windowItem = .project("project-e")
         }),
     ]
 
