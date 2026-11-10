@@ -34,8 +34,10 @@ struct MainWindow: View {
                 }
                 Button { Task { await store.refresh(everything: true) } } label: { Image(systemName: "arrow.clockwise") }
                     .help("Read everything again, the repositories too").pointer()
-                QuitButton(icon: true)
             }
+            // Quit is an item of its own, not one of the group refresh is in, so it stands apart
+            // from it as it does in the panel's header (D-032).
+            ToolbarItem { QuitButton(icon: true) }
         }
         .background(WindowFinder())
         .onAppear {

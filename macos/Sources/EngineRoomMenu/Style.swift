@@ -312,15 +312,21 @@ extension Banner where Actions == EmptyView {
 }
 
 /// What a screen says when it has nothing to show: what is missing, what to do about it, and the
-/// button that does it, so an empty screen is never a dead end.
+/// button that does it, so an empty screen is never a dead end. With a tone it starts with that
+/// tone's symbol, as a banner does: the screen is empty because something failed, not because
+/// there is nothing yet.
 struct EmptyState<Action: View>: View {
+    var tone: Tone? = nil
     let title: String
     var detail: String? = nil
     @ViewBuilder var action: Action
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.app(.name, weight: .semibold))
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                if let tone { Image(systemName: tone.symbol).font(.app(.detail)).foregroundColor(tone.color) }
+                Text(title).font(.app(.name, weight: .semibold))
+            }
             if let detail {
                 Text(detail).font(.app(.detail)).foregroundColor(.secondary)
             }
@@ -331,7 +337,7 @@ struct EmptyState<Action: View>: View {
 }
 
 extension EmptyState where Action == EmptyView {
-    init(title: String, detail: String? = nil) { self.init(title: title, detail: detail) { EmptyView() } }
+    init(tone: Tone? = nil, title: String, detail: String? = nil) { self.init(tone: tone, title: title, detail: detail) { EmptyView() } }
 }
 
 /// The title line of a page in the window: its title, a quiet word beside it, and on the right the

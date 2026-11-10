@@ -63,6 +63,18 @@ enum Snapshots {
             s.imageSent = Date()
             s.problem = "The engine's answer could not be read: unexpected end of input"
         }),
+        // Nothing running and nothing pinned: the panel's empty screen and its button.
+        ("panel-empty", false, { s in s.status = sample(Status.self, statusClient) }),
+        // The engine not answering: what happened, why, and the two ways on.
+        ("panel-down", false, { s in
+            s.status = sample(Status.self, statusClient)
+            s.engineDown = true
+            s.problem = "the engine did not answer: ssh: connect to host engine.example port 22: Operation timed out"
+        }),
+        // Working local: the header's badge and its button back, the banner, in the panel and on
+        // the Settings page.
+        ("panel-local", false, { s in s.status = sample(Status.self, statusLocal); s.sessions = sessions; s.checkouts = checkouts; s.repos = repos }),
+        ("window-local", true, { s in s.status = sample(Status.self, statusLocal); s.repos = repos; s.windowItem = .settings }),
         // A project's page that could not be read: the page's own banner.
         ("window-problem", true, { s in
             s.status = sample(Status.self, statusClient); s.sessions = sessions; s.repos = repos
@@ -114,6 +126,10 @@ enum Snapshots {
 
     static let statusClient = """
     {"role":"client","engine":"engine.example","offline":false,"where":"the engine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app"}],"forward":false,"forwarding":true}
+    """
+    /// The client of statusClient after it has taken the work over.
+    static let statusLocal = """
+    {"role":"client","engine":"engine.example","offline":true,"where":"this machine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app"}],"forward":false,"forwarding":false}
     """
     static let statusEngine = """
     {"role":"engine","engine":"","offline":false,"where":"this machine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app"}],"forward":false,"forwarding":false}

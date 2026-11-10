@@ -23,8 +23,17 @@ struct PanelView: View {
         VStack(spacing: 0) {
             banners
             if projects.isEmpty && list.here.isEmpty {
-                Text("There are no sessions running. Start one from Repositories, or pin a project to keep it here.")
-                    .foregroundColor(.secondary).padding(Gutter.panel)
+                // Nothing runs and nothing is pinned: say so, with the button that goes where a
+                // session is started, so the empty panel is not a dead end.
+                EmptyState(title: "There are no sessions running.",
+                           detail: "Start one from Repositories, or pin a project to keep it here.") {
+                    Button("Open Repositories") {
+                        store.windowItem = .repositories
+                        store.showWindow?()
+                    }
+                    .buttonStyle(.borderedProminent).pointer()
+                }
+                .padding(Gutter.panel)
                 Spacer()
             } else {
                 HStack(spacing: 0) {
@@ -206,11 +215,15 @@ struct HereDetail: View {
     }
 }
 
-/// One checkout of the shown project (D-025): its light, which checkout it is, VS Code, Ask Claude,
-/// its branch and pull requests on GitHub and copying the branch name as icons; then what is
-/// unsaved, unpushed, behind or merged, and every action as a button in sight: Join, Restart and
-/// Stop while it runs, or Start; Next branch for a role worktree; Close for any worktree. Claude's
-/// question when it waits; its links and Forward.
+/// One checkout of the shown project (D-025), every action a button in sight, in rows that are the
+/// same on every tile so a button is found in the same place whatever the checkout:
+///
+/// - its light, which checkout it is, and as icons VS Code, Ask Claude, its branch and pull requests
+///   on GitHub and copying the branch name;
+/// - under the name, what is unsaved, unpushed, behind or merged, when anything is;
+/// - one row of actions: Join or Start first on the left, then Restart and, for a role worktree,
+///   Next branch; at the far end, away from Join, the two that end something: Stop and Close;
+/// - Claude's question when it waits; then the app row, its links, Run app, Stop app and Forward.
 struct CheckoutTile: View {
     @EnvironmentObject var store: Store
     let project: String
@@ -218,6 +231,11 @@ struct CheckoutTile: View {
     /// Asking for the branch a role worktree moves on to, in place, as its page does.
     @State private var nextBranching = false
     @State private var nextBranch = ""
+    /// The branch name was copied a moment ago: its icon is a tick until this is cleared, since
+    /// the panel has no line of its own to say "Copied" on.
+    @State private var branchCopied = false
+    /// Counts the copies, so the wait started by one click does not clear the tick of a later one.
+    @State private var copies = 0
 
     private var facts: CheckoutFacts? { card.facts }
     private var session: Session? { card.session }
@@ -252,15 +270,20 @@ struct CheckoutTile: View {
                 Spacer(minLength: 6)
                 icons
             }
-            HStack(spacing: 6) {
-                if let f = facts {
+            // The facts sit under the name and take a row only when there is one to show. Every row
+            // under the header starts at the card's edge, so the tile reads down one line.
+            if let f = facts, f.changes > 0 || f.unpushed > 0 || f.behind > 0 || f.isMerged {
+                HStack(spacing: 6) {
                     if f.changes > 0 { Chip(text: "\(f.changes) unsaved", color: .attention) }
                     if f.unpushed > 0 { Chip(text: "\(f.unpushed) not pushed", color: .attention) }
                     if f.behind > 0 { Chip(text: "\(f.behind) behind main", color: .secondary) }
                     if f.isMerged { Chip(text: f.role != nil ? "merged: move on" : "merged: close it", color: .good) }
                 }
-                Spacer(minLength: 6)
+            }
+            HStack(spacing: 6) {
                 actions
+                Spacer(minLength: 6)
+                endings
             }
             if nextBranching, let role = facts?.role {
                 HStack(spacing: 6) {
@@ -310,13 +333,28 @@ struct CheckoutTile: View {
             if let p = g.pulls { IconButton(symbol: "arrow.triangle.pull", help: "Its pull requests on GitHub") { open(p) } }
         }
         if let b = facts?.branch {
-            IconButton(symbol: "doc.on.doc", help: "Copy the branch name \(b)") { store.copy(b, label: b) }
+            // Copying shows nothing by itself, so the icon answers: a green tick for a moment,
+            // then the copy icon again. One wait per click; nothing runs unless it was pressed.
+            // Pressed again while the tick shows, the tick stays for the full moment after the
+            // last press: only the newest wait clears it.
+            IconButton(symbol: branchCopied ? "checkmark" : "doc.on.doc", help: branchCopied ? "Copied \(b)" : "Copy the branch name \(b)",
+                       tint: branchCopied ? .good : nil) {
+                store.copy(b, label: b)
+                branchCopied = true
+                copies += 1
+                let mine = copies
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_600_000_000)
+                    if copies == mine { branchCopied = false }
+                }
+            }
         }
     }
 
-    /// Every action in sight: Join, Restart (started again the way this Mac starts sessions; the
-    /// page has the other ways) and Stop while it runs, or Start; Next branch for a role worktree
-    /// and Close for any worktree, each shown before it runs where it changes something.
+    /// What carries the work on, from the left: Join (filled, the one most often pressed) and
+    /// Restart (started again the way this Mac starts sessions; the page has the other ways) while
+    /// it runs, or Start; then Next branch for a role worktree. Each is shown before it runs where
+    /// it changes something.
     @ViewBuilder private var actions: some View {
         if let s = session {
             Button("Join") { Task { await store.runNow(["join"] + s.target, opensWindow: true) } }
@@ -326,17 +364,24 @@ struct CheckoutTile: View {
                 Task { await store.preview(["restart", s.name, "--mode", store.status?.start ?? "zellij"]) }
             }
             .controlSize(.small).pointer().help("End it and start it fresh, as set in Settings; its commands are shown first")
-            Button("Stop") { Task { await store.preview(["stop"] + s.target) } }
-                .controlSize(.small).pointer().help("End the session; its commands are shown first")
         } else {
             Button("Start") { start() }.buttonStyle(.borderedProminent).controlSize(.small).pointer()
                 .help("Start its session, as set in Settings")
         }
+        if !isMain, !sessionName.isEmpty, facts?.role != nil {
+            Button("Next branch") { nextBranching = true }.controlSize(.small).pointer()
+                .help("Move this role worktree on to its next branch; its work must be saved or pushed first")
+        }
+    }
+
+    /// What ends something, together at the far end of the row and so never beside Join: Stop
+    /// while its session runs, and Close for any worktree. Both show their commands first.
+    @ViewBuilder private var endings: some View {
+        if let s = session {
+            Button("Stop") { Task { await store.preview(["stop"] + s.target) } }
+                .controlSize(.small).pointer().help("End the session; its commands are shown first")
+        }
         if !isMain, !sessionName.isEmpty {
-            if facts?.role != nil {
-                Button("Next branch") { nextBranching = true }.controlSize(.small).pointer()
-                    .help("Move this role worktree on to its next branch; its work must be saved or pushed first")
-            }
             Button("Close") { Task { await store.preview(["clean-session", sessionName]) } }
                 .controlSize(.small).pointer()
                 .help("Stop its session and remove the worktree; refused, with ways to keep it, while work would be lost")
@@ -389,13 +434,15 @@ extension RunState {
     }
 }
 
-/// A small icon button with a tooltip.
+/// A small icon button with a tooltip. A tint draws the icon in a colour that carries a meaning
+/// (green for something just copied); without one it is the colour of any button's label.
 struct IconButton: View {
     let symbol: String
     let help: String
+    var tint: Color? = nil
     let action: () -> Void
     var body: some View {
-        Button(action: action) { Image(systemName: symbol).font(.app(.caption)) }
+        Button(action: action) { Image(systemName: symbol).font(.app(.caption)).foregroundColor(tint) }
             .buttonStyle(.bordered).controlSize(.small).help(help).pointer()
     }
 }

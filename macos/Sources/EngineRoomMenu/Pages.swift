@@ -239,7 +239,8 @@ struct ActionView: View {
 }
 
 /// This Mac's choices: the terminal (from those installed), how sessions start, opening at login,
-/// and on a client the engine and Offline (APP-TERM-001, APP-LOGIN-001, CONN-OFFLINE-001).
+/// and on a client the engine and the button that takes the work over or hands it back
+/// (APP-TERM-001, APP-LOGIN-001, CONN-OFFLINE-001).
 struct SettingsView: View {
     @EnvironmentObject var store: Store
 
@@ -251,7 +252,20 @@ struct SettingsView: View {
                     Section("This Mac") {
                         LabeledContent("Role") { Text(s.isClient ? "client of \(store.engineLabel(s))" : s.role) }
                         if s.isClient {
-                            Toggle("Work local", isOn: Binding(get: { s.offline }, set: { v in Task { await store.switchOffline(v) } }))
+                            // A button in words, as in the panel's header (D-032): it shows a
+                            // handover that changes nothing until it is run, which a switch does
+                            // not say. The words beside it say which state this Mac is in.
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(s.offline ? "Working local" : "Work local").bold()
+                                    Text(s.offline
+                                        ? "This Mac has the work. Hand it back to the engine when you are done."
+                                        : "Take the work over from the engine and work on this Mac. Both Macs should be on, so the engine's work is pushed first.")
+                                        .font(.app(.caption)).foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Button(s.offline ? "Hand back to the engine" : "Work local") { Task { await store.switchOffline(!s.offline) } }.pointer()
+                            }
                             Toggle("Forward every running session", isOn: Binding(get: { s.forward == true }, set: { v in Task { await store.setForward(v) } }))
                             Text("Each session also has its own Forward switch, and opening one of its links forwards it. Off closes every forward.")
                                 .font(.app(.caption)).foregroundColor(.secondary)

@@ -85,7 +85,9 @@ struct RootView: View {
         VStack(spacing: 0) {
             Header()
             if store.status?.offline == true {
-                OfflineBanner()
+                // The header just above carries the button that hands the work back, so the
+                // panel's banner only says the state; the window has no header and keeps it.
+                OfflineBanner(button: false)
             }
             if case .action = store.page, store.actionIn == .panel {
                 ActionView()
@@ -140,11 +142,15 @@ struct Header: View {
                 ProgressView().controlSize(.small)
             }
             if let s = store.status, s.isClient {
-                Toggle("Work local", isOn: Binding(
-                    get: { s.offline },
-                    set: { v in Task { await store.switchOffline(v) } }))
-                    .toggleStyle(.switch).controlSize(.mini)
-                    .help("Take the work over from the engine and work on this Mac, until switched off. Both Macs should be on, so the engine's work is pushed first.")
+                // A button in words, not a switch (D-032): pressing it shows a handover and changes
+                // nothing until that is run, which a switch that looks flipped at once does not
+                // say. The badge on the left is what says working local is on. The two names are
+                // the app's own for the two directions (D-017).
+                Button(s.offline ? "Hand back to the engine" : "Work local") { Task { await store.switchOffline(!s.offline) } }
+                    .controlSize(.small).pointer()
+                    .help(s.offline
+                        ? "Hand the work back to the engine. The handover's commands are shown first."
+                        : "Take the work over from the engine and work on this Mac, until it is handed back. Both Macs should be on, so the engine's work is pushed first. The handover's commands are shown first.")
             }
             if let s = store.status, s.isClient, !s.offline {
                 // A terminal sends only text, and Claude Code takes a pasted image from the engine's own
@@ -159,32 +165,51 @@ struct Header: View {
                 store.showWindow?()
             } label: { Image(systemName: "gearshape") }.pointer()
                 .buttonStyle(.borderless).help("Projects, repositories, history and settings")
+            // Quit stands apart from refresh and the gear (D-032): it is the one icon here that
+            // ends something, and a rule and a wider gap keep a click meant for the gear off it.
+            Divider().frame(height: 14).padding(.horizontal, 3)
             QuitButton(icon: true).buttonStyle(.borderless)
         }
         .padding(.horizontal, Gutter.panel).padding(.top, 10).padding(.bottom, 8)
     }
 }
 
+/// Says this Mac is working local, on every screen while it is. It carries the button that hands
+/// the work back unless the screen already has one in sight (the panel's header does).
 struct OfflineBanner: View {
     @EnvironmentObject var store: Store
+    var button = true
     var body: some View {
         Banner(tone: .attention, text: "Working local: this Mac has the work. Hand it back to the engine when you are done.") {
-            Button("Hand back to the engine") { Task { await store.switchOffline(false) } }.controlSize(.small).pointer()
+            if button {
+                Button("Hand back to the engine") { Task { await store.switchOffline(false) } }.controlSize(.small).pointer()
+            }
         }
         .padding(.horizontal, Gutter.panel).padding(.bottom, 6)
     }
 }
 
-/// The engine did not answer: retry, or work offline (CONN-DOWN, CONN-OFFLINE-001).
+/// The engine did not answer: retry, or work offline (CONN-DOWN, CONN-OFFLINE-001). Drawn as the
+/// empty screen every other one is, marked as a failure: what happened, what it means for the work,
+/// why in the engine's own words, and the two ways on side by side, Retry filled as the one tried
+/// first.
 struct EngineDownView: View {
     @EnvironmentObject var store: Store
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("The engine did not answer.").font(.app(.heading, weight: .bold)).foregroundColor(.bad)
-            Text(store.problem ?? "").font(.app(.detail, design: .monospaced)).foregroundColor(.secondary)
-            Text("Nothing has been started on either machine. Sessions already running on the engine keep running.")
-            Button("Retry the engine") { Task { await store.refresh(everything: true) } }.buttonStyle(.borderedProminent).pointer()
-            Button("Work local on this Mac") { Task { await store.switchOffline(true) } }.pointer()
+        VStack(alignment: .leading, spacing: 0) {
+            EmptyState(tone: .bad, title: "The engine did not answer.",
+                       detail: "Nothing has been started on either machine. Sessions already running on the engine keep running.") {
+                VStack(alignment: .leading, spacing: 10) {
+                    // The reason as it was given, selectable so it can be copied into a search.
+                    if let p = store.problem, !p.isEmpty {
+                        Text(p).font(.app(.detail, design: .monospaced)).foregroundColor(.secondary).textSelection(.enabled)
+                    }
+                    HStack(spacing: 8) {
+                        Button("Retry the engine") { Task { await store.refresh(everything: true) } }.buttonStyle(.borderedProminent).pointer()
+                        Button("Work local on this Mac") { Task { await store.switchOffline(true) } }.pointer()
+                    }
+                }
+            }
             Spacer()
         }
         .padding(Gutter.panel)
@@ -203,7 +228,8 @@ struct Footer<Content: View>: View {
 }
 
 /// Quits engineroom: the power icon in the panel's header, and the button at the foot of Settings.
-/// The panel's is one click from the menu bar, as a menu bar app's Quit is expected to be.
+/// The panel's is one click from the menu bar, as a menu bar app's Quit is expected to be, and
+/// stands apart from the icons beside it, in the header and in the window's toolbar (D-032).
 /// Command-Q quits from the panel or the window (the power icon is in both): the app has no menu
 /// bar of its own (LSUIElement), so the shortcut sits on those buttons rather than on a menu item
 /// nothing shows. The one in Settings has none, so the window does not carry the shortcut twice. An

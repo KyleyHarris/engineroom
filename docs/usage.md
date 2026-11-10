@@ -336,7 +336,7 @@ and SSH setup.
 
 ### Working local
 
-On a client, the app's "Work local" switch (or `f` in the interface, or `engineroom offline on`) takes
+On a client, the app's "Work local" button (or `f` in the interface, or `engineroom offline on`) takes
 the work over from the engine: everything then runs on this machine as though it were the engine, using
 the copies registered here, and every screen says so. It stays that way until switched back
 ("Hand back to the engine", `f`, or `engineroom offline off`). Switching either way stops nothing. The
@@ -469,7 +469,7 @@ session", with its port, pid, start and folder, and a Stop for that one process
 there). It starts a session three ways: in Zellij with a terminal
 window, with Remote Control and no window, or both. Claude Code always runs inside Zellij, so
 anything started can be joined from the other Mac. It opens VS Code on the engine directly or over
-SSH from a client, gets, creates and registers repositories, and has a Work local switch on a
+SSH from a client, gets, creates and registers repositories, and has a Work local button on a
 client. It runs nothing itself: everything is a `engineroom api` command, shown before it runs where
 it creates something, and kept in the history. Settings chooses the terminal (from those
 installed, Ghostty by default) and opening at login.
