@@ -16,7 +16,7 @@ struct MainWindow: View {
         } detail: {
             VStack(spacing: 0) {
                 if store.status?.offline == true { OfflineBanner(gutter: Gutter.page).padding(.top, 8) }
-                detail
+                ActionSwap(inAction: inAction) { detail }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(Color(nsColor: .windowBackgroundColor))
@@ -34,6 +34,7 @@ struct MainWindow: View {
                 }
                 Button { Task { await store.refresh(everything: true) } } label: { Image(systemName: "arrow.clockwise") }
                     .help("Read everything again, the repositories too").pointer()
+                    .accessibilityLabel("Read everything again")
             }
             // Quit is an item of its own, not one of the group refresh is in, so it stands apart
             // from it as it does in the panel's header (D-032).
@@ -56,10 +57,17 @@ struct MainWindow: View {
         }
     }
 
+    /// Whether the window shows an action's page in place of what its sidebar chose.
+    private var inAction: Bool {
+        if case .action = store.page, store.actionIn == .window { return true }
+        return false
+    }
+
     @ViewBuilder private var detail: some View {
-        if case .action = store.page, store.actionIn == .window {
-            ActionView()
+        if inAction {
+            ActionView().transition(.arrives)
         } else {
+            Group {
             switch store.page {
             case .add(let root): AddView(initialRoot: root)
             case .register(let root, let folder): RegisterView(root: root, folder: folder)
@@ -74,6 +82,8 @@ struct MainWindow: View {
                         .padding(Gutter.page)
                 }
             }
+            }
+            .transition(.identity)
         }
     }
 }

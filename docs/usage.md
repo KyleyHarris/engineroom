@@ -432,7 +432,10 @@ made from; it pulls `main`, runs `scripts/install.sh --app`, restarts the app wi
 `engineroom app relaunch` and says what changed, and it asks before anything that could lose work.
 Each press starts a new upgrade session, ending one left from an earlier upgrade (APP-UPGRADE-003).
 Settings has the same buttons. The panel opens on the project
-you last chose, and comes back to it after an action. Its gear opens the window, which holds
+you last chose, and comes back to it after an action. The list is worked from the keyboard too
+(D-033): Down and Up choose a project, Return joins or starts it (its session that waits for you,
+else its first running one, else it starts its first checkout; the button Return presses carries a
+return mark), and Escape closes the panel, or goes back from an action's commands. Its gear opens the window, which holds
 everything else: a sidebar of your projects (pinned first), the repositories in your roots (pinned,
 registered by category, here but not registered, and on GitHub but not here), the history and the
 settings. A project's page shows each checkout (the main clone and every worktree) as a card: what it

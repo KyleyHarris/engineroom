@@ -2,7 +2,9 @@ import AppKit
 import EngineRoomKit
 import SwiftUI
 
-/// The menu bar icon: the grid, and Claude's mark beside it while Claude is waiting.
+/// The menu bar icon: the grid, and Claude's mark beside it while Claude is waiting. It is named
+/// in words for VoiceOver, which has no use for a grid and an asterisk: the app, and that Claude
+/// waits while it does.
 struct MenuBarIcon: View {
     let waiting: Bool
     var body: some View {
@@ -12,8 +14,10 @@ struct MenuBarIcon: View {
                 Text("✻")
             }
             .help("Claude is waiting for you")
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("engineroom, Claude is waiting for you")
         } else {
-            Image(systemName: "square.grid.2x2")
+            Image(systemName: "square.grid.2x2").accessibilityLabel("engineroom")
         }
     }
 }
@@ -81,6 +85,12 @@ struct RootView: View {
     @EnvironmentObject var store: Store
     @Environment(\.openWindow) private var openWindow
 
+    /// Whether the panel shows an action's page in place of its list.
+    private var inAction: Bool {
+        if case .action = store.page, store.actionIn == .panel { return true }
+        return false
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Header()
@@ -89,12 +99,14 @@ struct RootView: View {
                 // panel's banner only says the state; the window has no header and keeps it.
                 OfflineBanner(button: false)
             }
-            if case .action = store.page, store.actionIn == .panel {
-                ActionView()
-            } else if store.engineDown {
-                EngineDownView()
-            } else {
-                PanelView()
+            ActionSwap(inAction: inAction) {
+                if inAction {
+                    ActionView().transition(.arrives)
+                } else if store.engineDown {
+                    EngineDownView().transition(.identity)
+                } else {
+                    PanelView().transition(.identity)
+                }
             }
         }
         .font(.app(.body))
@@ -157,14 +169,17 @@ struct Header: View {
                 // clipboard; this puts this Mac's clipboard image there (internal/clip).
                 Button { Task { await store.sendImage() } } label: { Image(systemName: "photo.on.rectangle.angled") }
                     .buttonStyle(.borderless).help("Send the image on this Mac's clipboard to the engine, then paste it in the session").pointer()
+                    .accessibilityLabel("Send the clipboard's image to the engine")
             }
             Button { Task { await store.refresh(everything: true) } } label: { Image(systemName: "arrow.clockwise") }.pointer()
                 .buttonStyle(.borderless).help("Read everything again, the repositories too")
+                .accessibilityLabel("Read everything again")
             Button {
                 if store.windowItem == nil { store.windowItem = store.registeredProjects.first.map { .project($0.name) } ?? .repositories }
                 store.showWindow?()
             } label: { Image(systemName: "gearshape") }.pointer()
                 .buttonStyle(.borderless).help("Projects, repositories, history and settings")
+                .accessibilityLabel("Open the window")
             // Quit stands apart from refresh and the gear (D-032): it is the one icon here that
             // ends something, and a rule and a wider gap keep a click meant for the gear off it.
             Divider().frame(height: 14).padding(.horizontal, 3)
@@ -254,6 +269,8 @@ struct QuitButton: View {
         }
         .keyboardShortcut(icon ? KeyboardShortcut("q", modifiers: .command) : nil)
         .help(icon ? "Quit engineroom (⌘Q)" : "Quit engineroom")
+        // The icon has no words of its own; the worded button in Settings is read as it is drawn.
+        .accessibilityLabel("Quit engineroom")
         .pointer()
         .confirmationDialog("An action is running: \(store.planTitle.isEmpty ? "untitled" : store.planTitle)", isPresented: $asking) {
             Button("Quit anyway", role: .destructive) { NSApplication.shared.terminate(nil) }
@@ -300,9 +317,51 @@ enum Panel {
 extension View {
     /// Shows the pointing hand over something clickable, as a link does in a browser; SwiftUI on
     /// macOS keeps the arrow over buttons.
-    func pointer() -> some View {
-        onHover { inside in
-            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-        }
+    func pointer() -> some View { modifier(PointingHand()) }
+}
+
+/// The pointing hand, put on the cursor stack while the pointer is over a view and taken off
+/// again exactly once: when the pointer leaves, or when the view goes while the pointer is still
+/// over it (a Join pressed, which swaps the panel to the action's page under the pointer). A view
+/// that went without its hand taken off would leave the hand as the cursor over whatever came
+/// next. The hand is counted in a box the two closures share, not in the view's state, so a view
+/// that has gone still knows it has taken its hand off and cannot take off another view's.
+private struct PointingHand: ViewModifier {
+    private final class Held { var hand = false }
+    @State private var held = Held()
+
+    func body(content: Content) -> some View {
+        content
+            .onHover { inside in
+                guard inside != held.hand else { return }
+                held.hand = inside
+                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+            .onDisappear {
+                guard held.hand else { return }
+                held.hand = false
+                NSCursor.pop()
+            }
     }
+}
+
+/// Where a surface swaps between its own content and an action's page (D-033): the action's page
+/// arrives with a short fade, so the swap reads as one surface changing what it shows and not as
+/// a jump. Only the arrival fades. A page that is left is emptied as it closes (Store.close), so
+/// fading it out would show it blank on the way; what was underneath comes back at once. With
+/// Reduce Motion on in System Settings nothing fades.
+struct ActionSwap<Content: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let inAction: Bool
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ZStack { content }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: inAction)
+    }
+}
+
+extension AnyTransition {
+    /// How an action's page comes and goes inside an ActionSwap: fades in, leaves at once.
+    static var arrives: AnyTransition { .asymmetric(insertion: .opacity, removal: .identity) }
 }

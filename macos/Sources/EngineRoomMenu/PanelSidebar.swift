@@ -11,15 +11,19 @@ import SwiftUI
 /// card per checkout, running or not, with what is unsaved, unpushed, behind or merged, as the
 /// feed sent it, and every action as a button; the project's Ask Claude sessions follow as one
 /// line each. The project last chosen is remembered (Store.panelSelected).
+///
+/// The list is also worked from the keyboard (D-033, Store.key): Down and Up choose a project,
+/// Return joins or starts it as the button carrying the return mark does, Escape closes the panel.
 struct PanelView: View {
     @EnvironmentObject var store: Store
 
     var body: some View {
-        let list = PanelList(sessions: store.sessions, pinned: store.pinnedProjects)
+        let list = store.panelList
         // The project last chosen stays shown, kept in the list even when nothing of it runs any
-        // more; the first project when none was chosen yet.
-        let projects = PanelProject.list(list, checkouts: store.checkouts, keep: store.panelSelected)
-        let current = projects.first { $0.id == store.panelSelected } ?? projects.first
+        // more; the first project when none was chosen yet. The same rows and the same choice
+        // are what the keys act on.
+        let projects = store.panelProjects
+        let current = PanelProject.shown(projects, chosen: store.panelSelected)
         VStack(spacing: 0) {
             banners
             if projects.isEmpty && list.here.isEmpty {
@@ -90,6 +94,7 @@ struct PanelView: View {
     // MARK: the list on the left
 
     @ViewBuilder private func sidebar(_ projects: [PanelProject], here: [Session], current: String?) -> some View {
+        ScrollViewReader { scroll in
         ScrollView {
             VStack(alignment: .leading, spacing: 2) {
                 let pinned = projects.filter(\.pinned), rest = projects.filter { !$0.pinned && !$0.recent }
@@ -115,6 +120,10 @@ struct PanelView: View {
             }
             .padding(.horizontal, 8).padding(.vertical, 6)
         }
+        // A project chosen with a key is brought into sight when the list is longer than the
+        // panel. Only a key does this (Store.keySteps), never pointing at a row.
+        .onChange(of: store.keySteps) { _ in if let id = store.panelSelected { scroll.scrollTo(id) } }
+        }
     }
 
     @ViewBuilder private func row(_ item: PanelProject, current: String?) -> some View {
@@ -134,10 +143,30 @@ struct PanelView: View {
         .background(RoundedRectangle(cornerRadius: Radius.row).fill(on ? Color.accentColor.opacity(0.22) : .clear))
         .contentShape(Rectangle())
         // Pointing shows it, and it stays shown while the pointer moves across to it: moving
-        // straight right crosses no other row.
-        .onHover { if $0 { store.panelSelected = item.id } }
+        // straight right crosses no other row. Moving the pointer inside a row chooses it too,
+        // so after the arrow keys chose another row the pointer takes the choice back by moving,
+        // not only by leaving the row and coming back; a pointer that has not moved since the
+        // key chooses nothing (Store.pointerChooses).
+        .onContinuousHover { phase in
+            guard case .active = phase, store.panelSelected != item.id, store.pointerChooses() else { return }
+            store.panelSelected = item.id
+        }
         .onTapGesture { store.panelSelected = item.id }
         .pointer()
+        .id(item.id)
+        // Read out as one thing that can be chosen: its name, what its sessions are doing and
+        // how many run, not a dot and a number with no words.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(rowLabel(item))
+        .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { store.panelSelected = item.id }
+    }
+
+    /// A row of the list in words: the project, its light, and its count when more than one runs.
+    private func rowLabel(_ item: PanelProject) -> String {
+        var parts = [item.project, RunState(item.light).words]
+        if item.sessions.count > 1 { parts.append("\(item.sessions.count) sessions running") }
+        return parts.joined(separator: ", ")
     }
 }
 
@@ -168,15 +197,17 @@ struct ProjectDetail: View {
                 HStack {
                     Text("Not running").foregroundColor(.secondary)
                     Spacer()
-                    Button("Start") {
+                    Button {
                         let mode = store.status?.start ?? "zellij"
                         Task { await store.runNow(["start", item.project, "--mode", mode], opensWindow: mode != "remote") }
-                    }
+                    } label: { ReturnMarked("Start", marked: true) }
                     .buttonStyle(.borderedProminent).pointer()
+                    .help("Start its session, as set in Settings (Return)")
                 }
                 .card(.compact)
             }
-            ForEach(item.cards) { CheckoutTile(project: item.project, card: $0) }
+            // One card's Join or Start is what Return presses; that card carries the mark.
+            ForEach(item.cards) { CheckoutTile(project: item.project, card: $0, returns: $0.id == item.keyCard?.id) }
             ForEach(item.helpers) { h in
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles").foregroundColor(.secondary)
@@ -228,6 +259,10 @@ struct CheckoutTile: View {
     @EnvironmentObject var store: Store
     let project: String
     let card: PanelProject.Card
+    /// Whether this is the card Return acts on (PanelProject.keyCard): its Join or Start then
+    /// carries the return mark, so which of a project's sessions the key joins is seen before
+    /// it is pressed.
+    var returns = false
     /// Asking for the branch a role worktree moves on to, in place, as its page does.
     @State private var nextBranching = false
     @State private var nextBranch = ""
@@ -241,7 +276,7 @@ struct CheckoutTile: View {
     private var session: Session? { card.session }
     private var path: String? { facts?.path ?? session?.path }
     private var sessionName: String { facts?.session ?? session?.name ?? "" }
-    private var isMain: Bool { facts?.main ?? (session?.name == project) }
+    private var isMain: Bool { card.isMain(of: project) }
 
     /// The main clone by its branch; a role worktree by its role; any other by its name.
     private var title: String {
@@ -289,6 +324,8 @@ struct CheckoutTile: View {
                 HStack(spacing: 6) {
                     TextField("next branch, e.g. search-fix", text: $nextBranch).textFieldStyle(.roundedBorder)
                         .onSubmit { moveOn(role) }
+                        // Escape in the field is its Cancel; the panel's own Escape waits for it.
+                        .onExitCommand { nextBranching = false }
                     Button("Move on") { moveOn(role) }.controlSize(.small).pointer()
                         .disabled(nextBranch.trimmingCharacters(in: .whitespaces).isEmpty)
                     Button("Cancel") { nextBranching = false }.controlSize(.small).pointer()
@@ -357,16 +394,17 @@ struct CheckoutTile: View {
     /// it changes something.
     @ViewBuilder private var actions: some View {
         if let s = session {
-            Button("Join") { Task { await store.runNow(["join"] + s.target, opensWindow: true) } }
+            Button { Task { await store.runNow(["join"] + s.target, opensWindow: true) } } label: { ReturnMarked("Join", marked: returns) }
                 .buttonStyle(.borderedProminent).controlSize(.small).pointer()
-                .help("Join it in \(store.status?.terminal ?? "your terminal")")
+                .help("Join it in \(store.status?.terminal ?? "your terminal")\(returns ? " (Return)" : "")")
             Button("Restart") {
                 Task { await store.preview(["restart", s.name, "--mode", store.status?.start ?? "zellij"]) }
             }
             .controlSize(.small).pointer().help("End it and start it fresh, as set in Settings; its commands are shown first")
         } else {
-            Button("Start") { start() }.buttonStyle(.borderedProminent).controlSize(.small).pointer()
-                .help("Start its session, as set in Settings")
+            Button { start() } label: { ReturnMarked("Start", marked: returns) }
+                .buttonStyle(.borderedProminent).controlSize(.small).pointer()
+                .help("Start its session, as set in Settings\(returns ? " (Return)" : "")")
         }
         if !isMain, !sessionName.isEmpty, facts?.role != nil {
             Button("Next branch") { nextBranching = true }.controlSize(.small).pointer()
@@ -413,11 +451,11 @@ struct CheckoutTile: View {
     }
 
     /// Starts the checkout's session as this Mac starts them: the main clone's by project, a
-    /// worktree's by its work name (which opens the existing worktree).
+    /// worktree's by its work name (which opens the existing worktree). The action is the card's
+    /// own (PanelProject.Card.startAction), the one Return sends for it.
     private func start() {
         let mode = store.status?.start ?? "zellij"
-        let action = isMain ? ["start", project] : ["new", project, facts?.work ?? title]
-        Task { await store.runNow(action + ["--mode", mode], opensWindow: mode != "remote") }
+        Task { await store.runNow(card.startAction(project: project) + ["--mode", mode], opensWindow: mode != "remote") }
     }
 
     private func open(_ address: String) { if let u = URL(string: address) { NSWorkspace.shared.open(u) } }
@@ -435,7 +473,10 @@ extension RunState {
 }
 
 /// A small icon button with a tooltip. A tint draws the icon in a colour that carries a meaning
-/// (green for something just copied); without one it is the colour of any button's label.
+/// (green for something just copied); without one it is the colour of any button's label. Its
+/// tooltip is also its name to VoiceOver, which would otherwise read the symbol's own name or
+/// nothing: one sentence, so what is read out and what is shown cannot come to differ, and the
+/// copy icon is read as "Copied ..." for as long as it shows its tick.
 struct IconButton: View {
     let symbol: String
     let help: String
@@ -443,7 +484,25 @@ struct IconButton: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) { Image(systemName: symbol).font(.app(.caption)).foregroundColor(tint) }
-            .buttonStyle(.bordered).controlSize(.small).help(help).pointer()
+            .buttonStyle(.bordered).controlSize(.small).help(help).accessibilityLabel(help).pointer()
+    }
+}
+
+/// The words of a card's Join or Start, with the return mark after them on the one button of the
+/// shown project that the Return key presses (D-033). The mark is for the eye; the button is
+/// still read out by its word.
+struct ReturnMarked: View {
+    let word: String
+    let marked: Bool
+    init(_ word: String, marked: Bool) {
+        self.word = word
+        self.marked = marked
+    }
+    var body: some View {
+        // One line of text, mark and all, so the word sits on the line its neighbours' words do;
+        // a mark laid out beside the word moved the word down.
+        (marked ? Text("\(word) \(Text(Image(systemName: "return")).font(.app(.glyph, weight: .semibold)))") : Text(word))
+            .accessibilityLabel(word)
     }
 }
 

@@ -155,23 +155,32 @@ enum RunState {
 /// The light beside a project, a checkout or a session, the same on every screen: Claude's own mark
 /// when Claude is waiting for the developer, a dot otherwise. A waiting item keeps its place in
 /// its list (D-022), so the mark is how it is found, as the terminal list marks it (tui.ClaudeMark).
+/// A colour and a mark say nothing to VoiceOver, so the light is read out as its state in words.
 struct Light: View {
     let state: RunState
     /// Drawn larger in a page card's header than in a list, where it sits in a column 12 wide so
     /// the names beside the lights line up.
     var large = false
+    /// Whether the light is read out. Not where the same words stand beside it (a card's header),
+    /// which would say the state twice.
+    var spoken = true
 
     var body: some View {
-        if state == .waiting {
-            Text("✻").font(.app(large ? .heading : .name, weight: .black)).foregroundColor(state.color)
-                .fixedSize().frame(width: large ? nil : 12)
-                .help("Claude is waiting for you")
-        } else {
-            // A dot has no baseline of its own; in a header laid out on the text's baseline it
-            // sits a point above it, level with the middle of the name.
-            Circle().fill(state.color).frame(width: 8, height: 8).frame(width: large ? nil : 12)
-                .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 1 }
+        Group {
+            if state == .waiting {
+                Text("✻").font(.app(large ? .heading : .name, weight: .black)).foregroundColor(state.color)
+                    .fixedSize().frame(width: large ? nil : 12)
+                    .help("Claude is waiting for you")
+            } else {
+                // A dot has no baseline of its own; in a header laid out on the text's baseline it
+                // sits a point above it, level with the middle of the name.
+                Circle().fill(state.color).frame(width: 8, height: 8).frame(width: large ? nil : 12)
+                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 1 }
+            }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(state.words)
+        .accessibilityHidden(!spoken)
     }
 }
 
@@ -186,7 +195,7 @@ struct CardHeader<Trailing: View>: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Light(state: state, large: true)
+            Light(state: state, large: true, spoken: false)
             if let open {
                 // A name that opens a page is drawn as a link, so it reads as clickable.
                 Button(action: open) {

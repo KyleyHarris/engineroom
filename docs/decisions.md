@@ -1158,3 +1158,68 @@ Decision:   - A colour says one thing wherever it is used. Orange: something nee
               failed command is said in one word, "failed", wherever the app shows it.
 Status:     accepted. Refines D-019's one visual language and D-025's buttons in sight; changes no
             function of either.
+
+## D-033  2026-11-10  The panel's list is worked from the keyboard, and what the app shows by an icon or a colour it also says in words
+
+Context:    The panel is opened many times a day and was worked only by pointing: choosing a
+            project, joining its session and closing the panel each needed the pointer. The
+            buttons that are only an icon (D-032) had a tooltip and no name, so VoiceOver read a
+            symbol's name or nothing, and a state light said its state by a colour and a mark
+            alone. A surface swapped to an action's page between one frame and the next, which
+            reads as a jump to somewhere else. The pointing hand was put on the cursor when the
+            pointer came over something clickable and taken off when it left, so a button that
+            went from under the pointer when it was pressed could leave the hand behind.
+Options:    (a) Make the panel's list a stock list and let the system move its selection
+                - rejected: the rows are the app's own drawing (D-032) and a stock list restyles
+                them, and a list answers keys only once it has the focus, which in a panel opened
+                from the menu bar is after a click, the thing the keys are there to save.
+            (b) The panel answers a small fixed set of keys itself, whenever it is the window
+                being typed into: the arrows, Return and Escape [CHOSEN]
+            (c) A letter per action (join, stop, restart, close)
+                - rejected: a letter is not in sight, against every action being a button in
+                sight (D-025), and a wrong letter would stop a session. Return carries the one
+                action that changes nothing that cannot be left again, and the rest stay buttons.
+            For which session Return joins when a project has several:
+            (d) Always the first card, the main clone's
+                - rejected: the panel is opened most often because Claude is waiting, and that
+                session is often a worktree's.
+            (e) The session that is waiting, else the first that runs, else start the first
+                checkout, with that card's button marked so it is seen before the key is pressed
+                [CHOSEN]
+Decision:   - In the panel's list Down and Up choose the next and the previous project, in the
+              order the list is drawn, and stop at each end. The choice is the one pointing makes:
+              it is shown on the right and remembered (D-025). A chosen row is brought into sight
+              when the list is longer than the panel. This Mac's own sessions, listed apart, are
+              not projects and are not part of the walk; each keeps its Join.
+            - Return joins or starts the chosen project: its session that waits for the developer,
+              else its first running session in the order its cards are drawn, else it starts its
+              first checkout. That card's Join or Start carries a return mark, and the key sends
+              exactly what the button sends.
+            - Escape closes the panel from its list. On a page reached from another it is the link
+              back: an action's page in the panel or the window, and the window's pages that get
+              or register a repository, from one of their fields too, as Escape cancels a dialog.
+            - The keys are left alone when they belong to something else: held with Command,
+              Option, Control or Shift; while a dialog is up; in the panel's list while a field is
+              typed into (the next branch of a role, where Escape is the field's Cancel); Escape
+              while an input method is part way through a character. A held arrow walks the list;
+              a held Return asks once; a held Escape goes back one step.
+            - Pointing and clicking are unchanged. After an arrow key the pointer chooses again as
+              soon as it moves; while it rests, the row under it does not take the choice back.
+            - Every button that is only an icon has a name in words, read by VoiceOver: a card's
+              icons are named by their tooltips, so the copy icon is read as "Copied" with the
+              branch for as long as it shows its tick. A state light is read as its state in words,
+              a row of the panel's list as one thing (the project, its state, and how many
+              sessions run when more than one), and the menu bar icon as the app, with "Claude is
+              waiting for you" while it carries the mark.
+            - An action's page arrives with a short fade. Only the arrival fades: a page that is
+              left is emptied as it closes, so what was underneath comes back at once. Nothing
+              fades while Reduce Motion is on in System Settings.
+            - The pointing hand is taken off the cursor exactly once: when the pointer leaves, or
+              when the view goes while the pointer is still over it.
+            - Which key does what, where, and what Return acts on are decided in EngineRoomKit
+              (PanelKey, PanelProject.step, PanelProject.keyAction) and checked by its tests; the
+              app reads the place off the window and carries the effect out.
+            - Not covered: keys for the window's own lists and forms, which keep the system's;
+              Return as the Run button of an action's page.
+Status:     accepted. Adds to D-025 (pointing and clicking are kept) and D-032 (an icon's tooltip
+            is also its name); changes no function of either.

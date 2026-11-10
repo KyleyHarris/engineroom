@@ -153,6 +153,7 @@ struct ProjectRow: View {
                 Text(project.name)
                 if project.pinned {
                     Image(systemName: "star.fill").foregroundColor(.secondary).font(.app(.glyph)).help("Pinned to the panel")
+                        .accessibilityLabel("Pinned to the panel")
                 }
                 Text(project.detail).font(.app(.caption)).foregroundColor(.secondary)
                 Spacer()
@@ -189,6 +190,7 @@ struct RepoRow: View {
                 Button("Get…") { store.page = .add(root: root.name + "/" + repo.name) }.controlSize(.small).pointer()
                 Button { Task { await store.runQuietly(["hide", root.name, repo.name], saying: "Hiding \(repo.name)…") } } label: { Image(systemName: "eye.slash") }
                     .buttonStyle(.borderless).help("Hide it from this list; nothing changes on GitHub").pointer()
+                    .accessibilityLabel("Hide \(repo.name) from this list")
             }
         }
         .help(repo.description ?? "")
@@ -329,7 +331,7 @@ struct CommandLine: View {
             }
             Spacer(minLength: 0)
             Button { store.copy(text, label: "command \(index + 1)") } label: { Image(systemName: "doc.on.doc") }.pointer()
-                .buttonStyle(.borderless).help("Copy this command")
+                .buttonStyle(.borderless).help("Copy this command").accessibilityLabel("Copy command \(index + 1)")
         }
     }
 
