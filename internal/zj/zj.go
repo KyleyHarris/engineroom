@@ -9,10 +9,13 @@ package zj
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/desktop"
@@ -32,8 +35,6 @@ func ListCommand() []string {
 	return []string{"zellij", "list-sessions", "--no-formatting"}
 }
 
-// List runs Zellij's session list on this machine and parses it. "No active zellij sessions
-// found" is an empty list, not an error.
 // Answers reports whether a session's server answers a client: it lists the session's tabs. Zellij
 // lists a new session as soon as its socket exists, before its server takes clients, and joining
 // it then fails with "No session with the name ... found!" (seen on a loaded machine, where the gap
@@ -45,19 +46,69 @@ func Answers(name string) bool {
 	return err == nil && text != "" && !strings.Contains(text, "not found")
 }
 
+// List runs Zellij's session list on this machine and parses it. "No active zellij sessions
+// found" is an empty list, not an error. Every action on sessions reads this list first, so a
+// Zellij that is missing or older than MinVersion is refused here, with what is needed (sessions
+// obligation, dependency down).
 func List() ([]Session, error) {
+	if err := CheckVersion(); err != nil {
+		return nil, err
+	}
 	out, err := exec.Command(ListCommand()[0], ListCommand()[1:]...).CombinedOutput()
 	text := string(out)
 	if err != nil {
 		if strings.Contains(text, "No active zellij sessions") {
 			return nil, nil
 		}
-		if _, lookErr := exec.LookPath("zellij"); lookErr != nil {
-			return nil, fmt.Errorf("zellij is not installed or not on PATH")
-		}
 		return nil, fmt.Errorf("zellij list-sessions: %v: %s", err, strings.TrimSpace(text))
 	}
 	return Parse(text), nil
+}
+
+// MinVersion is the oldest Zellij the program works with, as docs/setup.md states it. The
+// newest command the program uses, `zellij action switch-session`, arrived in 0.44.0.
+var MinVersion = [3]int{0, 45, 0}
+
+// versionChecked is set once this process has found a Zellij new enough; a failed check is made
+// again at the next read, so installing or updating Zellij is seen without restarting a program
+// that keeps running (the app's feed).
+var versionChecked atomic.Bool
+
+// versionRule reads "zellij 0.45.1" as Zellij prints it for --version.
+var versionRule = regexp.MustCompile(`^zellij (\d+)\.(\d+)\.(\d+)`)
+
+// CheckVersion refuses a Zellij that is not installed or is older than MinVersion, saying which
+// version is needed and how to get it. A version it cannot read is not refused: the check stands
+// guard against an old Zellij, and an answer in an unknown form says nothing about its age.
+func CheckVersion() error {
+	if versionChecked.Load() {
+		return nil
+	}
+	need := fmt.Sprintf("%d.%d.%d", MinVersion[0], MinVersion[1], MinVersion[2])
+	out, err := exec.Command("zellij", "--version").Output()
+	if errors.Is(err, exec.ErrNotFound) {
+		return fmt.Errorf("zellij is not installed or not on PATH; engineroom needs Zellij %s or later (brew install zellij)", need)
+	}
+	if err != nil {
+		return fmt.Errorf("zellij --version: %v", err)
+	}
+	m := versionRule.FindStringSubmatch(strings.TrimSpace(string(out)))
+	if m != nil {
+		var have [3]int
+		for i := range have {
+			have[i], _ = strconv.Atoi(m[i+1])
+		}
+		for i := range have {
+			if have[i] != MinVersion[i] {
+				if have[i] < MinVersion[i] {
+					return fmt.Errorf("the installed Zellij is %s.%s.%s; engineroom needs Zellij %s or later (brew upgrade zellij)", m[1], m[2], m[3], need)
+				}
+				break
+			}
+		}
+	}
+	versionChecked.Store(true)
+	return nil
 }
 
 // lineRule matches "name [Created 3s ago] (EXITED - attach to resurrect)" and its variants.
@@ -159,8 +210,28 @@ func Create(name, layout, dir string) action.Command {
 	}
 }
 
+// StartOnce is the one command a plan uses to start a session: `engineroom session start`, which
+// takes a lock held for that session's name, starts the session with the Start commands only when
+// it is not already running (deleting what Zellij kept of an ended one first, D-015), and returns
+// once it answers. Two starts of one session at once, from two machines or two windows, then make
+// one session that both can join (sessions obligations O3, O4): Zellij's own background create,
+// run twice at once for one name, can leave no session listed and a server running with no socket.
+// Its description names the commands it runs, so what the plan shows is what runs.
+func StartOnce(name, layout, dir string) action.Command {
+	var inner []string
+	for _, c := range Start(name, layout, dir) {
+		inner = append(inner, c.Display())
+	}
+	return action.Command{
+		Argv: []string{"engineroom", "session", "start", name, layout, dir},
+		Why: "start the session once, under a lock for its name so two starts at once make one session, and wait until it answers; " +
+			"unless it is already running, it runs: " + strings.Join(inner, " ; "),
+		OnFail: "The session did not start; what the start said is above. Nothing else of the action ran after it.",
+	}
+}
+
 // Start is the commands that start a session in the background from a layout, in a directory
-// (Create). On a Mac where the program runs outside the developer's desktop login while one exists
+// (Create). They are run by StartOnce, never put in a plan on their own. On a Mac where the program runs outside the developer's desktop login while one exists
 // (over SSH, say), the start is handed to launchd as a one-time job in that login, so the session,
 // and Claude Code and everything else in it, has the keychain and permissions the developer has at
 // the screen (D-031): the job is written by `engineroom session job`, which shows it, then started

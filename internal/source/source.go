@@ -59,7 +59,8 @@ type Source interface {
 	Where() string
 }
 
-// ErrEngineDown means the engine did not answer.
+// ErrEngineDown means the engine was not reached. An *Unreached says why (no answer, a name that does
+// not resolve, no ssh, a changed or unknown host key); Retryable says whether asking again may help.
 var ErrEngineDown = errors.New("the engine did not answer")
 
 // Local is this machine.
@@ -176,18 +177,23 @@ type Remote struct {
 // Where implements Source.
 func (r Remote) Where() string { return "engine " + r.R.Host }
 
-// Probe checks the engine answers, returning ErrEngineDown when it does not.
+// Probe checks the engine answers. When it does not, the error is an *Unreached (ErrEngineDown)
+// naming the cause: no answer, a name that does not resolve, no ssh here, or a host key this machine
+// does not know or knows differently.
 func (r Remote) Probe(ctx context.Context) error {
 	c := r.R.Probe()
-	out, err := exec.CommandContext(ctx, c.Argv[0], c.Argv[1:]...).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrEngineDown, strings.TrimSpace(string(out)))
+	var stderr bytes.Buffer
+	cmd := exec.CommandContext(ctx, c.Argv[0], c.Argv[1:]...)
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return SSHFailure(r.R.Host, err, stderr.String())
 	}
 	return nil
 }
 
-// engineroom runs `engineroom <args>` on the engine and returns its standard output. ssh's own failure to
-// connect (exit 255) is ErrEngineDown; anything else is the engine's answer.
+// engineroom runs `engineroom <args>` on the engine and returns its standard output. ssh's own failure
+// (exit 255, or ssh not run at all) is an *Unreached naming the cause, which is ErrEngineDown; anything
+// else is the engine's answer.
 func (r Remote) engineroom(ctx context.Context, args ...string) ([]byte, int, error) {
 	c := r.R.Engineroom(args...)
 	cmd := exec.CommandContext(ctx, c.Argv[0], c.Argv[1:]...)
@@ -195,15 +201,12 @@ func (r Remote) engineroom(ctx context.Context, args ...string) ([]byte, int, er
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
+	if SSHFailed(err) {
+		return nil, 255, SSHFailure(r.R.Host, err, stderr.String())
+	}
 	var ee *exec.ExitError
 	if errors.As(err, &ee) {
-		if ee.ExitCode() == 255 {
-			return nil, 255, fmt.Errorf("%w: %s", ErrEngineDown, strings.TrimSpace(stderr.String()))
-		}
 		return stdout.Bytes(), ee.ExitCode(), fmt.Errorf("on the engine: %s", strings.TrimSpace(stderr.String()+" "+stdout.String()))
-	}
-	if err != nil {
-		return nil, -1, err
 	}
 	return stdout.Bytes(), 0, nil
 }

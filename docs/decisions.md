@@ -873,13 +873,14 @@ login the login keychain is locked and macOS treats what runs as a background pr
 **Decision.**
 
 - On a Mac, when the program runs outside the desktop login (`launchctl managername` is not
-  `Aqua`) while one exists, a session's start is two commands in its plan:
+  `Aqua`) while one exists, a session is started by two commands, which the plan's one start
+  command (`engineroom session start`, D-035) runs and prints:
   `engineroom session job <name> <layout> <dir>` writes a launchd job and prints it, then
   `launchctl bootstrap gui/<uid> <job file>` runs it. Run inside the desktop login, the start is
   direct. With no one logged in at the screen it is direct too, and the session lacks what only
   the desktop login has.
 - The job runs the same `zellij attach --create-background ...` as a direct start, in the
-  checkout's folder, then removes itself. `engineroom session wait` follows, and prints the
+  checkout's folder, then removes itself. The start then waits for the session, and prints the
   job's log when the session does not start.
 - The job gives the session the program's environment without what belongs to the login it ran
   in: the SSH connection's variables and agent socket, its temporary folder, the shell's
@@ -982,3 +983,71 @@ nothing to VoiceOver.
   carries the one action that can always be left again.
 - Return always joining the first card: the panel is opened most often because Claude is
   waiting, and that session is often a worktree's.
+
+## D-034 An engine not reached is said with its cause, and a retry is offered only where it can help
+
+**Problem.** Every failure of ssh to the engine was said as "the engine did not answer" with a
+retry offered. A changed host key was then offered as something to retry, which it never is, and
+ssh missing from the client was said as the engine not answering, with no reason at all.
+
+**Decision.**
+
+- When ssh to the engine fails with its own failure (status 255, or ssh not run at all), the
+  program reads the cause from the sentence ssh writes for it: no answer, a name that does not
+  resolve, ssh not installed, a host key other than the one this machine knows, or a host key
+  this machine has never accepted (`source.Unreached`).
+- An engine that does not answer is not told apart from a network that is down: from the client
+  they look the same, and the message says so rather than guessing.
+- Retry is offered for no answer and for a name that does not resolve, where the engine may be
+  found by asking again. For a changed or unknown host key and for no ssh it is not offered:
+  the message says what to do (check the new key on the engine and remove the old one from the
+  file ssh names; connect once by hand to accept a new engine's key; install ssh). Working
+  locally, switching offline and stopping are offered for every cause.
+- The program never removes or accepts a host key itself: the file it would change is ssh's,
+  outside the program's own state.
+- Every cause still counts as the engine not reached for the program's own reads, so an answer
+  is never read from a connection that failed. The menu bar app is told `engineDown` only where
+  a retry can help, and `hostKeyChanged` for a changed key; for the other causes it shows the
+  message as a problem, with no retry.
+- A command sent to the engine that ends with ssh's own failure says that the connection was
+  lost or never made, so it may have run in part there; the commands before it ran and those
+  after it did not.
+
+**Considered.**
+
+- One message for every failure with ssh's words below it: the headline and the retry would
+  still say the wrong thing for a host key.
+- Removing the old host key on request: it changes ssh's file, and trusting a new key is a check
+  only the developer can make on the engine itself.
+
+## D-035 A session is started once, under a lock for its name
+
+**Problem.** Two starts of one session at the same moment (two machines opening one project, or
+two windows) each found no session and each ran Zellij's background create. Run twice at once for
+one name, that create can leave no session listed while a server keeps running with its socket
+gone, which Zellij can then neither list nor end, and both starts still report success.
+
+**Decision.**
+
+- A plan starts a session with one command, `engineroom session start <name> <layout> <dir>`.
+  It takes a file lock for the session's name in the program's state (`locks/`) and holds it
+  until the session answers, so a second start waits, then finds the session running, says so,
+  and goes on to join it.
+- Under the lock, a running session is not started again, and an ended one is deleted first
+  (D-015). Plans no longer end an ended session themselves before starting it, so a second
+  machine never ends the session the first has just started. A restart still ends the running
+  session first.
+- Otherwise it runs the start commands (a direct start, or the desktop login's job, D-031),
+  printing each as it runs it, then waits until the session answers. The plan shows these
+  commands in the start's description, and its output shows each one as it ran.
+- The lock is a file lock: a start that is killed lets go of it with its process, so the next
+  start is never held up. A start interrupted at any point leaves the session whole or absent.
+- A start waits up to 30 seconds for another start of the same session, then fails and says
+  which lock file is held.
+
+**Considered.**
+
+- Leaving the create and the wait as separate commands in the plan: no lock can be held across
+  two commands, and the race is between the create and the session answering.
+- Detecting the half-made session afterwards and repairing it: the server with no socket can only
+  be found by its process, and stopping processes found that way is what the program never does.

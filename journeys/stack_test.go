@@ -227,7 +227,7 @@ func TestWorkStack005(t *testing.T) {
 					all = fmt.Sprint(ev["lines"])
 				}
 			}
-			create, up := strings.Index(all, "zellij attach --create-background project-a"), strings.Index(all, ".engineroom/up")
+			create, up := strings.Index(all, "engineroom session start project-a"), strings.Index(all, ".engineroom/up")
 			if create < 0 || up < 0 || create > up {
 				t.Fatalf("the session is not started before the up script, as commands of the run:\n%s", all)
 			}

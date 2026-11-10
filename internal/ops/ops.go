@@ -354,24 +354,31 @@ func OnSession(cfg *config.Config, kind, name string, start Start) (action.Plan,
 	if s == nil {
 		return action.Plan{}, fmt.Errorf("%w: %q", ErrNoSuchSession, name)
 	}
-	fresh := func(title string) (action.Plan, error) {
+	// fresh starts the session again from the current layout. A running one (restart) is ended
+	// first; an ended one is deleted by the start itself, under the session's lock, so two machines
+	// bringing it back at once get one session (O4).
+	fresh := func(title string, end bool) (action.Plan, error) {
 		c, ok := checkouts(cfg)[name]
 		if !ok {
 			return action.Plan{}, fmt.Errorf("%q is not the session of a registered project's checkout, so engineroom does not know where to start it; end it with: zellij delete-session %s", name, name)
 		}
-		return action.Plan{Title: title, Commands: append([]action.Command{zj.End(name)}, createCommands(name, c.path, start)...)}, nil
+		cmds := createCommands(name, c.path, start)
+		if end {
+			cmds = append([]action.Command{zj.End(name)}, cmds...)
+		}
+		return action.Plan{Title: title, Commands: cmds}, nil
 	}
 	switch kind {
 	case "join", "back":
 		if s.Ended {
-			return fresh("Start " + name + " again, from the current layout")
+			return fresh("Start "+name+" again, from the current layout", false)
 		}
 		if kind == "back" {
 			return action.Plan{}, fmt.Errorf("%q is running; join it instead", name)
 		}
 		return action.Plan{Title: "Join " + name, Commands: []action.Command{zj.Attach(name)}}, nil
 	case "restart":
-		return fresh("Restart " + name + " with the current layout")
+		return fresh("Restart "+name+" with the current layout", true)
 	case "stop":
 		// Stopping a checkout's session stops what was started for it too: its down script, then
 		// the session, then anything still running in its name (D-020).

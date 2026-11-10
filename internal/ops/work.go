@@ -45,7 +45,9 @@ func openCheckout(name, dir string, start Start) ([]action.Command, error) {
 	case existing != nil && !existing.Ended:
 		return []action.Command{zj.Attach(name)}, nil
 	case existing != nil && existing.Ended:
-		return append([]action.Command{zj.End(name)}, createCommands(name, dir, start)...), nil
+		// The start deletes the ended session under its lock, so a second machine opening it at
+		// the same moment never ends the session the first has just started (O4).
+		return createCommands(name, dir, start), nil
 	}
 	return createCommands(name, dir, start), nil
 }
@@ -60,11 +62,10 @@ func createCommands(name, dir string, start Start) []action.Command {
 		why = "write the standard layout, with the agent started under Remote Control"
 	}
 	cmds := []action.Command{{Argv: append(write, "--out", LayoutFile(start.RemoteControl)), Why: why}}
-	cmds = append(cmds, zj.Start(name, LayoutFile(start.RemoteControl), dir)...)
-	// Zellij returns from a background create before the session accepts clients (and a start
-	// through the desktop login returns before its job has run), so joining straight away can
-	// find no session. Waiting is a command of its own, so it is seen like any other step.
-	cmds = append(cmds, action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the session is ready"})
+	// One start under the session's lock, which returns once the session answers: Zellij returns
+	// from a background create before the session accepts clients (and a start through the desktop
+	// login before its job has run), so joining straight away could find no session.
+	cmds = append(cmds, zj.StartOnce(name, LayoutFile(start.RemoteControl), dir))
 	if !start.NoJoin {
 		cmds = append(cmds, zj.Attach(name))
 	}

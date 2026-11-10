@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -274,6 +275,8 @@ func usage(w io.Writer) {
                                          app starts it on the engine, and on a client while working local)
   engineroom session reap <name> [--dry-run]   stop the servers still running for a session that has ended
   engineroom session job <name> <layout> <dir> write the launchd job that starts a session in the desktop login
+  engineroom session start <name> <layout> <dir>
+                                         start a session once, under a lock for its name, and wait until it answers
   engineroom process stop <pid> --port <n>     stop one process, only while it still listens on that port
   engineroom projects [--json [--detail]]      list the registered projects (--detail: with their category)
   engineroom project add <folder> [--name <n>] [--category <c>]
@@ -987,9 +990,8 @@ func endSession(name string, stderr io.Writer) int {
 	}
 }
 
-// runSession holds small session commands used inside plans. "wait" returns once Zellij lists
-// the session as running and its server answers (zj.Answers), or fails after ten seconds, so a
-// plan never joins a session that is not ready yet.
+// runSession holds small session commands used inside plans: start (startSession), wait
+// (waitSession), end (endSession), reap and job.
 func runSession(args []string, stdout, stderr io.Writer) int {
 	// reap stops what still runs for an ended session (D-020); --dry-run only says what.
 	if len(args) >= 2 && args[0] == "reap" && (len(args) == 2 || (len(args) == 3 && args[2] == "--dry-run")) {
@@ -1008,30 +1010,127 @@ func runSession(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 4 && args[0] == "job" {
 		return writeSessionJob(args[1], args[2], args[3], stdout, stderr)
 	}
+	// start starts a session once, under its lock, and waits until it answers (zj.StartOnce).
+	if len(args) == 4 && args[0] == "start" {
+		return startSession(args[1], args[2], args[3], stderr)
+	}
 	if len(args) != 2 || (args[0] != "wait" && args[0] != "end") {
-		fmt.Fprintln(stderr, "usage: engineroom session wait|end|reap <name> [--dry-run]\n       engineroom session job <name> <layout> <dir>")
+		fmt.Fprintln(stderr, "usage: engineroom session wait|end|reap <name> [--dry-run]\n       engineroom session job|start <name> <layout> <dir>")
 		return 2
 	}
 	if args[0] == "end" {
 		return endSession(args[1], stderr)
 	}
+	return waitSession(args[1], stderr)
+}
+
+// waitSession returns once Zellij lists the session as running and its server answers
+// (zj.Answers), or fails after ten seconds, so a plan never joins a session that is not ready yet.
+func waitSession(name string, stderr io.Writer) int {
 	deadline := time.Now().Add(10 * time.Second)
 	for {
 		list, err := zj.List()
 		if err == nil {
 			for _, s := range list {
-				if s.Name == args[1] && !s.Ended && zj.Answers(args[1]) {
+				if s.Name == name && !s.Ended && zj.Answers(name) {
 					return 0
 				}
 			}
 		}
 		if time.Now().After(deadline) {
-			fmt.Fprintf(stderr, "engineroom: session %s did not start within 10 seconds\n", args[1])
+			fmt.Fprintf(stderr, "engineroom: session %s did not start within 10 seconds\n", name)
 			// A start through the desktop login ran as a job of its own; what it said is in its log.
-			if b, err := os.ReadFile(desktop.LogFile(args[1])); err == nil && len(strings.TrimSpace(string(b))) > 0 {
+			if b, err := os.ReadFile(desktop.LogFile(name)); err == nil && len(strings.TrimSpace(string(b))) > 0 {
 				fmt.Fprintf(stderr, "The job that started it said:\n%s\n", strings.TrimSpace(string(b)))
 			}
 			return 1
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// startLockWait is how long a start waits for another start of the same session to finish. That
+// start holds the lock only while it starts the session and waits for it, which waitSession bounds
+// at ten seconds; this leaves room above it.
+var startLockWait = 30 * time.Second
+
+// startSession is `engineroom session start <name> <layout> <dir>` (zj.StartOnce): it holds a lock for
+// the session's name in the program's state for the whole start, so a second start of the same
+// session, from another machine or window, waits and then finds it running (sessions obligations
+// O3, O4). Under the lock, a running session is not started again; an ended one is deleted first
+// (D-015); otherwise the Start commands run, each printed as it runs. It returns once the session
+// answers. The lock is a file lock, so a start that is killed lets it go with the process.
+func startSession(name, layout, dir string, stderr io.Writer) int {
+	release, err := lockSession(name, stderr)
+	if err != nil {
+		fmt.Fprintf(stderr, "engineroom: %v\n", err)
+		return 1
+	}
+	defer release()
+	list, err := zj.List()
+	if err != nil {
+		fmt.Fprintf(stderr, "engineroom: %v\n", err)
+		return 1
+	}
+	for _, s := range list {
+		if s.Name != name {
+			continue
+		}
+		if !s.Ended {
+			fmt.Fprintf(stderr, "%s is already running, so it is not started again\n", name)
+			return waitSession(name, stderr)
+		}
+		if code := endSession(name, stderr); code != 0 {
+			return code
+		}
+	}
+	for _, c := range zj.Start(name, layout, dir) {
+		fmt.Fprintln(stderr, "+ "+c.Display())
+		cmd := exec.Command(c.Argv[0], c.Argv[1:]...)
+		cmd.Dir = c.Dir
+		cmd.Stdout, cmd.Stderr = stderr, stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(stderr, "engineroom: %s: %v\n", c.Argv[0], err)
+			if c.OnFail != "" {
+				fmt.Fprintln(stderr, c.OnFail)
+			}
+			return 1
+		}
+	}
+	return waitSession(name, stderr)
+}
+
+// lockSession takes the lock for starting the session called name, waiting up to startLockWait
+// for another start to finish, and says once that it waits. The lock file stays in the state
+// folder; only the lock on it comes and goes.
+func lockSession(name string, stderr io.Writer) (func(), error) {
+	dir := filepath.Join(paths.StateDir(), "locks")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil, err
+	}
+	path := filepath.Join(dir, "session-"+name+".lock")
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return nil, err
+	}
+	deadline := time.Now().Add(startLockWait)
+	said := false
+	for {
+		err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+		if err == nil {
+			return func() { _ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN); f.Close() }, nil
+		}
+		if !errors.Is(err, syscall.EWOULDBLOCK) {
+			f.Close()
+			return nil, fmt.Errorf("locking %s: %w", path, err)
+		}
+		if !said {
+			fmt.Fprintf(stderr, "another start of %s is under way; waiting for it (%s)\n", name, path)
+			said = true
+		}
+		if time.Now().After(deadline) {
+			f.Close()
+			return nil, fmt.Errorf("another start of %s still holds %s after %s", name, path, startLockWait)
 		}
 		time.Sleep(100 * time.Millisecond)
 	}

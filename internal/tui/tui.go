@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -104,6 +105,13 @@ type Model struct {
 
 	src   source.Source
 	local bool // working locally after the engine did not answer
+	// down is why the engine was not reached, while the engine-down question is shown: its cause
+	// leads the question, and decides whether a retry is offered (connection obligation O10).
+	down error
+	// probing holds the engine check in flight, so that quitting stops it rather than leaving its
+	// ssh running behind the program (connection obligation O5). A pointer, so every copy of the
+	// model (Init's included) shares it.
+	probing *probeSlot
 
 	sessions []ops.SessionView
 	readCmd  string
@@ -182,7 +190,7 @@ type repoForm struct {
 
 // New builds the interface for this machine's configuration and what it was asked to do.
 func New(cfg *config.Config, intent Intent) Model {
-	m := Model{cfg: cfg, intent: intent, layout: &layout{}}
+	m := Model{cfg: cfg, intent: intent, layout: &layout{}, probing: &probeSlot{}}
 	switch {
 	case cfg == nil || cfg.Role == "":
 		// Every action needs to know which machine it runs on, so nothing else is offered
@@ -333,12 +341,56 @@ func (m Model) start() tea.Cmd {
 	return m.loadSessions()
 }
 
+// probeSlot holds the latest check of the engine: cancel stops its ssh, and done closes once the
+// check has returned, its ssh with it.
+type probeSlot struct {
+	mu     sync.Mutex
+	cancel context.CancelFunc
+	done   chan struct{}
+}
+
+// stop stops the check in flight, if any, and waits for its ssh to end, for at most a few seconds,
+// so the program never ends with a connection still being made behind it.
+func (p *probeSlot) stop() {
+	if p == nil {
+		return
+	}
+	p.mu.Lock()
+	cancel, done := p.cancel, p.done
+	p.mu.Unlock()
+	if cancel == nil {
+		return
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+	}
+}
+
 func (m Model) probe() tea.Cmd {
 	r, ok := m.src.(source.Remote)
 	if !ok {
 		return nil
 	}
-	return func() tea.Msg { return probeMsg{err: r.Probe(context.Background())} }
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	if m.probing != nil {
+		m.probing.mu.Lock()
+		m.probing.cancel, m.probing.done = cancel, done
+		m.probing.mu.Unlock()
+	}
+	return func() tea.Msg {
+		defer close(done)
+		defer cancel()
+		return probeMsg{err: r.Probe(ctx)}
+	}
+}
+
+// quit ends the program, stopping an engine check still in flight first.
+func (m Model) quit() (tea.Model, tea.Cmd) {
+	m.probing.stop()
+	return m, tea.Quit
 }
 
 func (m Model) loadSessions() tea.Cmd {
@@ -405,8 +457,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			m.screen = screenEngineDown
 			m.message = msg.err.Error()
+			m.down = msg.err
 			return m, nil
 		}
+		m.down = nil
 		m.screen = screenList
 		m.message = ""
 		if d := m.handoffNext; d != "" {
@@ -519,6 +573,7 @@ func (m Model) problem(err error) (tea.Model, tea.Cmd) {
 	if errors.Is(err, source.ErrEngineDown) {
 		m.screen = screenEngineDown
 		m.message = err.Error()
+		m.down = err
 		return m, nil
 	}
 	m.message = err.Error()
@@ -830,13 +885,13 @@ func (m Model) remoteControlLine() string {
 func (m Model) key(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := k.String()
 	if key == "ctrl+c" {
-		return m, tea.Quit
+		return m.quit()
 	}
 	switch m.screen {
 	case screenNoRole, screenConnecting:
 		// Nothing may start until a role is set, or while the engine is being reached.
 		if key == "q" {
-			return m, tea.Quit
+			return m.quit()
 		}
 	case screenEngineDown:
 		return m.engineDownKey(key)
@@ -888,7 +943,11 @@ func (m Model) engineDownKey(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "r":
 		// Retry asks the engine again and carries on with the same request once it answers;
-		// while it still does not answer, the same question comes back (CONN-DOWN-003/004).
+		// while it still does not answer, the same question comes back (CONN-DOWN-003/004). It is
+		// not offered for a cause asking again cannot clear, such as a changed host key (O10).
+		if !source.Retryable(m.down) {
+			return m, nil
+		}
 		m.screen = screenConnecting
 		m.message = ""
 		// Retrying always means the engine, even after a look at working locally.
@@ -1188,18 +1247,30 @@ func (m Model) noRoleView() string {
 	}, "\n") + "\n"
 }
 
+// engineDownView is the question when the engine was not reached, led by the cause (no answer,
+// a name that does not resolve, no ssh, a changed or unknown host key) and offering a retry only
+// for a cause a retry may clear (connection obligation O10).
 func (m Model) engineDownView() string {
+	headline := "The engine " + m.cfg.Engine.Host + " did not answer."
+	var u *source.Unreached
+	if errors.As(m.down, &u) {
+		headline = u.Headline()
+	}
 	lines := []string{
-		errStyle.Render("The engine " + m.cfg.Engine.Host + " did not answer."),
-		dimStyle.Render(m.message),
+		errStyle.Render(headline),
+		dimStyle.Width(m.cols() - 1).Render(m.message),
 		"",
 		"Nothing has been started on either machine. What now?",
 		"",
-		"  " + keyStyle.Render("r") + "  retry the engine",
-		"  " + keyStyle.Render("l") + "  work locally, on this machine's own copy",
-		"  " + keyStyle.Render("f") + "  switch offline: work on this machine until you go online again",
-		"  " + keyStyle.Render("s") + "  stop",
 	}
+	if m.down == nil || source.Retryable(m.down) {
+		lines = append(lines, "  "+keyStyle.Render("r")+"  retry the engine")
+	}
+	lines = append(lines,
+		"  "+keyStyle.Render("l")+"  work locally, on this machine's own copy",
+		"  "+keyStyle.Render("f")+"  switch offline: work on this machine until you go online again",
+		"  "+keyStyle.Render("s")+"  stop",
+	)
 	if m.message != "" && strings.HasPrefix(m.message, "This machine has no copy") {
 		lines[1] = ""
 		lines = append(lines, "", warnStyle.Render(m.message))
