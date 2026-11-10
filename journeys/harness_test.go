@@ -58,3 +58,22 @@ func TestHarnessUnreachableAddressDoesNotAnswer(t *testing.T) {
 		t.Fatalf("expected a connect timeout of about 2s, took %v:\n%s", took, out)
 	}
 }
+
+// Fails if a journey that never chose its terminals can reach the real open or osascript: an
+// application started from a journey keeps the journey's home and configuration for as long as it
+// runs, and every window it opens afterwards inherits them. The PATH is checked before anything is
+// asked to open, so a broken harness fails here without putting a window on the screen.
+func TestHarnessNoJourneyOpensARealWindow(t *testing.T) {
+	m := journey.NewMachine(t)
+	for _, name := range []string{"open", "osascript"} {
+		out, err := m.Run("sh", "-c", "command -v "+name)
+		if got := strings.TrimSpace(out); err != nil || got != m.Bin+"/"+name {
+			t.Fatalf("%s on a journey machine is %q (%v), not the stand-in in %s", name, got, err, m.Bin)
+		}
+	}
+	m.BeEngine("project-a", m.NewRepo("project-a"))
+	mustRun(t, m, "start", "project-a", "--mode", "zellij")
+	if w := m.Windows(); len(w) != 1 || !strings.Contains(w[0], `tell application "Ghostty"`) || !strings.Contains(w[0], " join project-a ") {
+		t.Fatalf("the join was not recorded by the stand-in as a Ghostty window: %q", w)
+	}
+}

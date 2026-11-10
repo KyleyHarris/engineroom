@@ -89,7 +89,9 @@ type Machine struct {
 	Extra []string
 }
 
-// NewMachine prepares an isolated machine. The Zellij socket directory is created under /tmp
+// NewMachine prepares an isolated machine, with the stand-ins for open and osascript and a
+// Ghostty of its own (DefaultTerminals), so nothing a journey does opens a window or starts an
+// application on the machine running it. The Zellij socket directory is created under /tmp
 // with a short name on purpose: Zellij derives its maximum session name length from the socket
 // path, and a long temporary path leaves it no room for any name at all.
 func NewMachine(t testing.TB) *Machine {
@@ -120,6 +122,10 @@ func NewMachine(t testing.TB) *Machine {
 			t.Fatal(err)
 		}
 	}
+	// No journey reaches the real terminal or the real applications, whether or not it looks at
+	// what would have opened.
+	m.standInLaunchers()
+	m.FakeTerminals(DefaultTerminals...)
 	t.Cleanup(m.stopZellij)
 	return m
 }
