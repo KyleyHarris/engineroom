@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/KyleyHarris/engineroom/internal/action"
+	"github.com/KyleyHarris/engineroom/internal/desktop"
 	"github.com/KyleyHarris/engineroom/internal/shell"
 )
 
@@ -155,6 +156,31 @@ func Create(name, layout, dir string) action.Command {
 		Argv: withoutAgentSession("zellij", "attach", "--create-background", name, "options", "--default-layout", layout, "--default-cwd", dir),
 		Dir:  dir,
 		Why:  "start the session in the background, without the markers of any Claude Code session it was started from",
+	}
+}
+
+// Start is the commands that start a session in the background from a layout, in a directory
+// (Create). On a Mac where the program runs outside the developer's desktop login while one exists
+// (over SSH, say), the start is handed to launchd as a one-time job in that login, so the session,
+// and Claude Code and everything else in it, has the keychain and permissions the developer has at
+// the screen (D-031): the job is written by `engineroom session job`, which shows it, then started
+// with launchctl bootstrap, and removes itself once the start has returned.
+func Start(name, layout, dir string) []action.Command {
+	create := Create(name, layout, dir)
+	domain, ok := desktop.Domain()
+	if !ok {
+		return []action.Command{create}
+	}
+	return []action.Command{
+		{
+			Argv: []string{"engineroom", "session", "job", name, layout, dir},
+			Why:  "write the one-time job that starts the session in your desktop login: " + shell.Join(create.Argv),
+		},
+		{
+			Argv:   []string{"launchctl", "bootstrap", domain, desktop.JobFile(name)},
+			Why:    "start the session in your desktop login, with the keychain and permissions you have at the screen; the job removes itself once the session has started",
+			OnFail: "launchd did not take the job, so the session was not started. If a job of the same name is still loaded, `launchctl bootout " + domain + "/" + desktop.Label(name) + "` removes it; then start the session again.",
+		},
 	}
 }
 

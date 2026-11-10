@@ -6,6 +6,15 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **A session on the engine runs inside your desktop login, however it was started.** A session
+  started from a client, over SSH, ran in that SSH login, without your login keychain. While you
+  are logged in at the engine's screen, its start is now handed to launchd as a one-time job in
+  your desktop login, shown in the plan, so Claude Code and everything else in the session has the
+  keychain and permissions you have at the screen (docs/decisions.md D-031). With no one logged in
+  there, a session starts as before.
+
 ### Fixed
 
 - **An application the program starts is started as from the Dock.** A terminal opened to join

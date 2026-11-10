@@ -1050,3 +1050,51 @@ Decision:   - Opening a terminal (every one the program knows), and reopening th
               journey reaches the real ones, and check that a join asks for its window with an
               empty environment.
 Status:     accepted
+
+## D-031  2026-11-10  A session on a Mac is started inside the developer's desktop login, whatever ran the program
+
+Context:    A Zellij session belongs to the login that started its server, and so does everything
+            that runs in it: Claude Code, git, gh, codesign. A session started from a client runs
+            its start over SSH, so it stayed in that SSH login, where the login keychain is locked
+            ("User interaction is not allowed") and macOS treats it as a background process. The
+            architect, 2026-11-10: "start it in an appropriate session with the same rights and
+            permissions as if i was coded directly on the machine", with the engine left logged
+            in at its screen.
+Options:    (a) Hand the start to launchd as a one-time job in the desktop login
+                (launchctl bootstrap gui/<uid>), which removes itself once the start has
+                returned [CHOSEN]
+            (b) launchctl asuser - rejected: it needs root.
+            (c) launchctl submit - rejected: deprecated, takes no environment or folder, and a
+                submitted job is kept alive and started again.
+            (d) A process of the program's own kept running in the desktop login (the menu bar
+                app, or an agent) that starts sessions on request - rejected: a second way in to
+                keep running and answering, where a job made for each start needs nothing running.
+            (e) Unlock the keychain in the SSH login - rejected: it needs the password on every
+                start, and fixes only the keychain.
+Decision:   - On a Mac, when the program runs outside the desktop login (`launchctl managername`
+              is not `Aqua`) while one exists (`launchctl print gui/<uid>` succeeds), a session's
+              start is two commands in its plan: `engineroom session job <name> <layout> <dir>`
+              writes the job and prints it, then `launchctl bootstrap gui/<uid> <job file>` runs
+              it. Run inside the desktop login (the app, a terminal at the screen) the start is as
+              before; with no one logged in at the screen it is as before too, and the session
+              lacks what only the desktop login has.
+            - The job runs the same `zellij attach --create-background ...` as a direct start, in
+              the checkout's folder, then boots itself out; AbandonProcessGroup keeps launchd from
+              stopping the server when the job goes. `engineroom session wait` follows as before,
+              and prints the job's log when the session does not start.
+            - The job gives the session the program's environment without what belongs to the
+              login it ran in: the SSH connection's variables and agent socket, its temporary
+              folder, the shell's bookkeeping, and Claude Code's session markers. launchd adds the
+              desktop login's own SSH agent and temporary folder. The job file is the program's
+              state (`~/.local/state/engineroom/jobs/`), readable only by the developer, replaced by
+              the next start of the same session; its label carries a hash of the state folder,
+              so a test's jobs and the developer's never share one.
+            - Joining is unchanged: a client attached over SSH shows the session; what runs in it
+              belongs to the server.
+            - ENGINEROOM_DESKTOP_SESSIONS=off never uses the route and =on uses it whenever a
+              desktop login exists. The journeys keep it off, so their sessions stay out of the
+              developer's login, except SESS-NEW-006, which proves the route.
+            - Not covered: whether macOS's privacy permissions (Documents, Desktop, Full Disk
+              Access) treat a session started this way as they treat one started from a terminal at
+              the screen; they are granted per application.
+Status:     accepted

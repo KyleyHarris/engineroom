@@ -24,6 +24,7 @@ import (
 
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/config"
+	"github.com/KyleyHarris/engineroom/internal/desktop"
 	"github.com/KyleyHarris/engineroom/internal/history"
 	"github.com/KyleyHarris/engineroom/internal/ops"
 	"github.com/KyleyHarris/engineroom/internal/paths"
@@ -280,6 +281,7 @@ func usage(w io.Writer) {
                                          app starts it on the engine, and on a client while working local)
   engineroom sweep --uninstall                 remove the launchd job an earlier build installed
   engineroom session reap <name> [--dry-run]   stop the servers still running for a session that has ended
+  engineroom session job <name> <layout> <dir> write the launchd job that starts a session in the desktop login
   engineroom process stop <pid> --port <n>     stop one process, only while it still listens on that port
   engineroom projects [--json [--detail]]      list the registered projects (--detail: with their category)
   engineroom project add <folder> [--name <n>] [--category <c>]
@@ -1009,8 +1011,13 @@ func runSession(args []string, stdout, stderr io.Writer) int {
 		}
 		return 0
 	}
+	// job writes the one-time launchd job that starts a session in the desktop login (D-031),
+	// with this program's environment, and shows it.
+	if len(args) == 4 && args[0] == "job" {
+		return writeSessionJob(args[1], args[2], args[3], stdout, stderr)
+	}
 	if len(args) != 2 || (args[0] != "wait" && args[0] != "end") {
-		fmt.Fprintln(stderr, "usage: engineroom session wait|end|reap <name> [--dry-run]")
+		fmt.Fprintln(stderr, "usage: engineroom session wait|end|reap <name> [--dry-run]\n       engineroom session job <name> <layout> <dir>")
 		return 2
 	}
 	if args[0] == "end" {
@@ -1028,8 +1035,32 @@ func runSession(args []string, stdout, stderr io.Writer) int {
 		}
 		if time.Now().After(deadline) {
 			fmt.Fprintf(stderr, "engineroom: session %s did not start within 10 seconds\n", args[1])
+			// A start through the desktop login ran as a job of its own; what it said is in its log.
+			if b, err := os.ReadFile(desktop.LogFile(args[1])); err == nil && len(strings.TrimSpace(string(b))) > 0 {
+				fmt.Fprintf(stderr, "The job that started it said:\n%s\n", strings.TrimSpace(string(b)))
+			}
 			return 1
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+// writeSessionJob is `engineroom session job <name> <layout> <dir>`: it writes the launchd job that
+// starts the session in the desktop login (zj.Start, D-031), with this program's environment
+// without the login's own variables or a Claude Code session's markers, and prints the file, so
+// what launchd will run is seen like any other command.
+func writeSessionJob(name, layout, dir string, stdout, stderr io.Writer) int {
+	env := desktop.Env(os.Environ(), zj.AgentSessionVars)
+	path, err := desktop.Write(desktop.GUI(), name, zj.Create(name, layout, dir).Argv, dir, env)
+	if err != nil {
+		fmt.Fprintf(stderr, "engineroom: %v\n", err)
+		return 1
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(stderr, "engineroom: %v\n", err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "%s:\n%s", path, b)
+	return 0
 }

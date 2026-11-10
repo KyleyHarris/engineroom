@@ -112,10 +112,8 @@ func assistantPlan(cfg *config.Config, project, checkout string, remote bool) (a
 	if remote {
 		prepare = append(prepare, "--remote-control")
 	}
-	plan.Commands = append(plan.Commands,
-		action.Command{Argv: prepare, Why: "write what the assistant is told about " + project + ", and its layout"},
-		zj.Create(name, filepath.Join(assistantDir(), name+".kdl"), c.Path),
-		action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the assistant is ready"},
-	)
+	plan.Commands = append(plan.Commands, action.Command{Argv: prepare, Why: "write what the assistant is told about " + project + ", and its layout"})
+	plan.Commands = append(plan.Commands, zj.Start(name, filepath.Join(assistantDir(), name+".kdl"), c.Path)...)
+	plan.Commands = append(plan.Commands, action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the assistant is ready"})
 	return plan, nil
 }
