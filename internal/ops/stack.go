@@ -32,7 +32,7 @@ func (e *NoScriptError) Error() string {
 
 // Stack is the plan for starting ("up") or stopping ("down") the app stack of the checkout a
 // session belongs to: the developer's own script from their settings, or else the repository's
-// .engineroom/ script, run in that checkout (docs/decisions.md D-006 as amended, D-013; WORK-STACK-001,
+// .engineroom/ script, run in that checkout (docs/decisions.md D-006, D-013; WORK-STACK-001,
 // 002). A repository's script is read from the checkout, so a branch
 // that changes it runs its own version.
 //

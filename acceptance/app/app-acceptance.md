@@ -8,8 +8,8 @@ each repository's page with its worktrees, links and organising.
 Out of scope: a phone, which checks on {session.lowerPlural} through the Claude app and Remote
 Control.
 
-**Sourcing**: every scenario's intent was stated by the architect in conversation on
-2026-11-05, or in the decisions it cites. Nothing here is inferred from software.
+**Sourcing**: every scenario's intent is stated in its own comment, or in the decisions it cites.
+Nothing here is inferred from software.
 
 **How it is checked**: the app runs nothing itself; every list it shows and every action it takes
 is a `engineroom api` command (docs/decisions.md D-008). The journeys drive those commands through the
@@ -44,9 +44,8 @@ window does (drawing, opening at login) is checked by the app's own tests.
 
 ### Feature: Sessions
 
-<!-- intent: issue #29 - "lists the sessions (waiting ones marked)"; the architect, 2026-11-08 -
-     "dont have a waiting for you section that duplicates everything. just make that a hint on the
-     line" -->
+<!-- intent: the panel lists the sessions with the waiting ones marked on their own line, never in
+     a section of their own that lists them twice -->
 
 ```gherkin
 @APP-LIST-001 @status:proposed @persona:Developer
@@ -57,10 +56,10 @@ Scenario: The app is told which {session.lower} is waiting for the developer, wi
   And the other is listed once, not marked
 ```
 
-<!-- intent: the architect, 2026-11-08 - "i dont like the order of information changing based on
-     claude is waiting. i think pinned ones are always there. always at the top, and always
-     maintain a consistent order so its not random". The order is laid out by the app from the
-     list the engine gives it, so it is checked by the app's own tests. -->
+<!-- intent: a list whose order changes whenever Claude starts waiting never has anything where it
+     was last seen. Pinned projects are always there and always first, and the order never changes
+     (D-022). The order is laid out by the app from the list the engine gives it, so it is checked
+     by the app's own tests. -->
 
 ```gherkin
 @APP-LIST-002 @status:proposed @persona:Developer
@@ -73,8 +72,8 @@ Scenario: The panel keeps one order, pinned {project.lowerPlural} first, whateve
   And they are listed in the same order when none is waiting
 ```
 
-<!-- intent: the architect, 2026-11-08 - "it would be valuable for a github line to exist on the drop
-     down panel for speed" -->
+<!-- intent: a project's code, issues and pull requests on GitHub are one click from the panel, with
+     no browser search in between -->
 
 ```gherkin
 @APP-LIST-003 @status:proposed @persona:Developer
@@ -88,11 +87,9 @@ Scenario: A {session.lower} in the panel links to its {project.lower} and its br
 
 ### Feature: Staying up to date
 
-<!-- intent: the architect, 2026-11-09 - "a server tracking everything low cost can easily send
-     batches of data"; "I'm not sure if the panel needs to check local things every 15 seconds";
-     battery on the laptop is the cost to avoid, the engine is plugged in. The engine looks at its own
-     sessions and sends the app a list only when it changed, over one connection the app keeps
-     (D-023). -->
+<!-- intent: reading the sessions on a timer costs a client a connection per look, and its battery;
+     the engine tracks its own sessions cheaply. The engine looks at its own sessions and sends the
+     app a list only when it changed, over one connection the app keeps (D-023). -->
 
 ```gherkin
 @APP-FEED-001 @status:proposed @persona:Developer
@@ -133,9 +130,9 @@ Scenario: Following ends on the {engine.lower} when the app stops reading
   Then nothing is left following on the {engine.lower}
 ```
 
-<!-- intent: the architect, 2026-11-09, agreeing the feed stays connected while the app runs: the
-     menu bar says Claude is waiting without the panel being opened. Drawn by the app from the list
-     the feed gives it, so it is checked by the app's own tests. -->
+<!-- intent: the feed stays connected while the app runs, so the menu bar says Claude is waiting
+     without the panel being opened. Drawn by the app from the list the feed gives it, so it is
+     checked by the app's own tests. -->
 
 ```gherkin
 @APP-FEED-005 @status:proposed @persona:Developer
@@ -146,9 +143,9 @@ Scenario: The menu bar shows Claude's mark while a {session.lower} waits, with t
   And the mark goes when no {session.lower} is waiting
 ```
 
-<!-- intent: the architect, 2026-11-09 - the panel's compact card shows what is unsaved, what is not
-     pushed and how far behind main a checkout is, and whether its branch is done, live where it is
-     cheap: read on the engine from its own disk and sent with the sessions (D-025) -->
+<!-- intent: the panel's compact card shows what is unsaved, what is not pushed and how far behind
+     main a checkout is, and whether its branch is done, live where it is cheap: read on the engine
+     from its own disk and sent with the sessions (D-025) -->
 
 ```gherkin
 @APP-FEED-006 @status:proposed @persona:Developer
@@ -162,10 +159,10 @@ Scenario: The app is told what is unsaved, unpushed and done in each {checkout.l
   And the third is not
 ```
 
-<!-- intent: the architect, 2026-11-08 - "a very small clean list of my pinned or running items ...
-     with a little bit bigger text ... running lights to show running or running and Claude is
-     waiting ... if you click on it or mouse over it, you would see the panel based information on
-     the right hand side". Laid out by the app from the feed, so it is checked by the app's tests. -->
+<!-- intent: the panel is a short, readable list of the pinned and running projects, each with one
+     light for running and for Claude waiting; pointing at a project or clicking it shows that
+     project on the right (D-025). Laid out by the app from the feed, so it is checked by the app's
+     tests. -->
 
 ```gherkin
 @APP-LIST-004 @status:proposed @persona:Developer
@@ -180,8 +177,8 @@ Scenario: The panel lists one row per {project.lower}, each with one light for a
 
 ### Feature: Repositories
 
-<!-- intent: the architect, 2026-11-05 - "show all available repositories with groups and
-     categories, even call Git and map ones that are not registered with the hub" -->
+<!-- intent: the app shows every repository there is, grouped by category, including those on
+     GitHub and on this machine that are not registered with engineroom yet -->
 
 ```gherkin
 @APP-REPOS-001 @status:proposed @persona:Developer
@@ -205,8 +202,8 @@ Scenario: A repository here that is not registered is registered from the app
   And the command that registered it is in the history
 ```
 
-<!-- intent: the architect, 2026-11-05 - "hiding would be for repos, not registered": a repository on
-     GitHub that will never be worked on is kept out of the list, and nothing changes on GitHub -->
+<!-- intent: hiding is for repositories that are not registered: a repository on GitHub that will
+     never be worked on is kept out of the list, and nothing changes on GitHub -->
 
 ```gherkin
 @APP-REPOS-003 @status:proposed @persona:Developer
@@ -217,8 +214,8 @@ Scenario: A repository on GitHub that is not here can be hidden from the list, a
   And once they show it again it is not
 ```
 
-<!-- intent: the architect, 2026-11-05 - "create, get hub repository, and what location and category
-     it would go into" -->
+<!-- intent: a repository is created or brought in from the app, with the place and the category it
+     goes into chosen there -->
 
 ```gherkin
 @APP-ADD-001 @status:proposed @persona:Developer
@@ -242,9 +239,9 @@ Scenario: A new repository is created from the app in a chosen {root.lower} and 
 
 ### Feature: Starting a session
 
-<!-- intent: the architect, 2026-11-05 - "start session with Zellij, just with remote or with both
-     ... it would always run Zellij for Claude, so that anything run can be connected to from the
-     air" -->
+<!-- intent: a session can be started to join in a terminal, with Remote Control only, or both;
+     Claude always runs inside Zellij, so anything started can be joined from another machine
+     (D-008) -->
 
 ```gherkin
 @APP-START-001 @status:proposed @persona:Developer
@@ -279,8 +276,8 @@ Scenario: Starting with both runs the {session.lower} with Remote Control and op
 
 ### Feature: VS Code
 
-<!-- intent: issue #29 and docs/decisions.md D-007 - the app "knows if it is the client or server
-     and launch vs code local or ssh" -->
+<!-- intent: docs/decisions.md D-007 - the app knows whether this machine is the engine or a
+     client, and opens VS Code on the folder directly or over SSH to match -->
 
 ```gherkin
 @APP-EDIT-001 @status:proposed @persona:Developer
@@ -293,8 +290,8 @@ Scenario: {editor} opens a {project.lower} directly on the {engine.lower}, and o
 
 ### Feature: The terminal sessions are joined in
 
-<!-- intent: the architect, 2026-11-05 - "the user would select what terminal app they want ...
-     based on what's installed, but my personal default would be ghosty" -->
+<!-- intent: the developer chooses the terminal from those installed on this machine, with Ghostty
+     the default (D-008) -->
 
 ```gherkin
 @APP-TERM-001 @status:proposed @persona:Developer
@@ -330,9 +327,8 @@ Scenario: What the app did is in the history
 
 ### Feature: A repository's page
 
-<!-- intent: the architect, 2026-11-06 - "i prefer if we click it and then when on it all actions and
-     things we can do are clear and obvious"; "repo, then each worktree. and each worktree has join
-     or start ... open vs code ... start stop stack"; "the ports are per worktree" -->
+<!-- intent: clicking a project opens its page, where everything that can be done is in sight: the
+     repository, then each checkout with its own join or start, editor, stack and ports (D-016) -->
 
 ```gherkin
 @APP-PAGE-001 @status:proposed @persona:Developer
@@ -344,8 +340,8 @@ Scenario: A {project.lower}'s page shows the main clone and each {checkout.lower
   And the {project.lower}'s scripts are listed with where each comes from
 ```
 
-<!-- intent: the architect, 2026-11-06 - "the view ideally of repos would have a pinned section. a
-     registered section. un registered section"; "we need to unregister old ones when needed" -->
+<!-- intent: the repositories are listed in sections (pinned, registered, not registered), and a
+     project no longer worked on can be unregistered from its page (D-016) -->
 
 ```gherkin
 @APP-PAGE-002 @status:proposed @persona:Developer
@@ -367,8 +363,8 @@ Scenario: Unregistering a {project.lower} from its page forgets it and keeps its
   And its folder is still there
 ```
 
-<!-- intent: the architect, 2026-11-07 - "i should alos have hyperlinks in the hub menu to click on any
-     api or urls it exposes.. i can't copy from a zelij ssh terminal" -->
+<!-- intent: every address a running stack serves is a link in the app, because an address cannot
+     be copied out of a terminal reached over SSH -->
 
 ```gherkin
 @APP-PAGE-004 @status:proposed @persona:Developer
@@ -378,8 +374,7 @@ Scenario: A running {session.lower} carries the addresses its stack serves, fill
   Then the running {session.lower} carries the link "app" with its slot's "ui" port
 ```
 
-<!-- intent: the architect, 2026-11-08 - "a shortcut to get to the github repo. a single github line
-     that can link to code or issues or pr's with links would be very good" -->
+<!-- intent: one GitHub line per project links to its code, its issues and its pull requests -->
 
 ```gherkin
 @APP-PAGE-005 @status:proposed @persona:Developer
@@ -414,9 +409,9 @@ Scenario: A {project.lower} that is not on GitHub has no GitHub links
 
 ### Feature: Asking Claude about what is open
 
-<!-- intent: the architect, 2026-11-07 - "an AI button which opens a Claude session with context about
-     what we opened understand the skills and says what do you want to do ... maybe we won't discuss
-     what port numbers were using" -->
+<!-- intent: one button opens a Claude session that already knows what was open (the project, the
+     checkout, its ports and scripts) and how engineroom wants things done, so the developer says
+     what they want without explaining the setup (D-018) -->
 
 ```gherkin
 @APP-ASK-001 @status:proposed @persona:Developer
@@ -430,11 +425,10 @@ Scenario: Asking Claude about a {checkout.lower} opens a {session.lower} that al
 
 ### Feature: Upgrading engineroom
 
-<!-- intent: the architect, 2026-11-09 - "a button on engine room menu that is upgrade which
-     launches a claude session locally on which ever machine which pulls and reinstalls and upgrades
-     the app"; "running the upgrade through claude means it can diagnose and correct". The session
-     is told the steps, the clone the running build was made from, and what it may fix by itself
-     and what it must ask about first -->
+<!-- intent: an Upgrade button starts a Claude session on this machine that pulls, reinstalls and
+     reopens the app; running the upgrade through Claude means a failure can be diagnosed and
+     corrected where it happens. The session is told the steps, the clone the running build was made
+     from, and what it may fix by itself and what it must ask about first -->
 
 ```gherkin
 @APP-UPGRADE-001 @status:proposed @persona:Developer
@@ -458,9 +452,8 @@ Scenario: A {client.lower} upgrades the {engine.lower} through a {session.lower}
   And nothing is started on this machine
 ```
 
-<!-- intent: the architect, 2026-11-09 - "i upgraded... and then after upgrafing i tried again..":
-     pressing Upgrade joined the upgrade {session.lower} left from before, idle, so nothing
-     happened. Each press is a new upgrade, from the build now installed -->
+<!-- intent: pressing Upgrade must never join an upgrade {session.lower} left from an earlier press,
+     where nothing would happen. Each press is a new upgrade, from the build now installed -->
 
 ```gherkin
 @APP-UPGRADE-003 @status:proposed @persona:Developer
@@ -473,8 +466,8 @@ Scenario: Upgrading again starts a new upgrade {session.lower}
 
 ### Feature: A project's own tasks
 
-<!-- intent: the architect, 2026-11-07 - "We may want to add custom scripts to run from hub ...
-     Could be a registered script" (for example, copying a database for testing) -->
+<!-- intent: a project names its own scripts as tasks the app can run (for example, copying a
+     database for testing) -->
 
 ```gherkin
 @APP-TASK-001 @status:proposed @persona:Developer
@@ -487,7 +480,7 @@ Scenario: A task named in a {project.lower}'s settings runs in a {checkout.lower
 
 ### Feature: Opening at login
 
-<!-- intent: issue #29 - "It can start at login" -->
+<!-- intent: the app can start at login -->
 
 ```gherkin
 @APP-LOGIN-001 @status:proposed @persona:Developer

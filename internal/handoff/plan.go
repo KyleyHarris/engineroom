@@ -58,7 +58,7 @@ func LocalFolder(path string) (bool, string) {
 
 // Build is the plan that hands the work over from one machine to the other: afterwards the
 // receiving machine is in the giving machine's state, checkout by checkout: identical state is what
-// a handover means (D-017, amended).
+// a handover means (D-017).
 //
 // It is all or nothing: everything is checked before anything is done. Planning finds everything
 // that would stop the receiving machine reaching that state (a branch GitHub cannot take, a

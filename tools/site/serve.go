@@ -26,7 +26,7 @@ import (
 // published site stays free of scripts.
 //
 // A build that fails, or that the check finds problems in (a link to a heading that was renamed,
-// a decision that does not exist), is shown in place of every page until it is fixed, with the
+// an image that is not there), is shown in place of every page until it is fixed, with the
 // problems listed, so a broken edit is seen at once instead of a stale page that looks fine.
 
 // reloadPath is the address the injected script listens on for "the site was built again".

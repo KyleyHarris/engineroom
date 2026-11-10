@@ -22,7 +22,7 @@ struct MenuBarIcon: View {
     }
 }
 
-/// engineroom in the menu bar (issue #29, docs/decisions.md D-008), on the engine or a client: a panel from
+/// engineroom in the menu bar (docs/decisions.md D-008), on the engine or a client: a panel from
 /// the menu bar with the sessions, what is done many times a day, and a window opened by its gear
 /// with the projects, repositories, history and settings (D-019). It runs nothing itself; every
 /// list and every action is a `engineroom api` command, and every action lands in the same history.

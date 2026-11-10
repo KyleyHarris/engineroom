@@ -7,8 +7,8 @@ deciding over what a repository recommends; and a {client.lower} reaching the po
 {engine.possessive} running {session.lowerPlural} on its own machine. Out of scope: the app's
 {project.lower} page, and syncing the settings folder between machines.
 
-**Sourcing**: every scenario's intent was stated by the architect in conversation on 2026-11-05
-and 2026-11-06, quoted in each intent comment.
+**Sourcing**: every scenario's intent is stated in its own comment, or in the decisions it cites.
+Nothing here is inferred from software.
 
 **Status**: every scenario is `proposed`. `proposed` is a proposal to be confirmed, `derived` is
 written up from delivered software, `verified` means a person watched it happen, and `accepted`
@@ -49,7 +49,7 @@ means it is confirmed as what the software should do.
 
 ### Feature: Slots
 
-<!-- intent: the architect, 2026-11-06 - "the ports are per worktree"; "10 slots is plenty" -->
+<!-- intent: ports are per worktree, and ten slots per project is plenty (D-013) -->
 
 ```gherkin
 @PORT-SLOT-001 @status:proposed @persona:Developer
@@ -71,10 +71,10 @@ Scenario: Cleaning up new work gives its slot back
   And the next new work is given it
 ```
 
-<!-- intent: the architect, 2026-11-07 - "the worktree setup needs to clone db and allocate storage
-     as it does now but via hubs". A worktree's scripts and tasks must run on the slot it holds,
-     whatever file name the project gives its record; a script that silently gets slot 1's values
-     reports success while starting nothing of its own. -->
+<!-- intent: setting up a worktree creates its own database and storage through engineroom. A
+     worktree's scripts and tasks must run on the slot it holds, whatever file name the project
+     gives its record; a script that silently gets slot 1's values reports success while starting
+     nothing of its own. -->
 
 ```gherkin
 @PORT-SLOT-003 @status:proposed @persona:Developer
@@ -86,15 +86,14 @@ Scenario: A {checkout.lower}'s scripts and tasks are given the slot it holds
   And the task is given them too
 ```
 
-<!-- intent: the architect, 2026-11-07 (agreeing the recommendation for a project kept on one
-     slot): a main clone that has claimed no slot runs on slot 1, so a worktree given slot 1 would
+<!-- intent: a main clone that has claimed no slot runs on slot 1, so a worktree given slot 1 would
      share every port with it, and its up script would find the main clone's servers and report
      success. A worktree gets slot 1 only when the main clone holds another; otherwise new work is
      refused with the reason, before anything is created. -->
 
-<!-- intent: found 2026-11-07 across five repositories: every claim warned that the slot's files
-     were not ignored, and nothing offered the fix, so none was made. The fix changes a file of
-     the repository, so it is done when the developer asks, and asking again changes nothing -->
+<!-- intent: a warning that the slot's files are not ignored, with no fix on offer, is a warning
+     nobody acts on. The fix changes a file of the repository, so it is done when the developer
+     asks, and asking again changes nothing -->
 
 ```gherkin
 @PORT-SLOT-005 @status:proposed @persona:Developer
@@ -116,9 +115,9 @@ Scenario: New work is never given the slot the main clone runs on
 
 ### Feature: Your settings decide
 
-<!-- intent: the architect, 2026-11-06 - "a hubs file in the repo can set recommendations, but
-     our custom one in a private repo is the controller"; 2026-11-05 - "We can't have a hub file
-     committed to a repo I don't own" -->
+<!-- intent: a project file committed to a repository recommends, and the developer's own settings,
+     kept in a private repository, decide; a repository the developer does not own cannot be made
+     to carry a project file -->
 
 ```gherkin
 @PORT-SET-001 @status:proposed @persona:Developer
@@ -128,11 +127,10 @@ Scenario: The developer's settings win over the repository's recommendation
   Then its record holds the ports from the developer's settings
 ```
 
-<!-- intent: the architect, 2026-11-09 - "some other sort of prefix to prevent any overlap, i.e.
-     adding the word port"; "make this happen" (D-028). Every key of a slot is one value in its
-     record and one variable for the scripts, so a port named project silently replaced the
-     project's name. A key that would overwrite another is refused when the settings are read,
-     naming the file and both keys, before anything is created. -->
+<!-- intent: a slot's keys are named by kind so they cannot overlap (D-028). Every key of a slot is
+     one value in its record and one variable for the scripts, so a port named project would
+     silently replace the project's name. A key that would overwrite another is refused when the
+     settings are read, naming the file and both keys, before anything is created. -->
 
 ```gherkin
 @PORT-SET-002 @status:proposed @persona:Developer
@@ -145,8 +143,8 @@ Scenario: A key that would overwrite another is refused, naming it
 
 ### Feature: Reservations
 
-<!-- intent: the architect, 2026-11-06 - "the hubs project should reserve ranges per repo that can
-     then be delegated to worktrees. this protects all projects on conflict" -->
+<!-- intent: engineroom reserves a range of ports for each project and lends it to that project's
+     worktrees, which protects every project from a clash -->
 
 ```gherkin
 @PORT-RES-001 @status:proposed @persona:Developer
@@ -157,8 +155,8 @@ Scenario: Two {project.lowerPlural} on one port are reported with both named
   And neither {project.lower}'s settings are changed
 ```
 
-<!-- intent: the architect, 2026-11-06 - "10 slots is plenty. port suggestion is fine" (a block of
-     100 from 20000-29999); the main clone keeps its numbers -->
+<!-- intent: a new project is offered a block of 100 ports from 20000-29999, ten slots of ten; the
+     main clone keeps its numbers (D-013) -->
 
 ```gherkin
 @PORT-RES-002 @status:proposed @persona:Developer
@@ -172,9 +170,8 @@ Scenario: Reserving gives a {project.lower} a free block and keeps its own numbe
 
 ### Feature: Reaching the engine's ports from a client
 
-<!-- intent: the architect, 2026-11-05 - "if the ports exist while there is a session then that is
-     good"; "sometimes I'm just using remote control" - forwarding follows running sessions, not
-     joining -->
+<!-- intent: a session is often used through Remote Control with no terminal joined, so forwarding
+     follows running sessions, not joining -->
 
 ```gherkin
 @PORT-FWD-001 @status:proposed @persona:Developer
@@ -195,8 +192,7 @@ Scenario: The ports of a {session.lower} that stopped are no longer forwarded
   Then the {client.lower}'s port no longer reaches the {engine.lower}
 ```
 
-<!-- intent: the architect, 2026-11-05 - a port the client already uses is named, never failed
-     silently -->
+<!-- intent: a port the client already uses is named, never failed silently -->
 
 ```gherkin
 @PORT-FWD-003 @status:proposed @persona:Developer
@@ -207,9 +203,8 @@ Scenario: A port already in use on the {client.lower} is named and left alone
   And that program keeps the port
 ```
 
-<!-- intent: the independent review, 2026-11-07, confirmed in code: working local, this machine runs
-     its own stacks on the same port numbers, so a forward left open would answer for them with the
-     engine's servers -->
+<!-- intent: working local, this machine runs its own stacks on the same port numbers, so a forward
+     left open would answer for them with the engine's servers -->
 
 ```gherkin
 @PORT-FWD-004 @status:proposed @persona:Developer
@@ -220,10 +215,9 @@ Scenario: Working local closes the {engine.possessive} forwards
   And forwarding checks again do not forward it while the {client.lower} works local
 ```
 
-<!-- intent: the architect, 2026-11-07 - on a client, a running session is forwarded; not by
-     checking every minute, and nothing costly while nobody looks - the
-     forwarder follows the engine's sessions over the connection the forwards are on, and opens no
-     connection of its own -->
+<!-- intent: on a client, a running session is forwarded; not by checking every minute, and nothing
+     costly while nobody looks - the forwarder follows the engine's sessions over the connection the
+     forwards are on, and opens no connection of its own -->
 
 ```gherkin
 @PORT-FWD-005 @status:proposed @persona:Developer
@@ -244,10 +238,9 @@ Scenario: The forwarder opens no connection while there is none
   And nothing is added to the history
 ```
 
-<!-- intent: the architect, 2026-11-07 - "I manually enable forwarding on a worktree when I need it.
-     Or by clicking the hyperlink you enable on demand"; "a switch per worktree session on or off";
-     minimal and battery mindful - one session's switch forwards only that session, and with
-     nothing chosen the connection is closed -->
+<!-- intent: forwarding is turned on for a worktree when it is needed, by its switch or by opening
+     one of its links, and costs nothing otherwise - one session's switch forwards only that
+     session, and with nothing chosen the connection is closed -->
 
 ```gherkin
 @PORT-FWD-007 @status:proposed @persona:Developer

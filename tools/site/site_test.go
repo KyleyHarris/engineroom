@@ -36,14 +36,11 @@ about = "The guide."
 split = 3
 
 [[doc]]
-source = "docs/decisions.md"
-slug = "decisions"
-nav = "Decisions"
-about = "The decisions."
+source = "docs/notes.md"
+slug = "notes"
+nav = "Notes"
+about = "The notes."
 split = 2
-format = "record"
-page_name = '^(D-\d{3})\b'
-mentions = '\bD-\d{3}\b'
 `,
 		"site/templates/layout.html":     `{{define "layout"}}<html><head><title>{{.Title}}</title><link href="{{.Root}}assets/site.css"></head><body>{{block "main" .}}{{end}}</body></html>{{end}}`,
 		"site/templates/parts/part.html": `{{define "part"}}<p id="part">{{.Site.Command}}</p>{{end}}`,
@@ -58,15 +55,11 @@ mentions = '\bD-\d{3}\b'
 		"docs/guide.md": "# The guide\n\nIntro, see the [README](../README.md).\n\n" +
 			"## Set up\n\nSet-up text, see [the slots](#ports-and-slots) and [contributing](../CONTRIBUTING.md#contributing).\n\n" +
 			"### `tool-a` itself\n\nInstall it.\n\n#### A detail\n\nDetail.\n\n" +
-			"## Use\n\nUse it, as D-002 decided.\n\n![A shot](images/shot.png)\n\n" +
-			"### Ports and slots\n\nSlots, by `D-002` (code, not a link).\n",
-		"docs/decisions.md": "# Decisions\n\nThe record.\n\n" +
-			"## D-001  2026-01-01  The first\n\n" +
-			"Context:    Why it came up, over\n            two lines with a <placeholder>.\n" +
-			"Options:    (a) One way [CHOSEN]\n                continued\n            (b) Another - rejected: no\n" +
-			"Decision:   - A point\n              continued\n            - Another point, see D-002\n            A closing line.\n" +
-			"Status:     accepted\n\n" +
-			"## D-002  2026-01-02  The second\n\nContext:    Text.\nStatus:     accepted\n",
+			"## Use\n\nUse it, as [the first note](notes.md#the-first) says.\n\n![A shot](images/shot.png)\n\n" +
+			"### Ports and slots\n\nSlots, by `notes.md` (code, not a link).\n",
+		"docs/notes.md": "# Notes\n\nThe notes.\n\n" +
+			"## The first\n\nA note, see [the guide's slots](guide.md#ports-and-slots).\n\n" +
+			"## The second\n\nAnother note.\n",
 	}
 	for k, v := range files {
 		defaults[k] = v
@@ -111,7 +104,7 @@ func TestGitHubSlug(t *testing.T) {
 		"Ports and slots":                         "ports-and-slots",
 		"engineroom itself":                       "engineroom-itself",
 		"Your settings and a repository's recipe": "your-settings-and-a-repositorys-recipe",
-		"D-001  2026-11-04  A repo, private":      "d-001--2026-11-04--a-repo-private",
+		"Two  spaces, kept as two hyphens":        "two--spaces-kept-as-two-hyphens",
 		"Ask Claude, and ✻ marks":                 "ask-claude-and--marks",
 		"snake_case stays":                        "snake_case-stays",
 	}
@@ -129,7 +122,8 @@ func TestGitHubSlug(t *testing.T) {
 }
 
 // Guards the whole build on a doc of each kind: pages split at the configured level, headings
-// moved up to match, every kind of link resolved, images copied and decisions linked.
+// moved up to match, every kind of link resolved (within a page's doc, to another doc's heading,
+// to a file the site does not render) and images copied.
 func TestBuildRendersDocsIntoPages(t *testing.T) {
 	root := fixture(t, nil)
 	out := filepath.Join(t.TempDir(), "out")
@@ -137,7 +131,7 @@ func TestBuildRendersDocsIntoPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// guide: index, Set up, tool-a itself, Use, Ports and slots; decisions: index, two; and the
+	// guide: index, Set up, tool-a itself, Use, Ports and slots; notes: index, two; and the
 	// two hand-written pages.
 	if n != 10 {
 		t.Errorf("built %d pages, want 10", n)
@@ -163,27 +157,16 @@ func TestBuildRendersDocsIntoPages(t *testing.T) {
 	mustContain(t, "guide/tool-a-itself.html", itself, `<h1 id="tool-a-itself">`, `<h2 id="a-detail">A detail</h2>`)
 
 	use := read(t, out, "guide/use.html")
-	mustContain(t, "guide/use.html", use, `<a href="../decisions/d-002.html">D-002</a> decided`,
+	// A link to a heading in another doc goes to the page that heading starts.
+	mustContain(t, "guide/use.html", use, `<a href="../notes/the-first.html#the-first">the first note</a> says`,
 		`src="../files/docs/images/shot.png"`)
 	if _, err := os.Stat(filepath.Join(out, "files", "docs", "images", "shot.png")); err != nil {
 		t.Errorf("the image was not copied: %v", err)
 	}
 
-	slots := read(t, out, "guide/ports-and-slots.html")
-	if strings.Contains(slots, `d-002.html`) {
-		t.Error("a decision named inside code was turned into a link")
-	}
-
-	d1 := read(t, out, "decisions/d-001.html")
-	mustContain(t, "decisions/d-001.html", d1,
-		`<h2 id="context">Context</h2>`,
-		`over two lines with a &lt;placeholder&gt;.`,
-		`<li><strong>(a)</strong> One way <strong>(chosen)</strong> continued</li>`,
-		`<li><strong>(b)</strong> Another - rejected: no</li>`,
-		`<li>A point continued</li>`,
-		`see <a href="d-002.html">D-002</a></li>`,
-		`<p>A closing line.</p>`,
-		`<strong>Status:</strong> accepted`)
+	first := read(t, out, "notes/the-first.html")
+	mustContain(t, "notes/the-first.html", first, `<h1 id="the-first">The first</h1>`,
+		`<a href="../guide/ports-and-slots.html#ports-and-slots">the guide's slots</a>`)
 
 	// A hand-written page names its own title, uses a shared part, and is marked in the
 	// navigation by its file name.
@@ -213,18 +196,16 @@ func TestBuildRefuses(t *testing.T) {
 			"leaves the repository"},
 		{"raw HTML", map[string]string{"docs/guide.md": "# G\n\nText <b>bold</b>.\n"},
 			"docs/guide.md:3: raw HTML"},
-		{"a decision with no page", map[string]string{"docs/guide.md": "# G\n\nAs D-099 says.\n"},
-			"names D-099, which has no page"},
+		{"a heading another doc does not have", map[string]string{"docs/guide.md": "# G\n\nSee [x](notes.md#absent).\n"},
+			"docs/notes.md has no heading #absent"},
 		{"an anchor on an aliased file", map[string]string{"docs/guide.md": "# G\n\nSee [x](../README.md#repo).\n"},
 			"is shown as index.html, which has no #repo"},
 		{"an image from the web", map[string]string{"docs/guide.md": "# G\n\n![x](https://img.example/x.png)\n"},
 			"is not in the repository; the site serves only its own files"},
-		{"a record line left of its column", map[string]string{"docs/decisions.md": "# D\n\n## D-001  2026-01-01  T\n\nContext:    Text\n     too far left\n"},
-			"docs/decisions.md:6: a line inside the Context field starts left of its value's column"},
 		{"a doc with no title", map[string]string{"docs/guide.md": "## Only a section\n\nText.\n"},
 			"has no top heading"},
-		{"two pages with one name", map[string]string{"docs/decisions.md": "# D\n\n## D-001  a\n\n## D-001  b\n"},
-			"two pages would both be decisions/d-001.html"},
+		{"a section named as the doc's own index page", map[string]string{"docs/guide.md": "# G\n\n## Index\n\nText.\n"},
+			"two pages would both be guide/index.html"},
 		{"an unset product name", map[string]string{"site/site.toml": "command = \"x\"\n"},
 			`"product" is not set`},
 	}

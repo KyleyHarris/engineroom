@@ -10,7 +10,7 @@ import (
 	"github.com/KyleyHarris/engineroom/internal/journey"
 )
 
-// These are not scenarios. They prove the harness itself (issue #1): that the engine is reached
+// These are not scenarios. They prove the harness itself: that the engine is reached
 // over real SSH, that Zellij there and here are real and private to the run, and that an
 // unreachable address really does not answer. A journey built on a harness that silently
 // faked any of these would prove nothing.

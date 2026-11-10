@@ -1,1225 +1,984 @@
 # Decisions
 
-Append-only, numbered in order. Each entry records what was decided, the options weighed, and
-why the others lost, so "was this already decided?" has one place to look.
+The design decisions behind engineroom. Each one says the problem it solves, what was decided,
+and what else was considered and why it lost, so "was this already decided?" has one place to
+look.
 
-## D-001  2026-11-04  A repository of its own, private until a deliberate decision to publish
+Every entry describes the program as it is now. When a decision changes, its entry is rewritten
+to say what holds today. An id never changes and is never reused, because code, tests and the
+acceptance criteria point at decisions by id (D-029 is not used). A new decision takes the next
+number.
 
-Context:    The hub and client tooling first grew inside the architect's personal configuration
-            repo. It is general machine plumbing that other people could use, with its own
-            tests and releases, while the personal repo holds how one person works.
-Options:    (a) A separate repository, private now, published only by a later, explicit
-                decision [CHOSEN]
-            (b) Keep it in the personal configuration repo - rejected: it would mix a reusable
-                tool with one person's rules, and could never be published.
-            (c) A separate repository, public from the start - rejected: publishing cannot be
-                undone, and the tool has not yet proven itself in daily use.
-Decision:   This repository, created private on 2026-11-04 at the architect's request. Nothing
-            personal is ever committed (see CLAUDE.md), so publishing stays possible at any
-            time without rewriting history.
-Status:     accepted
+Ids such as `WORK-STACK-005` name the acceptance scenarios, in `acceptance/`, that prove a
+decision.
 
-## D-002  2026-11-04  Go, with a terminal UI and a scriptable command line, one binary per machine
+## D-001 A repository of its own, with nothing personal in it
 
-Context:    The work already happens in terminals and in Zellij, on the hub and over SSH from a
-            client, sometimes from a phone terminal.
-Options:    (a) Go: a terminal UI, plain subcommands, and `--json` output from one binary
-                [CHOSEN]
-            (b) A native macOS app - rejected as the core: it cannot run over SSH or inside a
-                Zellij pane. It may come later as a thin face over (a).
-            (c) A shell script with a fuzzy finder - rejected: fine for a list, awkward for
-                multi-step flows, live progress and two roles.
-Decision:   Go, confirmed by the architect on 2026-11-04 ("go is good"). The same binary runs
-            on the hub and on clients; a per-machine setting says which it is.
-Status:     accepted
+**Problem.** A tool that runs one person's machines collects that person's machine names,
+addresses, accounts and project names unless something keeps them out, and a git history cannot
+be taken back.
 
-## D-003  2026-11-04  Journeys drive the real binary in a real terminal, against real dependencies
+**Decision.**
 
-Context:    The program is a terminal UI and a command line, not a web page, so a browser test
-            runner has nothing to drive. The acceptance criteria still need executable journeys
-            bound to their own clauses, and recorded evidence of each run.
-Options:    (a) Run the built binary in a pseudo-terminal at a fixed size, type keys as a person
-                would, read the screen through a terminal emulator, and wait on visible text
-                [CHOSEN]
-            (b) Test the screen model inside the process only - rejected as the journey layer:
-                it never runs the binary, the terminal or the commands the program issues. It
-                stays available for unit-level screen tests.
-            (c) Assert on the printed command list alone - rejected: it proves what the program
-                meant to do, not what happened.
-Decision:   - Unit tests (`go test`) cover pure logic: the project registry, port clash checks,
-              branch name rules and each action's command list.
-            - Journeys run the real binary in a pseudo-terminal at a fixed size. They wait on
-              screen text, never on a fixed sleep. The text a person reads is the selector.
-            - Clauses come from the acceptance documents, never retyped:
-              `criteria-review generate --format json` feeds a generator that emits one Go
-              struct per scenario with one field per clause. A reworded or invented clause fails
-              to compile; a skipped clause fails the gate.
-            - Dependencies are real and isolated: Zellij with its own socket directory per run,
-              git in throwaway repositories, SSH to a throwaway hub in a container. An
-              unreachable hub is a real address that does not answer. macOS-only behaviour is
-              checked on a Mac. One smoke run goes against a real hub.
-            - What a screen cannot show is checked through the system itself (`git worktree
-              list`, `zellij list-sessions`).
-            - The gating run records the terminal as a cast, captioned with each clause, and
-              renders it to video. Recording and pass or fail are one code path.
-            - Every journey is observed failing at least once, with the change that broke it
-              recorded.
-            - `scripts/verify.sh` is the format, lint, build, unit test and generate-check gate.
-              Journeys run as a separate command.
-            Approved by the architect on 2026-11-04 ("testing approved").
-Status:     accepted
+- engineroom is a repository of its own, open source, separate from any one person's
+  configuration.
+- Nothing from a real setup is ever committed: no machine name, address, user name, home path,
+  account, project name or port number. A real setup lives in its owner's configuration, outside
+  this repository (D-013, D-014).
+- Tests, examples and docs use invented names (`project-a`, `engine.example`).
+- The rule covers issues, pull requests, labels and commit messages as much as files.
 
-## D-004  2026-11-04  Work is tracked in GitHub issues, written for a public reader
+**Considered.** Keeping the tool inside a personal configuration repository: it mixes a reusable
+tool with one person's rules, and could never be shared.
 
-Context:    Each task needs a record that names its brief and the acceptance scenario ids it
-            covers. The repository may be published, and an issue tracker is public with it.
-Options:    (a) GitHub issues in this repository [CHOSEN]
-            (b) A document in the repository - rejected: issues are where open source projects
-                take work from, and they link to pull requests.
-Decision:   Task records are GitHub issues in this repository. They are written as for an
-            outside contributor: clear, professional, following common open source conventions
-            (issue and pull request templates, a contributing guide, a security policy, a
-            licence). The no-personal-data rule in CLAUDE.md applies to issues, pull requests
-            and labels as much as to files. Decided by the architect on 2026-11-04.
-Status:     accepted
+## D-002 Go: one binary with a terminal interface and a scriptable command line
 
-## D-005  2026-11-04  Each repository owns its port numbers; the tool reserves, isolates and reports clashes
+**Problem.** The work happens in terminals and in Zellij, on the engine and over SSH from a
+client. The tool has to run in all of those places and be easy to drive from scripts and from
+other programs.
 
-Context:    Several repositories, and several worktrees of one repository, run dev servers and
-            test stacks on one machine at the same time. Two stacks on one port do not fail
-            loudly: the second one is reached by mistake. The numbers also have to stay the same
-            from day to day, because people, bookmarks and registered sign-in callbacks use them.
-Options:    (a) The repository commits its own port table; the tool reads every registered
-                table, reports clashes and never renumbers [CHOSEN]
-            (b) The tool assigns numbers - rejected: numbers would differ between machines and
-                over time, and a repository could not be run without the tool.
-            (c) Slots for every repository - rejected: most repositories run one stack and need
-                nothing beyond their base ports.
-Decision:   - Worktree slots are opt in. A repository that wants them declares in a committed
-              file how many slots it has and every port each slot binds. A repository without
-              slots declares its base ports only.
-            - The tool reports a clash between repositories, or with a process already listening,
-              and names both sides. Fixing it is a change to the repository's table, never an
-              automatic renumbering.
-            - Claiming a slot is keyed by worktree path, is safe when two claims race, and is
-              released when git no longer lists the worktree.
-            - Where a repository uses blob or table storage emulation, each slot can run its own
-              emulator instance on its own ports with its own data directory inside the
-              worktree, git ignored. The slot's full connection string is written to the
-              worktree's git-ignored settings. The emulator's account key is a published
-              development constant, not a secret.
-            - Where a repository has a database, each slot can have its own.
-            - A slot's database is handed over by NAME only. No password is ever written into a
-              worktree. The full connection string is assembled where the password already
-              lives: by the application from its own secret store, or by the tool in the
-              environment of a process it starts, never in a file. (The architect, 2026-11-04:
-              "names only is fine".)
-            - The tool always writes one standard git-ignored record per claimed slot (JSON and
-              an env file). A repository may also commit templates, which the tool renders
-              into git-ignored files for that slot, so a repository of any language gets its
-              settings in its own format without the tool knowing that format. (The architect
-              left the mechanism to the implementer: "do it the way that works best".)
-            Decided by the architect on 2026-11-04 ("a repo is good because we want consistency
-            of numbers.. but the tool reports clashes so the repo can fix a clash").
-Status:     accepted
+**Decision.**
 
-## D-006  2026-11-04  Repository-specific setup lives in the repository, as scripts the tool runs
+- One Go binary: a terminal interface (`engineroom`), plain subcommands, and `--json` output.
+- The same binary runs on every machine. A setting on each machine says whether it is the engine
+  or a client (`engineroom role set engine`, `engineroom role set client --engine <destination>`).
+- The menu bar app (D-008) is a face over this binary, never a second implementation.
 
-Context:    What a new worktree needs differs from repository to repository. One has a
-            database and a storage emulator per slot, another has neither, another only needs
-            its dependencies installed. A tool that knew about each kind of resource could never
-            be generic, and every new stack would need a change to the tool.
-Options:    (a) Each repository commits a small description of itself and lifecycle scripts;
-                the tool runs them at fixed points, and the scripts call back into the tool's
-                command line [CHOSEN]
-            (b) The tool knows each kind of resource (emulators, database servers) - rejected:
-                never generic, and the list grows with every stack.
-            (c) A Claude Code skill performs the setup - rejected as the mechanism: it needs a
-                model and is not guaranteed to run the same way twice. A skill can call the same
-                scripts, so the two never diverge.
-Decision:   - A repository that wants more than a plain worktree and session commits a `.hub/`
-              folder: a manifest naming its slots, their ports, and its scripts. The manifest
-              format is settled when it is built.
-            - Lifecycle scripts, each optional:
-              create, run once after the worktree exists and its slot is claimed, creates what
-              is unique to that worktree, including databases and storage;
-              up, run on request, starts what the worktree needs to run and returns once it is
-              running (servers go to the background or a container);
-              down, run on request and before teardown, stops what up started;
-              teardown, run before the worktree is removed, deallocates what create made.
-              (Amended 2026-11-05: an `open` script run on every session open was replaced by
-              up and down run on request, see below.)
-            - Contract: a script runs in the worktree with `HUB_*` environment variables (the
-              worktree, the slot, each named port, the settings record). It calls the tool's
-              command line to read slot details and to record what it created (resources, URLs,
-              extra ports to forward). Recorded resources are listed to the developer before
-              teardown and in the clean up, so nothing allocated is forgotten.
-            - Scripts must be safe to run again. A failure is reported with the step that
-              failed, and retry or clean up is offered; a half-made worktree is never left
-              unannounced.
-            - Script output streams into the learning view, and the history keeps the script's
-              content as it was when it ran.
-            - The first run of a script, and the first run after it changes, shows it and asks
-              the developer to trust it, because running it runs the repository's code.
-            - Amends D-005: a slot's storage emulator and database are provided by the
-              repository's scripts, not by the tool. The tool still owns the slot, the settings
-              record, the clash report and port forwarding.
-            Decided by the architect on 2026-11-04 ("some repos don't even have a database ...
-            each repository knows what to do and maybe we also have a tier down when deleting a
-            work tree, run this script to tier resources down and deallocate things by calling
-            the hub CLI").
-Status:     accepted
-Amended:    2026-11-05. The stack is started on request, not on every session open: the
-            developer opens sessions far more often than they run the app, and a session is
-            often opened only to talk to the agent. `open` (never built) is replaced by `up` and
-            `down`, run from the interface, the command line (`hubs up`, `hubs down`) or by the
-            agent inside a session, so a request to run the stack always goes through the
-            repository's script. Clean up runs `down` before `teardown`. A repository with no
-            `up` is told what one must do; the tool never guesses how to start a stack. Decided
-            by the architect ("lets build the features", issue #32, names approved 2026-11-05).
+**Considered.**
 
-## D-007  2026-11-04  The editor runs where the developer is; on a client it opens the hub's folder over its own SSH remote
+- A native macOS app as the core: it cannot run over SSH or inside a Zellij pane.
+- A shell script with a fuzzy finder: fine for a list, awkward for multi-step flows, live
+  progress and two roles.
 
-Context:    Issue #11: open a session's worktree in VS Code from the session list, on whichever
-            machine the developer is at. On a client the files live on the hub, and reading and
-            debugging them should use the hub's files and toolchain.
-Options:    (a) Run the editor's command line on this machine. On the hub, or working locally,
-                `code <folder>`; on a client, `code --remote ssh-remote+<hub> <folder>`, the
-                hub's folder through VS Code's Remote - SSH [CHOSEN]
-            (b) Run the editor on the hub - rejected: the hub's screen is not where the
-                developer is, and a hub reached over SSH has no display to open a window on.
-            (c) Mount or sync the hub's folder to the client - rejected: copies drift, and the
-                client's toolchain is not the hub's.
-Decision:   - The plan has one command, run on this machine, never wrapped in ssh; nothing runs
-              on the hub for it.
-            - The hub reports each session's absolute folder in `hubs sessions --json` (`path`),
-              so the plan is built from the list already read, with no second request.
-            - The command is `[editor] command`, default `code`. Another command must accept the
-              same `--remote ssh-remote+<host> <folder>` arguments from a client.
-            - The remote is `hub.host` exactly as configured. `hub.ssh_config` is not passed:
-              VS Code resolves the host through its own SSH configuration
-              (`remote.SSH.configFile`), so the host must resolve there too.
-            - Refused before anything runs: a session outside every registered project (its
-              folder is not known), a hub that did not report a folder, and a command that is
-              not installed, which is answered with how to install it.
-            Decided while building issue #11, to the intent stated in it, and confirmed by the
-            architect on 2026-11-04 ("if we are on a hub session, I want a remote connection to
-            the hub source code. If I'm using a local session ... I want to open VS Code on the
-            local repository. It should know which one and do the right thing").
-Status:     accepted
+## D-003 Journeys drive the real binary in a real terminal, against real dependencies
 
-## D-008  2026-11-05  A native menu bar app, a thin face over hubs api; amends D-002
+**Problem.** The program is a terminal interface and a command line, so a browser test runner
+has nothing to drive. The acceptance criteria still need executable journeys bound to their own
+clauses.
 
-Context:    The terminal interface has to be started in a terminal each time, so a session and
-            then VS Code means running it again. The developer works from two Macs, the hub and
-            a client, and wants the tool always within reach, and the right thing done on each
-            (VS Code directly on the hub, over SSH from a client). A window inside a Zellij
-            session cannot know which Mac is looking at it, because its panes run on the hub.
-Options:    (a) A native SwiftUI menu bar app that runs nothing itself: every list and action is
-                a `hubs api` command printing JSON [CHOSEN]
-            (b) A window inside Zellij - rejected: it always runs on the hub, so it cannot open
-                the editor or a terminal on the Mac the developer is at.
-            (c) A local web page - rejected: a server to run and secure, for two Macs.
-            (d) The app computing plans itself - rejected: two engines drift, and the history
-                would miss what the app did.
-Decision:   - `hubs api` is the app's only source: status, sessions, repos, plan and run (one
-              JSON event per step, recorded in the history like any action), and set. It acts
-              where this machine's actions are done: the hub over SSH for a client that is
-              online, this machine otherwise (offline, CONN-OFFLINE).
-            - Claude Code always starts inside Zellij, so anything started can be joined from
-              any machine; the app starts it to join (Zellij), with Remote Control and no window,
-              or both. Joining opens a window of the chosen terminal running `hubs join`.
-            - The terminal is chosen from those installed (Ghostty by default); joins open
-              through `open` or `osascript`, shown as a command like any other.
-            - Built from macos/ with SwiftPM and bundled by `scripts/install.sh --app` into
-              ~/Applications, signed with the Mac's Apple Development identity or ad hoc; no
-              notarization for a locally built app. The phone is out of scope: it checks on
-              sessions through the Claude app and Remote Control.
-            - Amends D-002: the native app, rejected there as the core, is added as a face over
-              the core, which stays the one Go binary.
-            Decided by the architect on 2026-11-04 and 2026-11-05 ("the ui outside of a terminal
-            however can know if it is the client or server and lauch vs code local or ssh";
-            "All of the above options look good approved").
-Status:     accepted
+**Decision.**
 
-## D-009  2026-11-05  Switching offline or online hands work over through GitHub, shown and run on request
+- Unit tests (`go test`) cover pure logic: the project registry, port clash checks, branch name
+  rules and each action's command list.
+- Journeys run the built binary in a pseudo-terminal at a fixed size, type keys as a person
+  would, and read the screen through a terminal emulator. They wait on visible text, never on a
+  fixed sleep. The text a person reads is the selector.
+- Clauses come from the acceptance documents and are never retyped: a generator emits one Go
+  struct per scenario with one field per clause. A reworded or invented clause fails to compile;
+  a skipped clause fails the gate.
+- Dependencies are real and isolated: Zellij with its own socket directory per run, git in
+  throwaway repositories, SSH to a throwaway engine in a container. An unreachable engine is a
+  real address that does not answer. What only macOS does is checked on a Mac.
+- What a screen cannot show is checked through the system itself (`git worktree list`,
+  `zellij list-sessions`).
+- A journey can be recorded as a terminal cast, captioned with each clause, and rendered to
+  video. Recording and pass or fail are one code path.
+- Every journey is seen failing at least once.
+- `scripts/verify.sh` is the gate: format, lint, build, unit tests, generated scenario bindings
+  and the website. Journeys run as a separate command, `scripts/journeys.sh`.
 
-Context:    Offline, a client works in its own worktrees (CONN-OFFLINE). The client and the hub
-            share nothing but GitHub, so work committed on one is invisible to the other until
-            it is pushed there and brought in, and a session started offline drops out of sight
-            once the client is back online.
-Options:    (a) A handoff on each switch: read both machines' branches against GitHub, show what
-                one holds that the other does not, and plan real git commands (push from the
-                giver, fetch and merge --ff-only on the receiver), run only when asked [CHOSEN]
-            (b) Sync automatically on the switch - rejected: it would change worktrees and GitHub
-                unasked, and "the program never hides what it does".
-            (c) Copy worktrees or Claude's conversations between machines directly - rejected:
-                copies drift (D-007), and conversations are stored under each machine's own paths.
-Decision:   - Going offline offers the hub-to-client handoff, read before the switch while the hub
-              may still answer; going online offers the client-to-hub one once the hub answers.
-              `hubs handoff to-hub|from-hub` shows either at any time. Each is a plan in the
-              history like any other action.
-            - Reading changes nothing: remote URL, ls-remote, for-each-ref, rev-list, worktree
-              list and status, never fetch. The hub's reading is `hubs handoff state --json`.
-            - Only branches checked out in a worktree are pushed: that is the work in hand, where
-              sessions run. A branch with unpushed commits in no worktree (a backup, an
-              experiment, a release branch) may be kept off GitHub on purpose, so it is named with
-              the command to push it by hand.
-            - Every push runs before any worktree moves, so a refused push leaves both machines'
-              worktrees as they were. A worktree moves only by merge --ff-only. Left alone with a
-              note: a worktree with uncommitted changes to tracked files, a branch with commits
-              of its own, a branch GitHub has also moved on, a repository whose origin is not
-              the same owner/name. Untracked files never hold a worktree back.
-            - Projects are matched by name and then by origin owner/name, since each machine may
-              reach GitHub by its own address.
-            - Back online, the client's own sessions still running are listed after the hub's,
-              marked as on this machine, and acted on there (`--here`).
-            - Not carried across: uncommitted changes (said, never committed for the developer),
-              Claude's conversations, and the two machines' histories.
-            Decided by the architect on 2026-11-05 ("Going back online needs a handoff. Do 1 2 3").
-Status:     accepted
+**Considered.**
 
-## D-010  2026-11-05  Lists of repositories and projects are in name order, ignoring case
+- Testing the screen model inside the process only: it never runs the binary, the terminal or
+  the commands the program issues. It stays available for unit-level screen tests.
+- Asserting on the printed command list alone: it proves what the program meant to do, not what
+  happened.
 
-Context:    The repositories of a root came in GitHub's own order, by recent activity, which
-            changes from one look to the next, and projects under a heading were in the order they
-            were registered. Neither lets a name be found where it is expected.
-Options:    (a) Alphabetical by name, ignoring case, everywhere a list of repositories or projects
-                is shown: browsing a root, the app's repositories, the project list under each
-                heading, and the projects a handoff goes through [CHOSEN]
-            (b) Registration order inside a heading - rejected: it is an order only the developer's
-                history explains.
-            (c) Alphabetical minding case - rejected: capitalised names would be listed first,
-                away from their neighbours.
-Decision:   - One order, `roots.NameLess`: lower-cased names compared, and names that differ only
-              in case kept in a fixed order so a list never shuffles between two reads.
-            - A client sorts what the hub sends as well, and the app sorts inside each category,
-              so a hub not yet updated is listed the same way.
-            - Headings keep their own rule (alphabetical, ignoring case, none last).
-            Decided by the architect on 2026-11-05 ("the repository lists from Git should be in
-            alphabetical order. Case insensitive").
-Status:     accepted
+## D-004 Work is tracked in GitHub issues, written for any reader
 
-## D-011  2026-11-05  The app runs hubs with the PATH the developer's login shell has
+**Problem.** Each piece of work needs a record that says what is wanted and which acceptance
+scenarios cover it, somewhere a contributor would look.
 
-Context:    macOS starts an app with a bare PATH (/usr/bin:/bin:/usr/sbin:/sbin), or with the PATH
-            of whatever launched it. hubs, run by the app, looks commands up on that PATH, so the
-            editor's command (`code`, linked into /usr/local/bin) was not found from the app though
-            it is found in a terminal, and the same would hold for zellij, gh and ssh helpers
-            installed by Homebrew.
-Options:    (a) Read the login shell's PATH once at start (login and interactive, as a terminal
-                does, with a time limit), and add the usual install folders it lacks [CHOSEN]
-            (b) A fixed list of folders only - rejected: misses whatever the developer's own
-                profile adds, and differs from what the terminal finds.
-            (c) A PATH setting in the program's configuration - rejected: one more thing to keep in
-                step with the shell by hand.
-Decision:   - The app runs its login shell once (`$SHELL -ilc`), reads PATH between markers so
-              anything the profile prints is ignored, and gives up after 3 seconds; then adds
-              ~/.local/bin, /opt/homebrew/bin, /usr/local/bin and /etc/paths where missing. With
-              no answer from the shell, its own PATH and those folders are used.
-            - Every hubs the app runs gets that environment.
-            - Separately, a run whose plan cannot be made is answered as a run: a done event that
-              carries the reason, so the app says why nothing ran.
-            Proposed on 2026-11-05 after opening VS Code from the app failed on the hub.
-Status:     proposed
+**Decision.** Work is tracked as GitHub issues in this repository, written as for an outside
+contributor: clear, self-contained, following common open source conventions (issue and pull
+request templates, a contributing guide, a security policy, a licence).
 
-## D-012  2026-11-05  Ghostty holds every joined session as a tab of one window; the panel is solid and gets out of the way
+**Considered.** A document in the repository: issues are where open source projects take work
+from, and they link to pull requests.
 
-Context:    Each join from the app started another copy of Ghostty (`open -na ... -e`), so four or
-            five sessions meant four or five Ghostty applications. The panel stayed open over the
-            joined window, and drew as a see-through, dimmed, inactive window.
-Options:    (a) Ghostty's own scripting: one window holds the sessions, a tab each [CHOSEN]
-            (b) A window per session in the running Ghostty - rejected by the architect: one
-                window with every session is easier to use.
-            (c) Keep a copy of Ghostty per join - rejected: one application per session.
-Decision:   - Joining in Ghostty runs an AppleScript through osascript, shown with the plan like
-              any command. Each tab hubs opens is titled "hubs: <session>"; the window holding
-              such a tab is the hubs window. Joining a session whose tab is open selects that tab;
-              otherwise a new tab goes into the hubs window, or a new window when there is none.
-              The tab runs the shell-quoted `hubs join ...` line, which Ghostty runs through its
-              login shell, with this program's PATH passed in: a tab starts with the running
-              Ghostty's environment, whose bare PATH lacks zellij and ssh's folders.
-            - The first join asks macOS whether hubs may control Ghostty; a refusal is said with
-              where to allow it. Ghostty's macos-applescript setting must stay on.
-            - The other terminals are unchanged: a new window each.
-            - The panel has a solid window background, is brought to the front when it opens, and
-              closes when an action that opens another application's window starts (Join, VS
-              Code, a start that joins). A success returns it to the list; a failure stays on
-              the action page for the next time it opens.
-            Decided by the architect on 2026-11-05 ("I prefer one ghosty terminal that has all
-            sessions in it"; "when I click join yes, the panel should close"; "I prefer it was a
-            solid colour, like a real application").
-Status:     accepted
+## D-005 Port numbers stay the same; a clash is reported, never renumbered
 
-## D-013  2026-11-06  The developer's settings decide; ports are reserved per project and lent to worktrees as slots; a client forwards running sessions' ports
+**Problem.** Several projects, and several worktrees of one project, run dev servers and test
+stacks on one machine at the same time. Two stacks on one port do not fail loudly: the second
+one is reached by mistake. The numbers also have to stay the same from day to day, because
+people, bookmarks and registered sign-in callbacks use them.
 
-Context:    D-005 and D-006 put a project's ports and scripts in a `.hub/` folder committed to its
-            repository. That cannot work for a repository the developer works in but does not
-            own, and nothing stopped two projects being given the same port: a list of ports kept
-            by hand cannot check itself. Several worktrees
-            of one project each need their own ports and data, and a client needs the ports of
-            the hub's sessions whether the developer joined a session or works from the Claude
-            app.
-Options:    (a) The developer's own settings folder decides, a repository's `.hub/` recommends;
-                the program reserves port ranges per project and lends each worktree a slot of
-                them; a client forwards the ports of every running session [CHOSEN]
-            (b) Only a repository's committed `.hub/` - rejected by the architect: "We can't
-                have a hub file committed to a repo I don't own".
-            (c) Forward ports only while a session is joined - rejected by the architect: a
-                session is often used only from the Claude app; "if the ports exist while there
-                is a session then that is good".
-            (d) Check the hub's sessions for forwarding every few seconds - rejected by the
-                architect as "serious overkill".
-Decision:   - Settings: one folder outside every repository (`hubs settings where <project>`),
-              keyed by the project's GitHub owner and name, holds the project's hub.toml and its
-              scripts. The developer may keep it as a private git repository so it is the same on
-              every machine. A repository's `.hub/` holds the same files as recommendations: the
-              developer's settings win section by section and script by script.
-            - Reservations: each project reserves port ranges. A clash between projects, or a slot
-              port outside its own reservation, is reported with both sides named
-              (`hubs ports check`). New blocks come from 20000-29999, 100 ports per project, ten
-              slots of ten (`hubs ports reserve`). Existing numbers are kept and reserved as they
-              are; nothing is ever renumbered by the program.
-            - Slots: explicit rows, slot 1 the main
-              clone with the numbers it always had, a slot belonging to a worktree folder and
-              never a branch; claims in the clone's shared .git folder as
-              {"assignments": {path: slot}}, safe under two claims at once, dropped when git no
-              longer lists the worktree. New work claims a slot as a shown command, clean up
-              gives it back. A claimed slot's record (JSON), the same values as an environment
-              file, and each template the settings name are written into the worktree. Names
-              only, never a password (D-005 stands).
-            - Scripts must be safe to run again. That is the script's job, not the program's,
-              and the guide (docs/usage.md), the run-stack skill and every message about a
-              missing script say so (the architect: "that will be up to the script itself. not our app. but the
-              instructions and readmes should indicate this well").
-            - Starting the stack is a full build and run of one worktree on its slot's ports; the
-              agent may run it itself (`hubs up`).
-            - Forwarding: on a client, `hubs forward` keeps one SSH connection to the hub and adds
-              or cancels a forward on it for each port of each running session, the same number
-              on both sides. It checks when asked and, with `--watch`, once a minute. Each change
-              is a command in the history. A port the client already uses is named with what
-              holds it and left alone. It is off until the developer turns it on.
-            - Amends D-005 (where the table lives, and that the program reserves ranges) and
-              D-006 (where scripts live).
-            Decided by the architect on 2026-11-05 and 2026-11-06 ("i think the hubs project should
-            reserve ranges per repo that can then be delegated to worktrees"; "10 slots is
-            plenty. port suggestion is fine"; "a hubs file in the repo can set recommendations,
-            but our custom one in a private repo is the controller").
-Status:     accepted. The forwarder's cadence was settled on 2026-11-07: while forwarding is on,
-            the app checks the hub's sessions once a minute over the connection the forwards are
-            already on (`hubs forward --check`), and does nothing when that connection is gone; it
-            opens the connection again at launch, on wake, when its panel opens and after an action
-            it runs. Nothing else is read while the panel is closed (amended 2026-11-09 by D-023:
-            the app keeps one feed of the sessions open, which carries nothing until they change).
-            The architect: "[do not do]
-            anything unless I open the panel ... Especially on the client"; "Forwarding should be
-            either an on off switch or session based. When a session is running on forwarding".
-            Amended the same day: forwarding is chosen per session (`hubs forward add|remove`; the
-            app's Forward switch on each session, and opening one of its links), with forwarding
-            every session still available; the forwarder follows the hub's session list, which the
-            hub sends only on a change, over the forwards' own connection, rather than checking
-            each minute; with nothing to forward the connection is closed. The architect: "I
-            manually enable forwarding on a worktree when I need it. Or by clicking the hyperlink
-            you enable on demand"; "a switch per worktree session on or off"; "Minimal. Useful.
-            Battery mindful ... one click".
-            Amended again the same day: only a running session's ports are forwarded, so a running
-            stack belongs to a running session. Starting a checkout's stack (Run) when its session
-            is not running starts the session first, in the background, as the app starts sessions;
-            stopping a stack never starts one (WORK-STACK-005). A Forward switch turned on for a
-            checkout with no session takes effect when its session starts. The architect: "the
-            session must exist ... the run button should start a session if needed".
+**Decision.**
 
-## D-014  2026-11-06  Your settings are a private repository; secrets in it are encrypted by git-crypt
-Context:    D-013 made the developer's settings folder the controller, to be kept in a private
-            repository so every machine has the same settings. Some of what a project needs to run
-            is secret (a local settings file with keys, an environment file), and a hosted git
-            repository is not a place for those in the clear, even a private one.
-Decision:   - `hubs settings init [<repository>]` makes the settings folder a git repository, sets
-              up git-crypt in it, writes a .gitattributes that encrypts every file in any
-              `secrets/` folder, commits, and pushes to the given private repository. Run again,
-              it does only what is missing.
-            - A project's secrets go in its settings folder under `secrets/`. On a machine holding
-              the key they are plain files, read and edited like any other; in the repository, on
-              GitHub and on a machine without the key they are encrypted bytes.
-            - The key is kept by the developer where they keep secrets (`git-crypt export-key`);
-              `hubs settings clone <repository> <key file>` brings the settings to another machine
-              and unlocks them.
-            - `hubs settings sync` commits this machine's changes, takes the other machines' and
-              sends this one's, as a plan of git commands in the history. It refuses, before
-              anything runs, when a file in a secrets folder would be committed unencrypted.
-            - The app syncs on Sync now, and when its panel is opened at most once an hour; never
-              on every change, and never while the panel is closed (the architect, 2026-11-07:
-              "[do not do] anything unless I open the panel").
-            - `hubs settings status` says where the settings are, where they sync to, what is not
-              yet sent, and whether the secrets are readable here.
-            Decided by the architect on 2026-11-05 and 2026-11-06 ("a git crypt is a better organic
-            option for an app anyone can use. Careful not to build around my specific"; "a manual
-            sync button or hourly").
-            - A project names its secret files in hub.toml, `secrets = [...]`: paths in the
-              worktree, or `~/...` for one in the home folder every checkout shares. `hubs secrets
-              save <project>` copies them from a checkout into the settings' secrets/ (worktree
-              files under secrets/worktree/, home ones under secrets/home/); `hubs secrets restore`
-              puts them into a checkout that lacks them and never overwrites one it has, naming a
-              file that differs instead; `hubs secrets status` compares the two. New work restores
-              them after claiming its slot and before its create script.
-Status:     accepted
+- A project's ports are written down in its settings (D-013) and are the same on every machine
+  and every day.
+- The program reports a clash between projects, or with a process already listening, and names
+  both sides (`engineroom ports check`). Fixing it is an edit to the settings. The program never
+  renumbers anything.
+- Slots are opt in. A project that wants several worktrees running at once declares its slots
+  and every port each slot binds. A project without slots declares its base ports only.
+- A slot belongs to a worktree folder, never to a branch. Claiming one is safe when two claims
+  race, and the slot is given back when git no longer lists the worktree.
+- A slot's database is handed over by name only. No password is ever written into a worktree:
+  the full connection string is assembled where the password already lives.
+- Each claimed slot gets one standard git-ignored record (JSON, and the same values as an
+  environment file). A project can also name templates, which are rendered into git-ignored
+  files for that slot, so a project in any language gets its settings in its own format.
 
-## D-015  2026-11-07  A session is running or it is not there: stop ends it fully, an ended one starts fresh
-Context:    Zellij keeps a snapshot of a session that is quit or killed, listed as EXITED, and
-            "attach" rebuilds it from that snapshot: the old tabs, panes and layout. The program
-            offered that as Bring back, so a session quit after the layout changed came back with
-            its old four panes. Claude Code keeps its own conversation, so the snapshot holds
-            nothing the work needs.
-Decision:   - Stop ends a session fully: `hubs session end`, which runs `zellij kill-session` and
-              then `zellij delete-session` as the session's state needs, and returns once Zellij no
-              longer lists it (Zellij's own `delete-session --force` reports a failure when the stop
-              leaves no snapshot behind).
-            - Joining or starting a session that ended anyway (quit from inside Zellij, or the hub
-              restarted) deletes the snapshot and starts it fresh from the current standard layout
-              in its checkout; the agent runs `claude --continue`, so the conversation carries on.
-            - Restart (app and API) is stop then start in one, for a running session on an old
-              layout.
-            - The app lists running sessions only; the terminal interface still marks an ended one
-              as ended, and Enter on it starts it fresh. Bring back as it was is not offered.
-            - Closing the terminal window leaves a session running; Join returns to it.
-            Decided by the architect on 2026-11-07 ("why would we bring it back"; "i should never
-            have to do this from a terminal myself"; "restart is good").
-Status:     accepted. Supersedes the restore-the-layout half of SESS-BACK-001.
+**Considered.**
 
-## D-016  2026-11-07  Each repository has a page; links come from settings; a client records why a port is not forwarded
-Context:    The app listed repositories with a Start button each, and nothing showed a project's
-            worktrees, ports, scripts or secrets, or the addresses a running stack serves; a
-            terminal reached over SSH cannot copy them out. Forwarding ran in the background with
-            nowhere to say why a port was not forwarded.
-Decision:   - `hubs api project <name>` is one project's page, read where its checkouts are (the
-              hub, for a client): every checkout with its branch, session state, uncommitted
-              changes, slot, ports and links, and the project's scripts with their source, its
-              reservation and its secret files. Every action on it is an existing action, named by
-              the session a checkout has or would have.
-            - The app lists repositories as Pinned, Registered by category, Here and not
-              registered, and On GitHub and not here; a registered project opens its page.
-            - A project's settings name the links its stack serves, `[links]` templates over the
-              slot's values; without them each port is http://localhost:<port>. Sessions carry them.
-            - A project can be pinned and given a category (`hubs project set`), and unregistered,
-              from its page, as plans run where the project is registered.
-            - The forwarder records each pass (`hubs forward status`, `--json`): what the hub had
-              running, what was forwarded, and why a port was not.
-            Decided by the architect on 2026-11-06 and 2026-11-07 ("when i click it ... all actions
-            and things we can do are clear and obvious"; "a pinned section. a registered section.
-            un registered section"; "hyperlinks in the hub menu to click on any api or urls it
-            exposes").
-Status:     accepted
+- The program assigning numbers as it goes: they would differ between machines and over time.
+- Slots for every project: most projects run one stack and need nothing beyond their base ports.
 
-## D-017  2026-11-07  Working local takes all of the work over: every branch, partial work, a mirror of what is missing
-Context:    D-009 handed work over by pushing only the branches checked out in a worktree, said
-            uncommitted changes and carried nothing else, and a client offline could not work on a
-            project it had never cloned. The architect asked for clearer roles: the client "works
-            local", the hub releases, and the last machine in use has the work.
-Decision:   - A handover pushes every branch the giving machine has committed that GitHub does
-              not, in a worktree or not (from the main clone when in none). Amends D-009.
-            - Uncommitted changes are named, and committing them as partial work is offered as a
-              separate action (`commit-partial`, run on the machine that has them); nothing in
-              the handover itself commits.
-            - A project the receiving machine lacks is mirrored: cloned to the same place under its
-              home, registered under the same name and category, with the giver's worktrees whose
-              branches are on GitHub, a slot each when the project has ports, and its secret files
-              from the developer's settings (D-014). A project outside the home folder is named,
-              not copied.
-            - On the hub, Release pushes every branch and names uncommitted work; it records when,
-              shown as information only.
-            - A client that can reach the hub keeps itself ready (`hubs mirror`) when the app's
-              panel is opened, at most once an hour:
-              mirrors what it lacks and fetches the rest; it pushes nothing and moves no worktree.
-            - The app calls the client's switch "Work local" and its way back "Hand back to the
-              hub".
-            Decided by the architect on 2026-11-05 and 2026-11-06 ("on the server i say offline,
-            meaning make all the local code available in git ... it should push all branches, and
-            any uncommitted work should be warned. i should open a session and finnish the work or
-            commit it as partial work"; "on the client it should say work local"; "Last one in
-            use is the controller"; "like my project folder run a mirror model"; "it shuold be a
-            regular potentially background operation").
-Status:     accepted. Amended 2026-11-09: the first bullet no longer holds. Pushing every branch
-            would have published backups, experiments, another session's branches and a release
-            branch whose push starts a deployment. A handover (and Release) pushes only the
-            branch each checkout of a registered project has out, its main clone and its
-            worktrees, where it has commits GitHub lacks; any other such branch is named with
-            the command to push it. A release branch (release/... or release-...) is never
-            pushed by a handover, even checked out. Options weighed: (a) only checked-out work
-            [CHOSEN, the architect: "it will only push things registered ... prob registered
-            jobs is safer"]; (b) checked-out work plus branches GitHub already has - rejected:
-            it still pushes branches no one is working on; (c) the developer picks projects for
-            each switch - rejected: riskier in a pinch, when something would be forgotten.
-            Amended again 2026-11-09: the second bullet no longer holds. Uncommitted work (changed
-            files and new files git does not ignore, without engineroom's slot files) travels
-            with the handover as a stash, sent straight between the two machines' repositories
-            over SSH under refs/engineroom/handover/<branch> and applied in the receiving
-            checkout of the same branch (or the one at the same place, switched to it first),
-            only where it lands as it was made: same branch, same commit, no changes of its own
-            there; otherwise it stays, said. The giving machine keeps a copy in its stash list.
-            Ignored files do not travel. A release, which has no other machine, still names the
-            work and offers partial work. Options weighed: (a) a stash between the machines
-            [CHOSEN, the architect: "any work should be stashed so the other system can pull,
-            branch to correct branch and unstash"]; (b) a stash pushed through GitHub - rejected:
-            it publishes work in progress, visible to anyone who can read a public repository;
-            (c) committing partial work on the branch - rejected: it rewrites the branch's
-            history with commits nobody meant to make; (d) copying modified ignored files over
-            SSH as well - rejected by the architect: large and generated files have no place in
-            a handover, and "anything that needs to travel should be in the secrets repo".
-            Amended again 2026-11-09: a handover puts the receiving machine in the giving
-            machine's state, and is all or nothing. The architect: "the handover should do a
-            pre-run first that verifies everything can be done, and only do the real handover if
-            it can"; "local work could be stashed using the branch name and a stash, and then it
-            should switch to the same branch as the other machine and unstash. we want identical
-            state. that is what handover means". So: (1) planning finds everything that would
-            stop it (a branch moved on both sides, a release branch with commits GitHub lacks, a
-            receiving branch with commits of its own, a detached commit, a branch checked out
-            elsewhere there, two repositories under one name, no place for a missing project) and
-            then plans no commands, and no switch; (2) its first commands check each machine's
-            checkouts against a fingerprint of their state as read and dry-run every push; (3)
-            each receiving checkout sets its own uncommitted work aside in its stash list,
-            labelled with its branch, and is put on the giving branch at the giving commit with
-            git switch -C (safe: that branch there has nothing GitHub lacks); a missing worktree
-            is made; (4) the giving checkout's uncommitted work is carried as before, applied only
-            on that commit in a checkout with nothing of its own. Finder's .DS_Store files and
-            the .claude folder are the machine's own, never carried or set aside: carried, they
-            moved a running session's agent memory off its machine. A machine out of reach still
-            lets the switch happen with what can be done (CONN-HANDOFF-005), since working local
-            without the engine is the reason the switch exists. Options weighed: (a) all or
-            nothing, identical state [CHOSEN, the architect]; (b) carry what can land and say
-            the rest - rejected: it left the two machines in different states without the
-            developer noticing ("i dont know if a stash occurred"); (c) refuse a receiving
-            checkout with changes of its own - rejected: setting them aside, labelled, loses
-            nothing and reaches the state the handover means.
-            Amended again 2026-11-09: a giving branch behind GitHub, where the receiving
-            checkout already has GitHub's newer commits (counted from what each machine last
-            fetched, or the receiving branch at GitHub's head when the giving machine never
-            fetched them), blocks the handover rather than moving the receiving checkout back:
-            the newer work is the work to hand over (the architect agreed: "yes. do those").
+## D-006 What a project needs is set up by its own scripts, which the program runs
 
-## D-018  2026-11-07  Ask Claude opens a session that knows what was open; projects name their own tasks
-Context:    The app's buttons cover the common actions, but changing a project's scripts, settings or
-            secrets, or doing something particular to one project, still meant opening a terminal,
-            finding the settings folder and explaining ports and paths to Claude.
-Decision:   - Ask Claude (`hubs api run assistant <project> <folder>`, the ✨ button) starts a Claude
-              session of its own beside the checkout's main one (<session>-ai), on the hub, in the
-              checkout, with the settings folder added. Claude's system prompt is appended with how
-              hubs wants things done (its commands; scripts safe to run twice, in the settings
-              folder, reading ports from the slot; secrets never printed; destructive steps only when
-              asked; the settings repository and git-crypt) and what was opened (project, checkout,
-              branch, slot, ports, links, scripts, secret files, tasks). It is asked to say what it
-              sees and ask what to do. The guide is part of the program, so no skill has to be
-              installed into the developer's Claude configuration.
-            - A project names its own tasks in hub.toml ([[task]] name, about, run); the app lists
-              them on each checkout, `hubs task` runs one in a session's checkout with the slot's
-              variables, and the assistant is told them.
-            Decided by the architect on 2026-11-07 ("an AI button which opens a Claude session with
-            context about what we opened"; "add custom scripts to run from hub ... could be a
-            registered script and skill"; "the Claude setting ai helper must understand hubs AI and
-            secrets and setting repo").
-Status:     accepted by the architect on 2026-11-08, with the ui-redesign branch merged into main
+**Problem.** What a new worktree needs differs from project to project: one has a database and a
+storage emulator per slot, another only needs its dependencies installed. A tool that knew each
+kind of resource could never be general, and every new stack would need a change to the tool.
 
-## D-019  2026-11-07  The menu bar panel holds the sessions; a window holds everything else
-Context:    The panel tried to hold everything: the sessions, the repositories, each project's page,
-            the history and the settings, behind tabs and back links in a 500 by 740 popover that
-            closes whenever focus leaves it. What is done many times a day (join a session, open its
-            app, forward it) shared that space with what is done now and then (set up a worktree,
-            edit scripts, read the history), and the occasional work was cramped and lost its place
-            when the panel closed.
-Decision:   - The panel from the menu bar holds the sessions only: waiting ones first, then the
-              pinned projects, then the rest, each on a card with its links, its Forward switch on a
-              client, Ask Claude and Join. An action started from it is shown in it.
-              (Amended 2026-11-08 by D-022: one fixed order, pinned projects first; a waiting
-              session is marked where it is, and has no section of its own.)
-              (Amended 2026-11-09 by D-025: a list of projects and a detail of compact cards.)
-            - Its gear opens a window: a sidebar of the registered projects (pinned first), the
-              repositories, the history and the settings, and on the right whichever is chosen. A
-              project's worktree cards sit side by side when the window is wide enough. A project's
-              name on a panel card opens its page in the window. An action started from the window
-              is shown in the window.
-            - Both are read only while they are open (D-013's amendment), every 15 seconds while
-              open, and both draw from the one store, so they always agree.
-              (Amended 2026-11-09 by D-023: the hub sends the sessions when they change, over one
-              connection the app keeps; nothing is read on a timer.)
-            - Every screen is drawn in one visual language (macos/Sources/HubsMenu/Style.swift), and
-              `hubs-menu --snapshot <dir> [dark]` draws them from invented sample data, so how the
-              app looks can be checked after every change.
-            Decided by the architect on 2026-11-07 ("it might be nicer if the dropdown was for the
-            sessions and everything else could be managed by a fuller form that can be opened by a
-            gear"; "designed. Minimal. Useful. Battery mindful. Clean. Easy. Efficient. When I want
-            to do a thing. I should be able to do it with one click").
-Status:     accepted by the architect on 2026-11-08, with the ui-redesign branch merged into main
+**Decision.**
 
-## D-020  2026-11-07  What runs for a session lives only as long as the session
-Context:    A checkout's stack is started on request through its up script (D-006, D-013), and a
-            stack needs its session running to be reached from a client (WORK-STACK-005). Ending a
-            session left its stack running: on the hub, a server and a web dev server started from
-            inside a session ran for three days after it had ended, and two stacks started by up
-            ran with no session at all. Nothing tied a process to the session it was started for,
-            so nothing stopped it when the session went, and the app showed the project as not
-            running while its ports were taken.
-Decision:   - What is started for a checkout's session belongs to that session and lives only as
-              long as it does: ending the session fully ends it too. Leaving a session ends
-              nothing: closing the terminal tab or window, detaching, or a client sleeping or
-              losing its connection leaves the session and everything it runs as they were.
-            - Started for a session means what the project's up script started, which its down
-              stops, and any process still running whose environment names the session:
-              HUB_SESSION, which hubs sets on everything it runs for a checkout (up, down, tasks);
-              where that is absent, the session of the checkout named by HUB_WORKTREE, for what
-              hubs ran before HUB_SESSION existed; else ZELLIJ_SESSION_NAME, which Zellij sets on
-              everything started inside a session. HUB_SESSION wins where they differ, so a stack
-              started for one checkout from inside another session belongs to its own checkout's
-              session. Of those, only servers are stopped: each process that listens on a TCP
-              port, with the processes of the same session that started it and those it started.
-              An editor or app opened from inside a session carries its name too, listens on
-              nothing, and is the developer's to close (found when VS Code, opened from a session,
-              named it). A process is never matched by its name.
-            - Stop and clean up run the project's down while the session is there, end the
-              session, then stop whatever still runs in its name (`hubs session reap <name>`,
-              which says what it stopped, and refuses while the session runs). Handing work over
-              to a client (D-017) does not end hub sessions, so it does not stop their stacks
-              either.
-            - Restart keeps the stack: the same session comes back on the current layout.
-            - A session that ends without hubs (quit from inside Zellij, killed by hand, or crashed)
-              is found by the sweep, which the menu bar app runs on the machine whose sessions
-              they are, and only there and then: on the hub from when the app starts, and on a
-              client only while it works local. It is never a job of its own: the app starts one
-              `hubs sweep --watch`, which sweeps every minute in its own loop and ends with the app.
-              (Amended 2026-11-08, replacing a launchd job that ran every minute on every machine:
-              the architect, "this should be enabled in the server hub when it starts. and on local
-              only enabled when needed when running local. and not a seperate thing that runs all
-              the time".) It reads that machine's Zellij sessions and processes and nothing else,
-              never the network. A checkout whose session has been gone for two minutes has what
-              was started for it stopped, as Stop would; what Zellij keeps of an ended session is
-              deleted (D-015). Each is an entry in the history. `hubs sweep --dry-run` shows what
-              it would do; `hubs sweep --uninstall` removes the launchd job an earlier build
-              installed.
-            - A process on a project's ports that belongs to no session (started by hand outside a
-              session, or before this decision) is never stopped for the developer: the project's
-              page lists it with its port, pid, start time and folder, and offers to stop that one.
-            - Claude in a session runs the app through `hubs up` and `hubs down` (the run-stack
-              skill), so what it starts belongs to the session. A build handed to the developer to
-              try is `hubs down` then `hubs up`, so the app running is the build handed over.
-            - The repository's rule on stopping reads: it stops a session or a process only when
-              the developer has chosen that exact one, or ended the session it was started for.
-            Decided by the architect on 2026-11-07 ("anything run for the session like starting
-            the app stack, should be tied to the session. shutting down the session totally vs
-            disconecting should shut down everything related"; "stopping the exact one meant the
-            button closes the software.. but the point was only within the lifetime of the
-            session"; "claude itself from in the session should run up and down between builds
-            when delivering testing"; the sweep "run by hubs on the server ... no internet every
-            minute").
-Status:     accepted (WORK-STACK-006 to 013; merged into main with ui-redesign on 2026-11-08)
+- A project that wants more than a plain worktree and session has four optional scripts:
+  - `create` runs once, after the worktree exists and its slot is claimed, and makes what is
+    unique to that worktree, such as a database or storage;
+  - `up` runs on request and starts everything the worktree needs, returning once it is running;
+  - `down` runs on request, and before teardown, and stops what `up` started;
+  - `teardown` runs before the worktree is removed and gives back what `create` made.
+- The stack is started on request (`engineroom up`, the app's Run button, or the agent inside a
+  session), never on every session open: a session is often opened only to talk to the agent.
+  A project with no `up` is told what one must do; the program never guesses how to start a
+  stack.
+- A script runs in the worktree with `ENGINEROOM_*` variables for the worktree, the slot and
+  each named port (D-028), and can call the command line to read slot details.
+- Scripts must be safe to run again. That is the script's job, and the guide, the run-stack
+  skill and every message about a missing script say so.
+- A failure is reported with the step that failed. A half-made worktree is never left
+  unannounced.
+- A repository's script is read from the checkout, so a branch that changes it runs its own
+  version. New work starts from the remote's main, so the create script it runs is main's.
+- A script's output streams into the view of the action, and the history keeps the script's
+  content as it was when it ran.
+- The first run of a script, and the first run after it changes, shows it and asks the developer
+  to trust it, because running it runs the project's code.
+- Where the scripts live is D-013.
 
-## D-021  2026-11-08  A join whose connection drops joins the same session again
-Context:    A client's join is an SSH connection to the hub, and it ends whenever the client
-            sleeps, wakes on another network or moves, while its session runs on, untouched, on
-            the hub (D-020). The window then ended as though the session had, so the developer had
-            to join it again by hand after every lid close. The architect, 2026-11-08: "the laptop
-            maybe opened and closed frequently saving power moving etc with the point to retain
-            easy access".
-Decision:   - A join by name of a hub session (`hubs join`, as the app opens it, or enter on the
-              session list) that had been attached and then ended with ssh's own failure status
-              (255) is a dropped connection. The window says the connection was lost and that the
-              session keeps running, asks the hub for its sessions every 3 seconds, showing the
-              command it asks with and why the hub did not answer, and joins the session again as
-              soon as the hub answers. Each join again is an action in the history like any join.
-            - Only the same session is joined again: one still running and older than the join
-              that dropped. A session stopped, or restarted (a new session under the same name),
-              while the connection was down ends the join as before (SESS-BACK-004), and nothing is
-              started.
-            - The developer stops the waiting with q, which joins nothing.
-Rejected:   - Keeping the connection alive through sleep (long keep-alive limits, or a mobile shell
-              such as mosh): a long limit keeps a dead connection open on a real network fault and
-              still loses it on a long sleep or a network change, and a mobile shell is another
-              program on both machines and another port through the private network, for what
-              Zellij already gives: joining again redraws the whole session.
-            - Rejoining from the app on wake: the window already knows what it was joined to and
-              can wait for the hub itself, without the app.
-Status:     accepted (CONN-REJOIN-001 to 004)
+**Considered.**
 
-## D-022  2026-11-08  The panel keeps one order, pinned first; waiting is a mark, not a place
-Context:    The panel listed sessions waiting for the developer first, under a heading of their own,
-            then the pinned projects, then the rest (D-019). A session moved between sections each
-            time Claude started or stopped waiting, so nothing stayed where the developer last saw
-            it, and a waiting session of a pinned project left its pinned place. The architect,
-            2026-11-08: "i dont like the order of information changing based on claude is waiting.
-            i think pinned ones are always there. always at the top, and always maintain a
-            consistent order so its not random"; "dont have a waiting for you section that
-            duplicates everything. just make that a hint on the line".
-Decision:   - The panel lists, in this order and never another: the pinned projects by name, each
-              always there with its running sessions (main clone and worktrees together, by
-              session name) or a row to start it; then the hub's other sessions by name; then Ask
-              Claude sessions by name; then this Mac's own sessions started while it was offline.
-              The app lays this out itself (PanelList), whatever order the hub lists them in.
-            - A waiting session is marked on its own row (the orange dot, "waiting for you" and
-              Claude's question), and is not moved or listed twice.
-            - Each card carries a GitHub line for its project (code, issues, pull requests) and,
-              for a worktree whose branch GitHub has, that branch and the pull requests from it
-              (APP-LIST-003). The repository's links come with the repositories list, read hourly
-              or when asked; a session's branch links come with the sessions, from two git commands
-              per project with a session, read from the clone with no request to GitHub.
-            - The terminal's session list (and `hubs sessions`) has the same order, laid out by the
-              hub (ops.Order): pinned projects' sessions, then the rest, then Ask Claude, each by
-              name; an ended session keeps its place too, marked ended. A waiting session is marked
-              with Claude's mark (✻) beside its name and its question below it, on the panel in
-              place of the state dot (the architect, 2026-11-08: "i want my list in fixed order. if
-              something is waiting on claude i dont need it in a different order. that can just be
-              an icon or something like a claude icon showing").
-            - Only the app asks for the sessions' GitHub links (`hubs sessions --json --github`);
-              the forwarder, which asks every 3 seconds, and the terminal list read none.
-Status:     accepted (APP-LIST-001 to 003, SESS-LIST-002, SESS-LIST-005)
+- The program knowing each kind of resource (emulators, database servers): never general, and
+  the list grows with every stack.
+- A Claude Code skill doing the setup: it needs a model and is not guaranteed to run the same
+  way twice. A skill can call the same scripts, so the two never diverge.
 
-## D-023  2026-11-09  The hub sends the app its sessions when they change; the app reads nothing on a timer
-Context:    The app read the sessions every 15 seconds while its panel or window was open (D-019),
-            each read a new SSH connection to the hub on a client, and the window kept reading for
-            as long as it was open, even behind other windows. With the panel closed it knew
-            nothing, so the menu bar could not say Claude was waiting. The architect, 2026-11-09:
-            "a server tracking everything low cost can easily send batches of data"; "I'm not sure
-            if the panel needs to check local things every 15 seconds. Not much will change other
-            than by an action direct"; on battery, "if the battery consumption is negligible then
-            don't overact on my concern".
-Options:    (a) Keep reading on a timer while the panel is open - rejected: a new connection to the
-                hub for every look, the panel shows what was true up to 15 seconds ago, and nothing
-                is known while it is closed.
-            (b) The hub sends a list only when it changed, over one connection the app keeps for as
-                long as it runs [CHOSEN]: the hub, which is plugged in, does the looking; an idle
-                connection costs the client next to nothing.
-            (c) The same, but connected only while the panel is open - rejected: it keeps the
-                panel's freshness but not the menu bar's mark, for a saving too small to notice.
-Decision:   - `hubs api feed` sends the sessions as one JSON line, the reply `hubs api sessions`
-              gives, now and again each time anything in it changes (a session's age, which Zellij
-              gives relative to now, does not count), and nothing in between. Where the sessions
-              are on the machine it runs on (the hub, or a client working local) it looks every
-              3 seconds; each project's GitHub links are read again at most every 30 seconds. On a
-              client that is online it runs the hub's feed over one SSH connection and adds this
-              machine's own sessions to each list.
-            - Any line written to it asks it to look now: the app does that after an action, so
-              what the action changed shows at once. Closing its input ends it, and the hub's with
-              it, so nothing is left looking on the hub for an app that has gone. After a quiet
-              minute it sends an empty line, so a connection that died without closing is found.
-            - The app keeps the feed open while it runs. When it ends, the app starts it again two
-              seconds later, or, when it ended at once (the hub not answering, or too old to have a
-              feed), after 5, 15, 45 seconds and so on up to five minutes; opening the panel, a
-              wake and the refresh button try at once. While there is no feed the sessions are read
-              as before, when the panel opens and after an action.
-            - The app reads nothing on a timer. Its own state (forwarding, history, settings) is
-              read when the panel or window opens, after an action, on wake and on refresh. The
-              open project's page is read again when the feed's sessions change.
-            - The menu bar icon carries Claude's mark (✻) while Claude is waiting in any session,
-              panel open or not.
-            - Anything that could lose work checks at the moment it is asked for, never from what
-              the feed last said.
-Status:     accepted (APP-FEED-001 to 005). Amends D-013's "nothing else is read while the panel is
-            closed" and D-019's "every 15 seconds while open".
+## D-007 The editor runs where the developer is
 
-## D-024  2026-11-09  A worktree is for a branch or for a role; closing or moving on never loses work
-Context:    Every worktree was named for its branch (<repo>-<branch>) and closed when the branch was
-            done. Work is often batched instead: standing worktrees such as a designer's, a
-            tester's and a developer's, each holding one branch after another. Clean up refused
-            work that would be lost but offered no way through. The architect, 2026-11-09: "When I
-            add a worktree I would prefer to be pick role or branch specific. Meaning I will delete
-            after it's branch is done"; "Either branch or role. Based and recorded so the rule can
-            value both"; "Close worktree should have some kind of verify script that no code would
-            get lost. Ie rollback or commit to a branch".
-Options:    (a) Worktrees for branches only - rejected: batching work in standing worktrees is how
-                the work is done.
-            (b) A role list declared ahead in the project's hub.toml - rejected: the kind is chosen
-                when a worktree is made, and hubs would rewrite a hand-written file to record it.
-            (c) The kind chosen when the worktree is made; a role recorded by hubs in a file of its
-                own in the developer's settings [CHOSEN].
-Decision:   - New work is either branch work, as before (`new <project> <branch>`: folder
-              <repo>-<branch>, closed when done), or a role (`new-role <project> <role> <branch>`:
-              folder <repo>-<role>, on the branch given: a new one from the remote's main, or the
-              branch as it is here or on the remote). The plan records the role with
-              `hubs roles add`, in roles.json in the project's settings folder, so every machine
-              that syncs the settings knows it; `hubs roles <project>` lists them.
-            - A name that is already branch work is refused as a role. The project's page marks a
-              role worktree with its role, and the branch it holds now.
-            - `next-branch <project> <role> <branch>` moves a role worktree on to its next branch
-              in the same folder, keeping its session name and its slot of ports.
-            - Clean up and moving on refuse, before anything runs, when work would be lost
-              (uncommitted changes, or commits on no remote), and now offer what makes it safe:
-              save the changes to the branch and push (`save-work`), put them aside as a stash of
-              the repository, which outlives the worktree (`put-aside`), or push the commits
-              (`push-work`). Each offer is a plan of its own, shown before it runs. Throwing work
-              away is never offered.
-            - Cleaning up a role worktree forgets the role (`hubs roles remove`).
-Status:     accepted (WORK-CLEAN-008 to 011, WORK-ROLE-001 to 005). The app's New worktree choice,
-            the role card and Next branch, and a skill so Claude in any session makes and removes
-            worktrees through hubs, follow.
+**Problem.** A session's worktree should open in VS Code from whichever machine the developer is
+at. On a client the files live on the engine, and reading and debugging them should use the
+engine's files and toolchain.
 
-## D-025  2026-11-09  The panel is a list of projects and a detail of compact cards, fed with each checkout's state
-Context:    The panel listed a full card per session, one under another, so with several projects
-            running it had to be scrolled, and a stopped worktree was not there at all. The
-            architect, 2026-11-08: "my panel is no longer quick and directive because I've got to
-            scroll to get to things. I think there's too much information in a vertical layout";
-            "a very small clean list of my pinned or running items ... with a little bit bigger text
-            ... running lights ... if you click on it or mouse over it, you would see the panel based
-            information on the right hand side ... the card view is small, tight and compact";
-            2026-11-09: "each worktree card needs join or restart available", and to know what
-            would be lost before closing.
-Options:    (a) Keep the list of cards and trim them - rejected: it still grows with every
-                session and still scrolls.
-            (b) A list of projects and a detail for the one pointed at [CHOSEN]: the list stays
-                short; the detail holds everything about one project at once.
-            (c) A row per session in the list - rejected: a project with worktrees fills the list,
-                and the project is what the developer thinks in.
-Decision:   - The panel is 680 by 460. On the left, one row per project in the order of D-022
-              (pinned first, each always there; then every project with a running session; each
-              by name), larger text, one light for all its sessions: Claude's mark when any waits,
-              green when one runs, grey when none does, and a count when more than one runs. This
-              Mac's own sessions started while offline follow, with Join.
-            - Pointing at a row, or clicking it, shows that project on the right and keeps it while
-              the pointer moves across. The right is its name (opening its page), its state, its
-              GitHub line, a compact card per checkout (main clone first, then worktrees by name,
-              running or not), and its Ask Claude sessions as one line each.
-            - A card: its light; the main clone by branch, a role worktree by role with the branch
-              it holds, any other by name; chips for unsaved files, commits not pushed, commits
-              behind main and a merged branch ("merged: close it", or "move on" for a role); VS
-              Code, Ask Claude and the branch on GitHub as icons; Join with the three restarts in
-              its menu, or Start; Claude's question; links and Forward; a ... menu with the page,
-              Stop, copy the branch name, and Close (and Next branch on the page) for a worktree.
-            - The feed (D-023) carries each checkout of the pinned projects and of those with a
-              running session: unsaved, unpushed, behind and merged, read from git on the hub's own
-              disk at most every 30 seconds and after an action. Nothing is fetched to find them, so
-              behind and merged are as of the last fetch; Close always checks again when pressed.
-              "Merged" means the remote's branch is in main and is not simply one of main's own
-              commits, so a new branch with nothing of its own is not called done.
-Status:     accepted (APP-LIST-004, APP-FEED-006). Amends D-019's panel of session cards.
-            Amended the same day (the architect: "when i click the panel icon. remember the last
-            one i interacted with"; "start/stop etc.. should all be visible. no... menu"): the
-            panel is 840 by 480; the project last pointed at or clicked is remembered across
-            opening the panel and restarting the app, and stays listed ("Last used") after its
-            last session stops, so an action returns to it; every action is a button in sight
-            (Join, Restart as this Mac starts sessions, Stop, or Start; Next branch for a role;
-            Close for a worktree; the branch and its pull requests on GitHub and copying the
-            branch name as icons), with no menus; each card shows its links and Forward whether
-            or not its session runs.
+**Decision.**
 
-## D-026  2026-11-09  The program is engineroom: one name for the repository, the app and the command
-Context:    The program was zellij-claude-hub, run as hubs. Both names say less than it is: Zellij is
-            one way to keep sessions (a multiplexer with its own server is planned beside it), and
-            the tool is a powerful machine that does the work with light machines that reach it.
-            The architect, 2026-11-09: "engineroom is nice"; "engineroom all the way for the name";
-            most people will use the app more than the command line.
-Options:    (a) Keep hubs as the command under a new product name - rejected: two names for one
-                thing, met by everyone who goes from the app to the command line.
-            (b) A short command (er) - rejected: the app is what most people use, and a developer
-                who wants a short command can alias it.
-            (c) engineroom everywhere [CHOSEN].
-Decision:   - The repository is KyleyHarris/engineroom, the Go module github.com/KyleyHarris/engineroom,
-              the command engineroom, the app engineroom.app with bundle id local.engineroom.menu,
-              and the Swift modules EngineRoomKit and EngineRoomMenu.
-            - The program's folders are ~/.config/engineroom and ~/.local/state/engineroom (XDG
-              roots as before); the first command a new build runs moves the old
-              zellij-claude-hub folders there once (paths.Migrate), never over a folder that
-              already exists. Its environment variables are ENGINEROOM_*.
-            - "hub" stays the word for the machine that does the work: the hub role, a repository's
-              .hub folder and hub.toml, the HUB_* variables its scripts get, and the slot files
-              (.hubs-slot.json, hubs-slots.json) keep their names, since they live in other
-              repositories and the developer's settings.
-            - The old launchd sweep job keeps its old label (local.zellij-claude-hub.sweep): it is
-              only ever removed.
-            - install.sh keeps hubs as a link to engineroom until every machine runs engineroom,
-              so an old build, a hook or a habit that calls hubs keeps working meanwhile.
-Status:     accepted. Amended the same day: every machine runs engineroom, so install.sh no
-            longer makes the hubs link, and the link was removed from each machine.
-            Amended the same day (the architect: "Engine is better than hub. The application
-            also gets this wrong"): the third bullet no longer holds. A name says what it names:
-            the machine that does the work is the engine, and the program's own things are
-            engineroom. The role is engine (role = "engine", [engine], --engine, "engine" in
-            what `engineroom api` answers, engineDown when it does not answer, handoff to-engine
-            and from-engine); a repository's folder is .engineroom with engineroom.toml, as is
-            the project's file in the settings; the slot files are .engineroom-slot.json and
-            .engineroom-slot.env, and the registry .git/engineroom-slots.json; the variables a
-            project's scripts get are ENGINEROOM_*, named by kind (D-028). The app and the
-            command line read only these names.
+- The editor's command runs on this machine and is never wrapped in ssh. On the engine, or
+  working local, it is `code <folder>`. On a client it is
+  `code --remote ssh-remote+<host> <folder>`: the engine's folder through VS Code's Remote - SSH.
+- The engine reports each session's folder in `engineroom sessions --json`, so the command is
+  built from the list already read, with no second request.
+- The command is `[editor] command`, `code` by default. Another editor must accept the same
+  `--remote ssh-remote+<host> <folder>` arguments from a client.
+- The remote is `engine.host` exactly as configured. `engine.ssh_config` is not passed: VS Code
+  resolves the host through its own SSH configuration, so the host must resolve there too.
+- Refused before anything runs: a session outside every registered project, an engine that did
+  not report a folder, and an editor that is not installed, which is answered with how to
+  install it.
 
-## D-027  2026-11-09  The website is built from the docs; only the story pages are written by hand
-Context:    A website in the repository is to explain the program, show how it works and how to
-            use it, "like a dynamic readme and documentation tool", and to look good while doing
-            it. Pages written by hand beside the docs hold every fact twice, and the two copies
-            drift. The product is also to be renamed, and the tools it joins together (the
-            terminal, the Git host, the agent) may change.
-Options:    (a) Pages generated from docs/*.md by a small Go program in this repository, with the
-                pages that tell the story written by hand [CHOSEN]
-            (b) Every page written by hand - rejected: two copies of every fact, which drift.
-            (c) A site generator from the JavaScript ecosystem - rejected: a toolchain and a
-                build step this repository does not otherwise need, for what a small Go program
-                does.
-Decision:   - `tools/site` renders docs/setup.md, docs/usage.md and docs/decisions.md into
-              pages, one per heading down to a level set for each doc, with the heading ids
-              GitHub gives, so a link written for GitHub lands in the same place on the site.
-              A link to any other file in the repository goes to that file on GitHub, and a
-              decision named in running text links to its page. The one new dependency is
-              goldmark, to read Markdown.
-            - New facts go into the docs first and the site shows them. The pages in site/pages
-              carry only the story: the front page and how it works.
-            - The product's name, its command and the stack of tools it joins together are data
-              in site/site.toml, never spelled in a template, a class, a file name or an
-              address, so the rename and a swapped tool are edits there.
-            - Plain HTML and CSS, no JavaScript build, fonts served by the site itself: it sends
-              no request elsewhere and opens from disk.
-            - The gate builds the site into a temporary folder and fails on a link, an anchor or
-              an image that goes nowhere, and on an em or en dash. The built site is never
-              committed.
-            - Publishing it waits for the decision to make the repository public (D-001).
-            Decided by the architect on 2026-11-09 ("i like gerating. but i do want this to be
-            a nice looking site with good content"; "journey recordings sound good").
-Status:     accepted. The front page and how it works, the journey recordings with their
-            captions, and the glossary follow. Amended the same day: How it works has one
-            hand-written script, the mechanics map, with no build and nothing fetched; the
-            looks are styles over one shared stylesheet, and the dev server offers a switch
-            between them so one can be chosen on the running site (site.toml names the one
-            the site is built with); `go run ./tools/site -serve` and the repository's own
-            .hub stack run it.
-            Amended the same day: the architect chose the machine room look ("of the 3 styles.
-            the engineroom is prob the best ... this is kind of like the mash unit keeping it
-            all together") and the other two looks were removed with the fonts only they used.
-            The switch stays in the dev server and shows itself again only when a second style
-            is listed.
+**Considered.**
 
-## D-028  2026-11-09  A slot's keys are named by kind, and a key that would overwrite another is refused
-Context:    Every key of a slot (the program's own slot, worktreeRoot, isMainClone, project and
-            tmp, and a project's ports, names and derived values) is one value in the slot's
-            record and in a template's {{key}}, and is given to a project's scripts as an
-            environment variable. With one prefix for every variable, a project's key could take
-            a name the program uses for itself, and a port named project silently replaced the
-            project's name in the record. The architect, 2026-11-09: "some other sort of prefix
-            to prevent any overlap, i.e. adding the word port"; "make this happen".
-Options:    (a) A prefix for each kind, and a project file refused when one of its keys would
-                overwrite another [CHOSEN]
-            (b) A prefix for each kind alone - rejected: the record and {{key}} still hold one
-                value per key, so a derived value named as a port, or a port named project,
-                would still overwrite it there.
-            (c) Refuse only a key spelled exactly as another - rejected: "db-name" and "db_name"
-                are one variable name, so one would still overwrite the other.
-Decision:   - The program's own keys are ENGINEROOM_SLOT, ENGINEROOM_WORKTREEROOT,
-              ENGINEROOM_ISMAINCLONE, ENGINEROOM_PROJECT and ENGINEROOM_TMP. A project's keys are
-              ENGINEROOM_PORT_<KEY>, ENGINEROOM_NAME_<KEY> and ENGINEROOM_DERIVED_<KEY>: the key in
-              capitals with anything not a letter or digit made an underscore
-              (engineroomfile.Fold). The program never names a variable of its own with PORT_,
-              NAME_ or DERIVED_ after its prefix. The record and {{key}} keep the plain keys.
-            - When a project's settings are read (settings.Load), a port, name or derived value
-              is refused if it folds to the same name as a built-in, or as another key of a
-              different kind or spelling, after the developer's file and the repository's are
-              merged, so a clash between the two is caught too. The same port in [ports] and in
-              every [[slot]] row is one key. The error names the file and both keys.
-Status:     accepted
+- Running the editor on the engine: its screen is not where the developer is.
+- Mounting or syncing the engine's folder to the client: copies drift, and the client's
+  toolchain is not the engine's.
 
-## D-030  2026-11-10  An application the program starts is started as the developer would start it from the Dock
+## D-008 A native menu bar app, as a face over `engineroom api`
 
-Context:    macOS hands an application the whole environment of whatever asks for it: open,
-            osascript's tell or launch, and NSWorkspace all pass the caller's variables on, and
-            the application keeps them for as long as it runs, as does everything it opens. A
-            Ghostty started by the program from a shell, a Claude Code session, an SSH login or a
-            test kept that caller's home, configuration folders, Zellij variables and session
-            markers, so every tab it opened afterwards read the wrong configuration or took
-            itself for part of another session. Filtering out known variables (Zellij's, Claude
-            Code's markers) covered only the ones already met. The architect, 2026-11-10: "any
-            shell, or whatever run, no matter how it runs. it needs to work like if i opened it
-            myself in my own ui session".
-Options:    (a) Run every command that can start an application with an empty environment
-                (/usr/bin/env -i), so macOS gives the application the developer's own session
-                environment [CHOSEN]
-            (b) Remove a list of known variables - rejected: any variable not on the list still
-                reaches the application, and the list grows with every one found.
-            (c) Have launchd start it (launchctl submit) - rejected: the same environment as (a)
-                when measured, but a submitted job is kept alive and started again when it ends,
-                and the command is deprecated.
-            (d) Ask Finder to open it - rejected: a further permission to control Finder, for the
-                same result.
-Decision:   - Opening a terminal (every one the program knows), and reopening the menu bar app
-              after an upgrade, run `/usr/bin/env -i <command>`, shown with the plan like any
-              command. Measured on macOS: an application started so has the same environment as
-              one started by launchd for the developer's session (HOME, USER, LOGNAME, SHELL,
-              TMPDIR, the bare PATH, the SSH agent, and what `launchctl setenv` sets), and none
-              of the caller's.
-            - The command is looked up on the program's own PATH before the environment is
-              emptied, so the one found there is run.
-            - What runs inside a window the program opens is given the program's PATH, as the
-              app gives engineroom the login shell's (D-011): to Ghostty as the tab's own
-              variable, to the other terminals as `/usr/bin/env PATH=... engineroom join ...`.
-            - The app opens VS Code for the settings with an empty environment too.
-            - A Zellij session is not an application and keeps the environment of what started
-              it, without Claude Code's markers (zj.AgentSessionVars): its panes are the
-              program's own, and a test's sessions must stay in the test's folders.
-            - An application already running keeps the environment it was started with; quitting
-              and opening it again is the remedy.
-            - The journeys put stand-ins for open and osascript on every machine they make, so no
-              journey reaches the real ones, and check that a join asks for its window with an
-              empty environment.
-Status:     accepted
+**Problem.** A terminal interface has to be started in a terminal each time. The developer works
+from two Macs and wants the tool always within reach, doing the right thing on each. A window
+inside a Zellij session cannot know which Mac is looking at it, because its panes run on the
+engine.
 
-## D-031  2026-11-10  A session on a Mac is started inside the developer's desktop login, whatever ran the program
+**Decision.**
 
-Context:    A Zellij session belongs to the login that started its server, and so does everything
-            that runs in it: Claude Code, git, gh, codesign. A session started from a client runs
-            its start over SSH, so it stayed in that SSH login, where the login keychain is locked
-            ("User interaction is not allowed") and macOS treats it as a background process. The
-            architect, 2026-11-10: "start it in an appropriate session with the same rights and
-            permissions as if i was coded directly on the machine", with the engine left logged
-            in at its screen.
-Options:    (a) Hand the start to launchd as a one-time job in the desktop login
-                (launchctl bootstrap gui/<uid>), which removes itself once the start has
-                returned [CHOSEN]
-            (b) launchctl asuser - rejected: it needs root.
-            (c) launchctl submit - rejected: deprecated, takes no environment or folder, and a
-                submitted job is kept alive and started again.
-            (d) A process of the program's own kept running in the desktop login (the menu bar
-                app, or an agent) that starts sessions on request - rejected: a second way in to
-                keep running and answering, where a job made for each start needs nothing running.
-            (e) Unlock the keychain in the SSH login - rejected: it needs the password on every
-                start, and fixes only the keychain.
-Decision:   - On a Mac, when the program runs outside the desktop login (`launchctl managername`
-              is not `Aqua`) while one exists (`launchctl print gui/<uid>` succeeds), a session's
-              start is two commands in its plan: `engineroom session job <name> <layout> <dir>`
-              writes the job and prints it, then `launchctl bootstrap gui/<uid> <job file>` runs
-              it. Run inside the desktop login (the app, a terminal at the screen) the start is as
-              before; with no one logged in at the screen it is as before too, and the session
-              lacks what only the desktop login has.
-            - The job runs the same `zellij attach --create-background ...` as a direct start, in
-              the checkout's folder, then boots itself out; AbandonProcessGroup keeps launchd from
-              stopping the server when the job goes. `engineroom session wait` follows as before,
-              and prints the job's log when the session does not start.
-            - The job gives the session the program's environment without what belongs to the
-              login it ran in: the SSH connection's variables and agent socket, its temporary
-              folder, the shell's bookkeeping, and Claude Code's session markers. launchd adds the
-              desktop login's own SSH agent and temporary folder. The job file is the program's
-              state (`~/.local/state/engineroom/jobs/`), readable only by the developer, replaced by
-              the next start of the same session; its label carries a hash of the state folder,
-              so a test's jobs and the developer's never share one.
-            - Joining is unchanged: a client attached over SSH shows the session; what runs in it
-              belongs to the server.
-            - ENGINEROOM_DESKTOP_SESSIONS=off never uses the route and =on uses it whenever a
-              desktop login exists. The journeys keep it off, so their sessions stay out of the
-              developer's login, except SESS-NEW-006, which proves the route.
-            - Not covered: whether macOS's privacy permissions (Documents, Desktop, Full Disk
-              Access) treat a session started this way as they treat one started from a terminal at
-              the screen; they are granted per application.
-Status:     accepted
+- A SwiftUI menu bar app that computes nothing itself: every list and every action is an
+  `engineroom api` command that prints JSON. An action is planned, shown and run by the same
+  code the command line uses, and lands in the same history.
+- The app acts where this machine's actions are done: on the engine over SSH for a client that
+  is online, on this machine otherwise.
+- Claude Code always starts inside Zellij, so anything started can be joined from any machine.
+  The app can start a session to join it in a terminal, with Remote Control and no window, or
+  both.
+- The terminal is chosen from those installed (Ghostty by default).
+- It is built from `macos/` with SwiftPM and installed by `scripts/install.sh --app` into
+  `~/Applications`, signed with the Mac's own development identity or ad hoc.
+- A phone is out of scope: it reaches sessions through the Claude app and Remote Control.
 
-## D-032  2026-11-10  The app has one meaning per colour, one kind of button per job, and its sizes named once
+**Considered.**
 
-Context:    The app's screens were drawn alike (D-019) by convention, not by anything shared: text at
-            eleven sizes, corners at five radii, two cards, two state lights and two chips written
-            in different files. Colours carried no fixed meaning: orange meant Claude is waiting,
-            unsaved work, a warning, a command under way, a pinned project and a folder not
-            registered; green meant a running session, an action done and every registered
-            repository, so a list of repositories was a column of green dots that said nothing. The
-            project page offered the three ways to start a session in a menu, against "every
-            action is a button in sight" (D-025). Working local was a small switch among the
-            header's icons, and Quit sat beside refresh as one more icon.
-Options:    (a) Leave the screens as they are and correct each inconsistency where it is noticed
-                - rejected: nothing stops the next screen from drifting, and a colour with six
-                meanings cannot be made to mean one by correcting one use.
-            (b) Name the sizes, the radii, the gutters and the colour meanings once, in the file
-                that holds the visual language, draw each shared piece once (card, light, chip,
-                banner, empty screen, page title), and move every screen onto them [CHOSEN]
-            (c) Replace the app's own look with the system's stock lists and forms throughout
-                - rejected: the cards with a label column are what make a checkout's state and its
-                actions readable at once, and the panel has no stock equivalent.
-Decision:   - A colour says one thing wherever it is used. Orange: something needs the developer
-              (Claude is waiting, work that would be lost, a step that cannot run). Green: as it
-              should be (a session running, an action done, something copied). Red: it failed or
-              cannot be reached. The accent colour: under way and needing nothing (a command being
-              run), and anything that is clicked like a link. Everything else is quiet: a pinned
-              project's star is grey, a repository that is not a project yet has a grey icon for
-              where it is, and a project is lit only while a session of it runs.
-            - A project's light is the same on every screen: Claude's mark when any of its running
-              sessions waits, a green dot when one runs. The window's sidebar and the repositories
-              list show it as the panel's list does.
-            - A button in words changes something (Join, Stop, Close). A button that is only an icon
-              opens something elsewhere or copies (VS Code, Finder, GitHub, the branch name), and
-              has a tooltip. One button of a card is filled: the one most often pressed, Join while
-              its session runs and the usual way to start it otherwise.
-            - On a project's page a checkout that is not running shows the three ways to start it
-              as three buttons, in the words of the Restart row: the terminal with Remote Control,
-              the terminal only, Remote Control only. The way chosen in Settings is the filled one,
-              so the usual start is still one click (APP-START-001 to 003).
-            - The text sizes, corner radii and page gutters are named by what they are for, in
-              macos/Sources/EngineRoomMenu/Style.swift, and no screen writes a number of its own.
-              The card, the state light, the chip, the banner (what a screen must say first, with
-              the buttons that deal with it), the empty screen (what is missing and the button that
-              supplies it) and the page title are each drawn once there.
-            - Working local is turned on and off by a button in words, in the header and in
-              Settings, and the header's badge says when it is on. Quit stands apart from refresh
-              and the gear; Command-Q is unchanged.
-            - Every page of the window starts with its title line and shows what it has as cards
-              on the grey window: a project, the repositories, the history, the settings, and the
-              forms that add or register a repository. A page reached from another has the link
-              back above its title. A list is a card of rows with a hairline between them; a
-              setting is a row of its card with its control at the far end.
-            - What a checkout would lose is a chip under its name, on the panel and on the page.
-              Close, which only a worktree has, is at the far end of the row that joins or starts
-              its session, apart from those buttons.
-            - An action's commands have one way back, the link at the top, in sight before, during
-              and after a run. The bar at the foot holds what goes on: Copy, then Run or Done. A
-              failed command is said in one word, "failed", wherever the app shows it.
-Status:     accepted. Refines D-019's one visual language and D-025's buttons in sight; changes no
-            function of either.
+- A window inside Zellij: it always runs on the engine, so it cannot open the editor or a
+  terminal on the Mac the developer is at.
+- A local web page: a server to run and secure.
+- The app computing plans itself: two implementations drift, and the history would miss what the
+  app did.
 
-## D-033  2026-11-10  The panel's list is worked from the keyboard, and what the app shows by an icon or a colour it also says in words
+## D-009 Work moves between machines through GitHub, shown first and run on request
 
-Context:    The panel is opened many times a day and was worked only by pointing: choosing a
-            project, joining its session and closing the panel each needed the pointer. The
-            buttons that are only an icon (D-032) had a tooltip and no name, so VoiceOver read a
-            symbol's name or nothing, and a state light said its state by a colour and a mark
-            alone. A surface swapped to an action's page between one frame and the next, which
-            reads as a jump to somewhere else. The pointing hand was put on the cursor when the
-            pointer came over something clickable and taken off when it left, so a button that
-            went from under the pointer when it was pressed could leave the hand behind.
-Options:    (a) Make the panel's list a stock list and let the system move its selection
-                - rejected: the rows are the app's own drawing (D-032) and a stock list restyles
-                them, and a list answers keys only once it has the focus, which in a panel opened
-                from the menu bar is after a click, the thing the keys are there to save.
-            (b) The panel answers a small fixed set of keys itself, whenever it is the window
-                being typed into: the arrows, Return and Escape [CHOSEN]
-            (c) A letter per action (join, stop, restart, close)
-                - rejected: a letter is not in sight, against every action being a button in
-                sight (D-025), and a wrong letter would stop a session. Return carries the one
-                action that changes nothing that cannot be left again, and the rest stay buttons.
-            For which session Return joins when a project has several:
-            (d) Always the first card, the main clone's
-                - rejected: the panel is opened most often because Claude is waiting, and that
-                session is often a worktree's.
-            (e) The session that is waiting, else the first that runs, else start the first
-                checkout, with that card's button marked so it is seen before the key is pressed
-                [CHOSEN]
-Decision:   - In the panel's list Down and Up choose the next and the previous project, in the
-              order the list is drawn, and stop at each end. The choice is the one pointing makes:
-              it is shown on the right and remembered (D-025). A chosen row is brought into sight
-              when the list is longer than the panel. This Mac's own sessions, listed apart, are
-              not projects and are not part of the walk; each keeps its Join.
-            - Return joins or starts the chosen project: its session that waits for the developer,
-              else its first running session in the order its cards are drawn, else it starts its
-              first checkout. That card's Join or Start carries a return mark, and the key sends
-              exactly what the button sends.
-            - Escape closes the panel from its list. On a page reached from another it is the link
-              back: an action's page in the panel or the window, and the window's pages that get
-              or register a repository, from one of their fields too, as Escape cancels a dialog.
-            - The keys are left alone when they belong to something else: held with Command,
-              Option, Control or Shift; while a dialog is up; in the panel's list while a field is
-              typed into (the next branch of a role, where Escape is the field's Cancel); Escape
-              while an input method is part way through a character. A held arrow walks the list;
-              a held Return asks once; a held Escape goes back one step.
-            - Pointing and clicking are unchanged. After an arrow key the pointer chooses again as
-              soon as it moves; while it rests, the row under it does not take the choice back.
-            - Every button that is only an icon has a name in words, read by VoiceOver: a card's
-              icons are named by their tooltips, so the copy icon is read as "Copied" with the
-              branch for as long as it shows its tick. A state light is read as its state in words,
-              a row of the panel's list as one thing (the project, its state, and how many
-              sessions run when more than one), and the menu bar icon as the app, with "Claude is
-              waiting for you" while it carries the mark.
-            - An action's page arrives with a short fade. Only the arrival fades: a page that is
-              left is emptied as it closes, so what was underneath comes back at once. Nothing
-              fades while Reduce Motion is on in System Settings.
-            - The pointing hand is taken off the cursor exactly once: when the pointer leaves, or
-              when the view goes while the pointer is still over it.
-            - Which key does what, where, and what Return acts on are decided in EngineRoomKit
-              (PanelKey, PanelProject.step, PanelProject.keyAction) and checked by its tests; the
-              app reads the place off the window and carries the effect out.
-            - Not covered: keys for the window's own lists and forms, which keep the system's;
-              Return as the Run button of an action's page.
-Status:     accepted. Adds to D-025 (pointing and clicking are kept) and D-032 (an icon's tooltip
-            is also its name); changes no function of either.
+**Problem.** A client that works local works in its own worktrees. Committed work on one machine
+is invisible to the other until it is pushed and brought in.
+
+**Decision.**
+
+- Switching a client to work local offers the handover from the engine, and switching back
+  offers the handover to it. `engineroom handoff to-engine|from-engine` shows either at any
+  time. Each is a plan in the history like any other action.
+- Reading changes nothing: remote URLs, `ls-remote`, `for-each-ref`, `rev-list`, the worktree
+  list and status, never a fetch. The engine's reading is `engineroom handoff state --json`.
+- Every push runs before any worktree moves, so a refused push leaves both machines as they
+  were.
+- Projects are matched by name and then by their GitHub owner and name, since each machine may
+  reach GitHub by its own address.
+- Back online, the client's own sessions that still run are listed after the engine's, marked as
+  on this machine, and acted on there (`--here`).
+- Claude's conversations and the two machines' histories are not carried across.
+- What a handover carries, and when it refuses, is D-017.
+
+**Considered.**
+
+- Syncing by itself on the switch: it would change worktrees and GitHub unasked.
+- Copying worktrees or conversations between machines directly: copies drift, and conversations
+  are stored under each machine's own paths.
+
+## D-010 Lists of repositories and projects are in name order, ignoring case
+
+**Problem.** GitHub lists repositories by recent activity, which changes from one look to the
+next, and projects were listed in the order they were registered. Neither lets a name be found
+where it is expected.
+
+**Decision.**
+
+- One order everywhere a list of repositories or projects is shown (`roots.NameLess`): names
+  compared in lower case, with names that differ only in case kept in a fixed order, so a list
+  never shuffles between two reads.
+- A client sorts what the engine sends as well, and the app sorts inside each category.
+- Category headings follow the same rule, with "no category" last.
+
+**Considered.**
+
+- Registration order: an order only the developer's own history explains.
+- Minding case: capitalised names would be listed first, away from their neighbours.
+
+## D-011 The app runs engineroom with the PATH of the developer's login shell
+
+**Problem.** macOS starts an app with a bare PATH. Commands the developer has in a terminal (the
+editor's `code`, `zellij`, `gh`) are not found by a program the app runs.
+
+**Decision.**
+
+- At start the app runs the login shell once (`$SHELL -ilc`), reads PATH between markers so
+  anything a profile prints is ignored, and gives up after 3 seconds. It then adds
+  `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin` and the folders in `/etc/paths` where
+  they are missing. With no answer from the shell, its own PATH and those folders are used.
+- Every `engineroom` the app runs gets that environment.
+- A run whose plan cannot be made is still answered as a run that ended, carrying the reason, so
+  the app says why nothing ran.
+
+**Considered.**
+
+- A fixed list of folders only: it misses whatever the developer's profile adds.
+- A PATH setting in the program's configuration: one more thing to keep in step with the shell
+  by hand.
+
+## D-012 Ghostty holds every joined session as a tab of one window
+
+**Problem.** Starting a copy of the terminal for every join means one application per session,
+and a panel that stays open over the joined window is in the way.
+
+**Decision.**
+
+- Joining in Ghostty runs an AppleScript through `osascript`, shown with the plan like any
+  command. Each tab is titled `engineroom: <session>`, which is how the window and the tab are
+  found again. Joining a session whose tab is open selects that tab; otherwise a new tab goes
+  into that window, or a new window when there is none.
+- The tab runs the `engineroom join ...` line with the program's PATH passed in, because a tab
+  starts with the running Ghostty's environment.
+- The first join asks macOS whether engineroom may control Ghostty; a refusal is answered with
+  where to allow it. Ghostty's `macos-applescript` setting must stay on.
+- Other terminals get a new window for each join.
+- The panel has a solid background, comes to the front when it opens, and closes when an action
+  opens another application's window (Join, VS Code, a start that joins). A failure stays on the
+  action's page for the next time the panel opens.
+
+**Considered.**
+
+- A window per session: one window with every session is easier to use.
+- A copy of Ghostty per join: one application per session.
+
+## D-013 The developer's settings decide; ports are reserved per project and lent to worktrees as slots
+
+**Problem.** Ports and scripts kept only in a project's own repository cannot work for a
+repository the developer works in but does not own, and a list of ports kept by hand cannot
+check itself. Several worktrees of one project each need their own ports and data, and a client
+needs the ports of the engine's sessions whether or not a terminal is joined.
+
+**Decision.**
+
+- **Settings.** One folder outside every repository (`engineroom settings where <project>`),
+  keyed by the project's GitHub owner and name, holds the project's `engineroom.toml` and its
+  scripts. A repository's own `.engineroom/` folder holds the same files as recommendations: the
+  developer's settings win, section by section and script by script.
+- **Reservations.** Each project reserves a range of ports. A clash between projects, or a slot
+  port outside its own reservation, is reported with both sides named. New blocks come from
+  20000-29999: 100 ports per project, ten slots of ten (`engineroom ports reserve`). Numbers a
+  project already uses are kept and reserved as they are.
+- **Slots.** Slot 1 is the main clone, with the numbers it always had. Claims are kept in the
+  clone's shared `.git` folder (`engineroom-slots.json`). New work claims a slot as a shown
+  command; clean up gives it back. The slot's record (`.engineroom-slot.json`), the same values
+  as an environment file (`.engineroom-slot.env`) and each template the settings name are
+  written into the worktree. Names only, never a password (D-005).
+- **Running.** Starting the stack is a full build and run of one worktree on its slot's ports.
+  Only a running session's ports are forwarded, so Run on a checkout whose session is not
+  running starts the session first, in the background. Stopping a stack never starts a session
+  (WORK-STACK-005).
+- **Forwarding.** On a client, `engineroom forward` keeps one SSH connection to the engine and
+  adds or cancels a forward on it for each port of each chosen running session, with the same
+  number on both sides. It is chosen per session (`engineroom forward add|remove`, the app's
+  Forward switch, or opening one of a session's links), with forwarding every session still
+  available. The forwarder follows the engine's session list, which the engine sends only on a
+  change, over that same connection. With nothing to forward the connection is closed. A port
+  the client already uses is named with what holds it and left alone. Each change is a command
+  in the history.
+
+**Considered.**
+
+- Only a file committed to the repository: it cannot be added to a repository the developer does
+  not own.
+- Forwarding only while a terminal is joined: a session is often used only from the Claude app.
+- Checking the engine's sessions for forwarding every few seconds: work on a timer that nobody
+  is watching.
+
+## D-014 Settings are a private repository; secrets in it are encrypted by git-crypt
+
+**Problem.** Settings should be the same on every machine. Some of what a project needs to run
+is secret (a local settings file with keys, an environment file), and a hosted repository is not
+a place for those in the clear, even a private one.
+
+**Decision.**
+
+- `engineroom settings init [<repository>]` makes the settings folder a git repository, sets up
+  git-crypt in it, writes a `.gitattributes` that encrypts every file in any `secrets/` folder,
+  commits, and pushes to the given private repository. Run again, it does only what is missing.
+- On a machine that holds the key, secrets are plain files, read and edited like any other. In
+  the repository, on GitHub and on a machine without the key they are encrypted bytes.
+- The developer keeps the key where they keep secrets (`git-crypt export-key`).
+  `engineroom settings clone <repository> <key file>` brings the settings to another machine and
+  unlocks them.
+- `engineroom settings sync` commits this machine's changes, takes the other machines' and sends
+  this one's, as a plan of git commands in the history. It refuses, before anything runs, when a
+  file in a secrets folder would be committed unencrypted.
+- The app syncs on Sync now, and at most once an hour when its panel is opened. It never syncs
+  on every change or while the panel is closed.
+- `engineroom settings status` says where the settings are, where they sync to, what is not yet
+  sent, and whether the secrets are readable here.
+- A project names its secret files in `engineroom.toml` (`secrets = [...]`): paths in the
+  worktree, or `~/...` for one in the home folder that every checkout shares.
+  `engineroom secrets save <project>` copies them from a checkout into the settings;
+  `engineroom secrets restore` puts them into a checkout that lacks them and never overwrites
+  one it has, naming a file that differs instead; `engineroom secrets status` compares the two.
+  New work restores them after claiming its slot and before its create script.
+
+**Considered.** A secrets service or a password manager's command line: a dependency on one
+vendor, where git-crypt works for anyone with git.
+
+## D-015 A session is running or it is not there
+
+**Problem.** Zellij keeps a snapshot of a session that was quit or killed and can rebuild it:
+the old tabs, panes and layout. Bringing that back restores a layout that may since have
+changed, and Claude Code keeps its own conversation, so the snapshot holds nothing the work
+needs.
+
+**Decision.**
+
+- Stop ends a session fully (`engineroom session end`): it kills the session, deletes what
+  Zellij keeps of it, and returns once Zellij no longer lists it.
+- Joining or starting a session that ended some other way (quit from inside Zellij, or the
+  engine restarted) deletes the snapshot and starts it fresh from the current standard layout in
+  its checkout. The agent runs `claude --continue`, so the conversation carries on.
+- Restart is stop then start in one, for a running session on an old layout.
+- The app lists running sessions only. The terminal interface marks an ended one as ended, and
+  Enter on it starts it fresh.
+- Closing the terminal window leaves a session running; Join returns to it.
+
+**Considered.** Bringing an ended session back as it was: it restores a stale layout and nothing
+of value.
+
+## D-016 Each project has a page; links come from settings; a client says why a port is not forwarded
+
+**Problem.** A list of repositories with a Start button shows nothing of a project's worktrees,
+ports, scripts or secrets, or of the addresses its running stack serves, and an address cannot
+be copied out of a terminal reached over SSH. Forwarding in the background has nowhere to say
+why a port was not forwarded.
+
+**Decision.**
+
+- `engineroom api project <name>` is one project's page, read where its checkouts are: every
+  checkout with its branch, session state, uncommitted changes, slot, ports and links, and the
+  project's scripts with their source, its reservation and its secret files. Every action on the
+  page is an existing action.
+- The app lists repositories as Pinned, Registered by category, Here and not registered, and On
+  GitHub and not here. A registered project opens its page.
+- A project's settings name the links its stack serves: `[links]` templates over the slot's
+  values. Without them each port is shown as `http://localhost:<port>`.
+- A project can be pinned and given a category (`engineroom project set`), and unregistered,
+  from its page.
+- The forwarder records each pass (`engineroom forward status`, `--json`): what the engine had
+  running, what was forwarded, and why a port was not.
+
+**Considered.** Leaving links to the terminal's output: they cannot be clicked or copied from a
+session reached over SSH.
+
+## D-017 A handover leaves the receiving machine in the giving machine's state, all or nothing
+
+**Problem.** The last machine in use has the work. Moving to the other machine should carry all
+of it, including work not yet committed and projects the other machine has never cloned, without
+publishing anything unintended and without leaving the two machines in different states
+unnoticed.
+
+**Decision.**
+
+- **What is pushed.** Only the branch each checkout of a registered project has out (its main
+  clone and its worktrees), where it has commits GitHub lacks. Any other branch with unpushed
+  commits is named, with the command to push it by hand. A release branch (`release/...` or
+  `release-...`) is never pushed by a handover, even when checked out.
+- **Uncommitted work travels too.** Changed files, and new files git does not ignore, go as a
+  stash sent straight between the two machines' repositories over SSH, under
+  `refs/engineroom/handover/<branch>`, and are applied in the receiving checkout of the same
+  branch. The giving machine keeps a copy in its stash list. Ignored files do not travel:
+  anything that must be on both machines belongs in the settings' secrets (D-014).
+- **All or nothing.** Planning first finds everything that would stop the handover: a branch
+  moved on both sides, a release branch with commits GitHub lacks, a receiving branch with
+  commits of its own, a detached commit, a branch checked out elsewhere on the receiving
+  machine, two repositories under one name, or no place for a missing project. With any of
+  those it plans no commands and no switch. Otherwise its first commands check each machine's
+  checkouts against a fingerprint of their state as read, and dry-run every push.
+- **The receiving side loses nothing.** Each receiving checkout sets its own uncommitted work
+  aside in its stash list, labelled with its branch, and is then put on the giving branch at the
+  giving commit. A missing worktree is made.
+- **The machine's own files stay.** Finder's `.DS_Store` files and the `.claude` folder are
+  never carried or set aside.
+- **Newer work is never moved back.** A giving branch that is behind GitHub, where the receiving
+  checkout already has the newer commits, blocks the handover.
+- **Missing projects are mirrored.** A project the receiving machine lacks is cloned to the same
+  place under its home folder and registered under the same name and category, with the giver's
+  worktrees, a slot each when the project has ports, and its secret files from the settings. A
+  project outside the home folder is named, not copied. A client that can reach the engine keeps
+  itself ready (`engineroom mirror`) when the app's panel is opened, at most once an hour: it
+  mirrors what it lacks and fetches the rest, pushes nothing and moves no worktree.
+- **Release.** On the engine, `engineroom handoff release` pushes the checked-out work and names
+  what is uncommitted, before a client works local. Committing that as partial work is offered
+  as its own action (`commit-partial`).
+- A machine out of reach still lets the switch happen with what can be done (CONN-HANDOFF-005),
+  since working local without the engine is the reason the switch exists.
+- The app calls the client's switch "Work local" and its way back "Hand back to the engine".
+
+**Considered.**
+
+- Pushing every branch the machine has: it publishes backups and experiments, and a pushed
+  release branch can start a deployment.
+- Letting the developer pick projects at each switch: riskier in a hurry, when something is
+  forgotten.
+- A stash pushed through GitHub: it publishes work in progress.
+- Committing partial work onto the branch during a handover: it fills the branch's history with
+  commits nobody meant to make.
+- Copying ignored files as well: large and generated files have no place in a handover.
+- Carrying what can land and reporting the rest: the two machines end up in different states
+  without the developer noticing.
+- Refusing a receiving checkout that has changes of its own: setting them aside, labelled, loses
+  nothing and reaches the state a handover means.
+
+## D-018 Ask Claude opens a session that knows what was open; projects name their own tasks
+
+**Problem.** The app's buttons cover the common actions. Changing a project's scripts, settings
+or secrets, or doing something particular to one project, would otherwise mean opening a
+terminal, finding the settings folder and explaining ports and paths to Claude.
+
+**Decision.**
+
+- Ask Claude (`engineroom api run assistant <project> <folder>`) starts a Claude session of its
+  own beside the checkout's main one (`<session>-ai`), on the engine, in the checkout, with the
+  settings folder added. Its system prompt is extended with how engineroom wants things done
+  (its commands; scripts safe to run twice, kept in the settings folder, reading ports from the
+  slot; secrets never printed; destructive steps only when asked) and with what was open: the
+  project, checkout, branch, slot, ports, links, scripts, secret files and tasks.
+- That guide is part of the program, so nothing has to be installed into the developer's Claude
+  configuration for it.
+- A project names its own tasks in `engineroom.toml` (`[[task]]` with `name`, `about` and
+  `run`). The app lists them on each checkout, `engineroom task` runs one in a session's
+  checkout with the slot's variables, and the assistant is told them.
+
+**Considered.** A button per kind of change: the list never ends, where one session that already
+knows the context covers them all.
+
+## D-019 The menu bar panel holds the sessions; a window holds everything else
+
+**Problem.** One small panel holding sessions, repositories, project pages, history and settings
+makes the things done many times a day share space with the things done now and then, and the
+occasional work loses its place whenever the panel closes.
+
+**Decision.**
+
+- The panel from the menu bar holds what is used many times a day: the projects and their
+  sessions (laid out as D-022 and D-025 say). An action started from it is shown in it.
+- Its gear opens a window: a sidebar of the registered projects (pinned first), the
+  repositories, the history and the settings, with the chosen one on the right. An action
+  started from the window is shown in the window.
+- Both draw from one store, so they always agree. How that store is kept current is D-023.
+- Every screen is drawn in one visual language (D-032), and `EngineRoomMenu --snapshot <dir>
+  [dark]` draws them from invented sample data, so how the app looks can be checked after every
+  change.
+
+**Considered.** One panel with tabs and back links for everything: cramped, and closed by any
+click outside it.
+
+## D-020 What runs for a session lives only as long as the session
+
+**Problem.** A stack started for a session keeps running after the session ends unless something
+ties the two together. The ports stay taken, and nothing shows why.
+
+**Decision.**
+
+- What is started for a checkout's session belongs to that session. Ending the session fully
+  ends it too. Leaving a session ends nothing: closing the tab or window, detaching, or a client
+  sleeping or losing its connection leaves the session and everything it runs as they were.
+- "Started for a session" means what the project's `up` started, which its `down` stops, and any
+  process still running whose environment names the session: `ENGINEROOM_SESSION`, which
+  engineroom sets on everything it runs for a checkout; else the session of the checkout named
+  by `ENGINEROOM_WORKTREE`; else `ZELLIJ_SESSION_NAME`, which Zellij sets on everything started
+  inside a session. `ENGINEROOM_SESSION` wins where they differ, so a stack started for one
+  checkout from inside another session belongs to its own checkout's session.
+- Of those, only servers are stopped: each process that listens on a TCP port, with the
+  processes of the same session that started it and those it started. An editor or app opened
+  from inside a session carries the session's name too, listens on nothing, and is the
+  developer's to close. A process is never matched by its name.
+- Stop and clean up run the project's `down` while the session is there, end the session, then
+  stop whatever still runs in its name (`engineroom session reap <name>`, which says what it
+  stopped and refuses while the session runs).
+- Restart keeps the stack: the same session comes back on the current layout.
+- A session that ends without engineroom (quit from inside Zellij, killed, or crashed) is found
+  by the sweep. The menu bar app starts one `engineroom sweep --watch` on the machine whose
+  sessions they are: on the engine from when the app starts, and on a client only while it works
+  local. It sweeps every minute and ends with the app; it is never a job of its own. It reads
+  that machine's Zellij sessions and processes and never the network. A checkout whose session
+  has been gone for two minutes has what was started for it stopped, as Stop would, and what
+  Zellij keeps of the ended session is deleted (D-015). Each is an entry in the history.
+  `engineroom sweep --dry-run` shows what it would do.
+- A process on a project's ports that belongs to no session is never stopped for the developer.
+  The project's page lists it with its port, process id, start time and folder, and offers to
+  stop that one.
+- Claude in a session runs the app through `engineroom up` and `engineroom down` (the run-stack
+  skill), so what it starts belongs to the session. A build handed over to try is `down` then
+  `up`, so the app that is running is the build that was handed over.
+- Handing work over to a client (D-017) does not end the engine's sessions, so it does not stop
+  their stacks.
+
+**Considered.**
+
+- Matching processes by name: it reaches processes that belong to something else.
+- A scheduled job on every machine: it runs all the time, including where there is nothing to
+  sweep.
+
+Proven by WORK-STACK-006 to 013.
+
+## D-021 A join whose connection drops joins the same session again
+
+**Problem.** A client's join is an SSH connection, which ends whenever the client sleeps or
+changes network, while the session runs on untouched on the engine. A window that then ends as
+though the session had ended means joining again by hand after every lid close.
+
+**Decision.**
+
+- A join that had been attached and then ended with ssh's own failure status (255) is a dropped
+  connection. The window says the connection was lost and that the session keeps running, asks
+  the engine for its sessions every 3 seconds (showing the command it asks with and why the
+  engine did not answer), and joins the session again as soon as the engine answers. Each join
+  again is an action in the history.
+- Only the same session is joined again: one still running and older than the join that dropped.
+  A session stopped or restarted while the connection was down ends the join, and nothing is
+  started.
+- `q` stops the waiting and joins nothing.
+
+**Considered.**
+
+- Keeping the connection alive through sleep (long keep-alive limits, or a mobile shell): a long
+  limit keeps a dead connection open on a real fault and still loses it on a long sleep, and a
+  mobile shell is another program on both machines and another port, for what Zellij already
+  gives: joining again redraws the whole session.
+- Rejoining from the app on wake: the window already knows what it was joined to and can wait
+  for the engine itself.
+
+Proven by CONN-REJOIN-001 to 004.
+
+## D-022 The panel keeps one order, pinned first; waiting is a mark, not a place
+
+**Problem.** A list that moves a session to the top whenever Claude starts waiting never has
+anything where it was last seen.
+
+**Decision.**
+
+- One fixed order: the pinned projects by name, each always there whether running or not; then
+  the other projects with a running session, by name; then this Mac's own sessions started while
+  it worked local. The app lays this out itself (`PanelList`), whatever order it is sent.
+- A waiting session is marked where it is, with Claude's mark (✻) and Claude's question. It is
+  never moved and never listed twice.
+- Each project carries a GitHub line (code, issues, pull requests), and a worktree whose branch
+  is on GitHub carries that branch and the pull requests from it. The branch links are read from
+  the clone, with no request to GitHub.
+- The terminal's session list and `engineroom sessions` have the same order (`ops.Order`):
+  pinned projects' sessions, then the rest, then Ask Claude sessions, each by name. An ended
+  session keeps its place, marked ended.
+- Only the app asks for the sessions' GitHub links (`engineroom sessions --json --github`).
+
+**Considered.** A "waiting for you" section at the top: it reorders the list on every change and
+lists a session twice.
+
+Proven by APP-LIST-001 to 003, SESS-LIST-002 and SESS-LIST-005.
+
+## D-023 The engine sends the app its sessions when they change; the app reads nothing on a timer
+
+**Problem.** Reading the sessions on a timer costs a new SSH connection for every look on a
+client, shows what was true some seconds ago, and knows nothing while the panel is closed, so
+the menu bar cannot say that Claude is waiting.
+
+**Decision.**
+
+- `engineroom api feed` sends the sessions as one JSON line now, and again each time anything in
+  it changes, and nothing in between. Where the sessions are on the machine it runs on, it looks
+  every 3 seconds; each project's GitHub links are read at most every 30 seconds. On a client
+  that is online it runs the engine's feed over one SSH connection and adds this machine's own
+  sessions to each list.
+- Any line written to the feed asks it to look now. The app does that after an action, so what
+  the action changed shows at once. Closing its input ends it, and the engine's with it, so
+  nothing is left looking on the engine for an app that has gone. After a quiet minute it sends
+  an empty line, so a connection that died without closing is found.
+- The app keeps the feed open while it runs. When the feed ends, the app starts it again two
+  seconds later; when it ended at once (the engine not answering), after 5, 15, 45 seconds and
+  so on, up to five minutes. Opening the panel, a wake and the refresh button try at once.
+  While there is no feed, the sessions are read when the panel opens and after an action.
+- The app reads nothing on a timer. Its own state (forwarding, history, settings) is read when
+  the panel or window opens, after an action, on wake and on refresh.
+- The menu bar icon carries Claude's mark (✻) while Claude is waiting in any session, panel open
+  or not.
+- Anything that could lose work checks at the moment it is asked for, never from what the feed
+  last said.
+
+**Considered.**
+
+- Reading on a timer while the panel is open: a connection per look, stale by up to the
+  interval, and blind while closed.
+- A feed only while the panel is open: it keeps the panel fresh but loses the menu bar's mark,
+  for a saving too small to notice.
+
+Proven by APP-FEED-001 to 005.
+
+## D-024 A worktree is for a branch or for a role; closing or moving on never loses work
+
+**Problem.** A worktree named for its branch and closed when the branch is done does not fit
+work that is batched in standing worktrees (a designer's, a tester's), each holding one branch
+after another. And a clean up that only refuses when work would be lost offers no way through.
+
+**Decision.**
+
+- New work is either branch work (`new <project> <branch>`: folder `<repo>-<branch>`, closed
+  when done) or a role (`new-role <project> <role> <branch>`: folder `<repo>-<role>`, on a new
+  branch from the remote's main or on an existing branch).
+- A role is recorded by `engineroom roles add` in `roles.json` in the project's settings folder,
+  so every machine that syncs the settings knows it. `engineroom roles <project>` lists them.
+  A name that is already branch work is refused as a role.
+- `next-branch <project> <role> <branch>` moves a role worktree on to its next branch in the
+  same folder, keeping its session name and its slot of ports.
+- Clean up and moving on refuse, before anything runs, when work would be lost (uncommitted
+  changes, or commits on no remote), and offer what makes it safe: save the changes to the
+  branch and push (`save-work`), put them aside as a stash of the repository, which outlives the
+  worktree (`put-aside`), or push the commits (`push-work`). Each is a plan of its own, shown
+  before it runs. Throwing work away is never offered.
+- Cleaning up a role worktree forgets the role (`engineroom roles remove`).
+
+**Considered.**
+
+- Worktrees for branches only: it rules out standing worktrees.
+- A list of roles declared ahead in `engineroom.toml`: the kind is chosen when a worktree is
+  made, and the program would have to rewrite a hand-written file to record it.
+
+Proven by WORK-CLEAN-008 to 011 and WORK-ROLE-001 to 005.
+
+## D-025 The panel is a list of projects and a detail of compact cards
+
+**Problem.** A full card per session, one under another, has to be scrolled once several
+projects run, and a stopped worktree is not shown at all.
+
+**Decision.**
+
+- The panel is 840 by 480. On the left is one row per project in the order of D-022, with one
+  light for all its sessions: Claude's mark when any waits, green when one runs, grey when none
+  does, and a count when more than one runs.
+- Pointing at a row, or clicking it, shows that project on the right: its name (which opens its
+  page), its state, its GitHub line, a compact card per checkout (main clone first, then
+  worktrees by name, running or not), and its Ask Claude sessions as one line each.
+- The project last chosen is remembered across opening the panel and restarting the app, and
+  stays listed ("Last used") after its last session stops, so an action returns to it.
+- A card shows its light; the main clone by branch, a role worktree by its role with the branch
+  it holds, any other by name; and chips for unsaved files, commits not pushed, commits behind
+  main and a merged branch.
+- Every action is a button in sight, with no menus: Join, Restart, Stop or Start; Next branch
+  for a role; Close for a worktree; VS Code, Ask Claude, the branch and its pull requests on
+  GitHub, and copying the branch name as icons. Each card shows its links and its Forward switch
+  whether or not its session runs.
+- The feed (D-023) carries each checkout's state for the pinned projects and those with a
+  running session: unsaved, unpushed, behind and merged, read from git on the engine's own disk
+  at most every 30 seconds and after an action. Nothing is fetched to find them, so behind and
+  merged are as of the last fetch; Close always checks again when pressed.
+- "Merged" means the remote's branch is in main and is not simply one of main's own commits, so
+  a new branch with nothing of its own is not called done.
+
+**Considered.**
+
+- A list of trimmed cards: it still grows with every session and still scrolls.
+- A row per session: a project with worktrees fills the list, and the project is what the
+  developer thinks in.
+
+Proven by APP-LIST-004 and APP-FEED-006.
+
+## D-026 One name: engineroom is the program, the engine is the machine that does the work
+
+**Problem.** A name should say what it names, and one thing should have one name wherever it is
+met: in the app, on the command line, in a file name and in an environment variable.
+
+**Decision.**
+
+- The program is engineroom: the repository, the Go module
+  (`github.com/KyleyHarris/engineroom`), the command (`engineroom`), the app (`engineroom.app`,
+  bundle id `local.engineroom.menu`) and the Swift modules (`EngineRoomKit`, `EngineRoomMenu`).
+- The machine that does the work is the engine, and a machine that reaches it is a client:
+  `role = "engine"`, the `[engine]` section, `--engine`, `handoff to-engine` and `from-engine`.
+- The program's folders are `~/.config/engineroom` and `~/.local/state/engineroom`, under the
+  XDG roots.
+- A project's folder is `.engineroom/` with `engineroom.toml`, in a repository and in the
+  developer's settings alike. The slot files are `.engineroom-slot.json` and
+  `.engineroom-slot.env`, and the registry is `.git/engineroom-slots.json`.
+- Environment variables are `ENGINEROOM_*`, named by kind (D-028).
+
+**Considered.**
+
+- A shorter command beside the product's name: two names for one thing, met by everyone who goes
+  from the app to the command line. A developer who wants a short command can alias it.
+- Naming the program after one of the tools it uses: the tools can change, and the name should
+  not.
+
+## D-027 The website is built from the docs; only the story pages are written by hand
+
+**Problem.** A website written beside the docs holds every fact twice, and the two copies drift.
+
+**Decision.**
+
+- `tools/site`, a small Go program in this repository, renders `docs/setup.md` and
+  `docs/usage.md` into pages, one per heading down to a level set for each doc, with the heading
+  ids GitHub gives, so a link written for GitHub lands in the same place on the site. A link to
+  any other file in the repository goes to that file on GitHub.
+- New facts go into the docs first and the site shows them. The pages in `site/pages` carry only
+  the story: the front page and how it works.
+- This file is not rendered: the site is for using engineroom, and the reasons behind it are for
+  people changing it, who read them here.
+- The product's name, its command and the stack of tools it joins together are data in
+  `site/site.toml`, never spelled in a template, a class, a file name or an address.
+- Plain HTML and CSS with no JavaScript build, and fonts served by the site itself: it sends no
+  request elsewhere and opens from disk. How it works has one small hand-written script.
+- The look is a style over one shared stylesheet, named in `site.toml`.
+  `go run ./tools/site -serve` serves the site, builds it again on every change, and offers a
+  switch between styles when more than one is listed.
+- The gate builds the site into a temporary folder and fails on a link, an anchor or an image
+  that goes nowhere, and on an em or en dash. The built site is never committed; a workflow
+  publishes it.
+
+**Considered.**
+
+- Every page written by hand: two copies of every fact.
+- A site generator from the JavaScript ecosystem: a toolchain and a build step this repository
+  does not otherwise need.
+
+## D-028 A slot's keys are named by kind, and a key that would overwrite another is refused
+
+**Problem.** Every key of a slot (the program's own, and a project's ports, names and derived
+values) is one value in the slot's record and in a template's `{{key}}`, and is given to scripts
+as an environment variable. With one prefix for everything, a project's key could take a name
+the program uses for itself, and silently replace it.
+
+**Decision.**
+
+- The program's own variables are `ENGINEROOM_SLOT`, `ENGINEROOM_WORKTREEROOT`,
+  `ENGINEROOM_ISMAINCLONE`, `ENGINEROOM_PROJECT` and `ENGINEROOM_TMP`.
+- A project's are `ENGINEROOM_PORT_<KEY>`, `ENGINEROOM_NAME_<KEY>` and
+  `ENGINEROOM_DERIVED_<KEY>`: the key in capitals, with anything that is not a letter or a digit
+  made an underscore (`engineroomfile.Fold`). The program never names a variable of its own with
+  `PORT_`, `NAME_` or `DERIVED_` after its prefix.
+- The record and `{{key}}` keep the plain keys.
+- When a project's settings are read (`settings.Load`), a port, name or derived value is refused
+  if it folds to the same name as a built-in, or as another key of a different kind or spelling.
+  That is checked after the developer's file and the repository's are merged, so a clash between
+  the two is caught too. The error names the file and both keys.
+
+**Considered.**
+
+- A prefix per kind alone: the record and `{{key}}` still hold one value per key, so a port
+  named `project` would still overwrite the project's name there.
+- Refusing only a key spelled exactly as another: `db-name` and `db_name` are one variable name.
+
+## D-030 An application the program starts is started as the developer would start it from the Dock
+
+**Problem.** macOS hands an application the whole environment of whatever asks for it, and the
+application keeps it for as long as it runs, as does everything it opens. A terminal started
+from a shell, an agent's session, an SSH login or a test would keep that caller's home,
+configuration folders and session variables, so every tab it opened afterwards would read the
+wrong configuration or take itself for part of another session.
+
+**Decision.**
+
+- Opening a terminal, and reopening the menu bar app after an upgrade, run
+  `/usr/bin/env -i <command>`, shown with the plan like any command. An application started that
+  way has the environment macOS gives one started from the Dock, and none of the caller's.
+- The command is looked up on the program's own PATH before the environment is emptied.
+- What runs inside a window the program opens is given the program's PATH (D-011): to Ghostty as
+  the tab's own variable, to other terminals as `/usr/bin/env PATH=... engineroom join ...`.
+- The app opens VS Code with an empty environment too.
+- A Zellij session is not an application. It keeps the environment of what started it, without
+  the agent's own session markers (`zj.AgentSessionVars`).
+- An application that is already running keeps the environment it was started with; quitting and
+  opening it again is the remedy.
+- The journeys put stand-ins for `open` and `osascript` on every machine they make, so no
+  journey reaches the real ones, and they check that a join asks for its window with an empty
+  environment.
+
+**Considered.**
+
+- Removing a list of known variables: any variable not on the list still reaches the
+  application, and the list only grows.
+- Having launchd start it (`launchctl submit`): the same environment, but a submitted job is
+  kept alive and started again when it ends, and the command is deprecated.
+- Asking Finder to open it: a further permission, for the same result.
+
+## D-031 A session on a Mac is started inside the developer's desktop login
+
+**Problem.** A Zellij session belongs to the login that started its server, and so does
+everything that runs in it. A session started from a client is started over SSH, and in an SSH
+login the login keychain is locked and macOS treats what runs as a background process.
+
+**Decision.**
+
+- On a Mac, when the program runs outside the desktop login (`launchctl managername` is not
+  `Aqua`) while one exists, a session's start is two commands in its plan:
+  `engineroom session job <name> <layout> <dir>` writes a launchd job and prints it, then
+  `launchctl bootstrap gui/<uid> <job file>` runs it. Run inside the desktop login, the start is
+  direct. With no one logged in at the screen it is direct too, and the session lacks what only
+  the desktop login has.
+- The job runs the same `zellij attach --create-background ...` as a direct start, in the
+  checkout's folder, then removes itself. `engineroom session wait` follows, and prints the
+  job's log when the session does not start.
+- The job gives the session the program's environment without what belongs to the login it ran
+  in: the SSH connection's variables and agent socket, its temporary folder, the shell's
+  bookkeeping and the agent's session markers. launchd adds the desktop login's own.
+- The job file is the program's state (`~/.local/state/engineroom/jobs/`), readable only by the
+  developer and replaced by the next start of the same session. Its label carries a hash of the
+  state folder, so a test's jobs and the developer's never share one.
+- Joining is unchanged.
+- `ENGINEROOM_DESKTOP_SESSIONS=off` never uses the route, and `=on` uses it whenever a desktop
+  login exists. The journeys keep it off, except SESS-NEW-006, which proves the route.
+- Not covered: whether macOS's privacy permissions (Documents, Desktop, Full Disk Access) treat
+  a session started this way as they treat one started from a terminal at the screen.
+
+**Considered.**
+
+- `launchctl asuser`: it needs root.
+- `launchctl submit`: deprecated, takes no environment or folder, and keeps the job alive.
+- A process of the program's own kept running in the desktop login to start sessions on request:
+  a second way in to keep running and answering, where a job made for each start needs nothing
+  running.
+- Unlocking the keychain in the SSH login: it needs the password on every start, and fixes only
+  the keychain.
+
+## D-032 The app has one meaning per colour, one kind of button per job, and its sizes named once
+
+**Problem.** Screens drawn alike only by convention drift: many text sizes and corner radii, the
+same piece drawn twice in two files, and a colour that means six different things means nothing.
+
+**Decision.**
+
+- A colour says one thing wherever it is used. Orange: something needs the developer (Claude is
+  waiting, work that would be lost, a step that cannot run). Green: as it should be (a session
+  running, an action done, something copied). Red: it failed or cannot be reached. The accent
+  colour: under way and needing nothing, and anything that is clicked like a link. Everything
+  else is quiet.
+- A project's light is the same on every screen: Claude's mark when any of its running sessions
+  waits, a green dot when one runs.
+- A button in words changes something (Join, Stop, Close). A button that is only an icon opens
+  something elsewhere or copies (VS Code, Finder, GitHub, the branch name), and has a tooltip.
+  One button of a card is filled: the one most often pressed.
+- On a project's page a checkout that is not running shows the three ways to start it as three
+  buttons: the terminal with Remote Control, the terminal only, Remote Control only. The way
+  chosen in Settings is the filled one, so the usual start is still one click
+  (APP-START-001 to 003).
+- Text sizes, corner radii and page gutters are named by what they are for, in
+  `macos/Sources/EngineRoomMenu/Style.swift`, and no screen writes a number of its own. The
+  card, the state light, the chip, the banner, the empty screen and the page title are each
+  drawn once there.
+- Working local is turned on and off by a button in words, in the header and in Settings, and
+  the header's badge says when it is on. Quit stands apart from refresh and the gear.
+- Every page of the window starts with its title line and shows what it has as cards. A page
+  reached from another has the link back above its title.
+- What a checkout would lose is a chip under its name. Close, which only a worktree has, sits at
+  the far end of its row, apart from the buttons that join or start.
+- An action's commands have one way back, the link at the top, in sight before, during and after
+  a run. The bar at the foot holds what goes on: Copy, then Run or Done. A failed command is
+  said in one word, "failed", wherever the app shows it.
+
+**Considered.**
+
+- Correcting each inconsistency where it is noticed: nothing stops the next screen from
+  drifting.
+- The system's stock lists and forms throughout: the cards with a label column are what make a
+  checkout's state and its actions readable at once, and the panel has no stock equivalent.
+
+## D-033 The panel's list is worked from the keyboard, and what the app shows by an icon or a colour it also says in words
+
+**Problem.** A panel opened many times a day and worked only by pointing costs a reach for the
+pointer each time. A button that is only an icon, and a state shown only as a colour, say
+nothing to VoiceOver.
+
+**Decision.**
+
+- In the panel's list, Down and Up choose the next and the previous project, in the order the
+  list is drawn, and stop at each end. The choice is the one pointing makes: it is shown on the
+  right and remembered (D-025).
+- Return joins or starts the chosen project: its session that waits for the developer, else its
+  first running session, else it starts its first checkout. That card's Join or Start carries a
+  return mark, and the key sends exactly what the button sends.
+- Escape closes the panel from its list. On a page reached from another, it is the link back.
+- The keys are left alone when they belong to something else: held with Command, Option, Control
+  or Shift; while a dialog is up; while a field is typed into; and Escape while an input method
+  is part way through a character. A held arrow walks the list; a held Return asks once.
+- Pointing and clicking are unchanged. After an arrow key the pointer chooses again as soon as
+  it moves.
+- Every button that is only an icon has a name in words, read by VoiceOver. A state light is
+  read as its state, a row of the list as one thing (the project, its state, and how many
+  sessions run), and the menu bar icon as the app, with "Claude is waiting for you" while it
+  carries the mark.
+- An action's page arrives with a short fade, and nothing fades while Reduce Motion is on.
+- Which key does what, and what Return acts on, are decided in `EngineRoomKit` (`PanelKey`,
+  `PanelProject.step`, `PanelProject.keyAction`) and checked by its tests.
+- Not covered: keys for the window's own lists and forms, which keep the system's.
+
+**Considered.**
+
+- A stock list that moves its own selection: it restyles the rows, and answers keys only once it
+  has the focus, which in a panel opened from the menu bar is after a click.
+- A letter per action: a letter is not in sight, and a wrong letter would stop a session. Return
+  carries the one action that can always be left again.
+- Return always joining the first card: the panel is opened most often because Claude is
+  waiting, and that session is often a worktree's.

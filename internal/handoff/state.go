@@ -8,8 +8,8 @@
 // check both machines are as read and GitHub takes every push, push the giving machine's
 // checked-out branches, set each receiving checkout's own work aside in its stash list and put it on
 // the giving branch at the giving commit, then carry each giving checkout's uncommitted work across
-// as a stash, straight between the two machines over SSH and never through GitHub (D-017, amended
-// 2026-11-09). The developer sees the plan and runs it, or not.
+// as a stash, straight between the two machines over SSH and never through GitHub (D-017).
+// The developer sees the plan and runs it, or not.
 package handoff
 
 import (

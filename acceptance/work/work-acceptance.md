@@ -5,8 +5,8 @@ session open in it, starting and stopping its app stack with the repository's ow
 cleaning that {checkout.lower} up when the work is finished. Out of
 scope: claiming ports for a {checkout.lower}, which is the ports area.
 
-**Sourcing**: every scenario's intent was stated by the architect in conversation on 2026-11-04,
-or in the decisions it cites. Nothing here is inferred from software.
+**Sourcing**: every scenario's intent is stated in its own comment, or in the decisions it cites.
+Nothing here is inferred from software.
 
 **Status**: every scenario is `proposed`, written at planning before the software exists.
 `proposed` is a proposal to be confirmed, `derived` is written up from delivered software,
@@ -42,8 +42,8 @@ software should do.
 
 ### Feature: Starting new work
 
-<!-- intent: the architect, 2026-11-04 - "build a new worktree for an issue on a repo and then open
-     a session there"; worktrees are siblings named <repo>-<branch> -->
+<!-- intent: new work is one step: a worktree for a branch of a project, and a session opened in it;
+     worktrees are siblings named <repo>-<branch> -->
 
 ```gherkin
 @WORK-NEW-001 @status:proposed @persona:Developer
@@ -54,7 +54,8 @@ Scenario: New work gets its own {checkout.lower} beside the main one, with a {se
   And a {session.lower} is open in that {checkout.lower}
 ```
 
-<!-- intent: issue #7 - "Fetch the project's remote, so the worktree starts from the current main" -->
+<!-- intent: new work fetches the project's remote, so the worktree starts from the current main
+     -->
 
 ```gherkin
 @WORK-NEW-002 @status:proposed @persona:Developer
@@ -64,8 +65,8 @@ Scenario: New work starts from the remote's current main
   Then the new branch starts from that commit
 ```
 
-<!-- intent: the architect's rule that branch names carry no slashes, so a branch, its folder and
-     its session share one name -->
+<!-- intent: branch names carry no slashes, so a branch, its folder and its session share one name
+     -->
 
 ```gherkin
 @WORK-NEW-003 @status:proposed @persona:Developer
@@ -110,10 +111,10 @@ Scenario: A failing create script is reported and no {session.lower} opens
   And no {session.lower} is opened
 ```
 
-<!-- intent: docs/decisions.md D-006 - "a repository's script is read from the checkout, so a
-     branch that changes it runs its own version"; new work starts from the remote's main, so the
-     script it runs is main's, not whatever branch the main clone has checked out (found
-     2026-11-07: a create script on an unmerged branch made every new worktree fail) -->
+<!-- intent: docs/decisions.md D-006 - a repository's script is read from the checkout, so a
+     branch that changes it runs its own version; new work starts from the remote's main, so the
+     script it runs is main's, not whatever branch the main clone has checked out, where a create
+     script on an unmerged branch would make every new worktree fail -->
 
 ```gherkin
 @WORK-NEW-007 @status:proposed @persona:Developer
@@ -126,8 +127,8 @@ Scenario: New work runs the create script of the commit it starts from, not the 
 
 ### Feature: Cleaning up finished work
 
-<!-- intent: the architect, 2026-11-04 - "clean up work tree option ... which can execute the
-     commands and scripts to dispose of that"; issue #8 -->
+<!-- intent: cleaning up a worktree is one action that runs the commands and scripts to dispose of
+     it -->
 
 ```gherkin
 @WORK-CLEAN-001 @status:proposed @persona:Developer
@@ -138,7 +139,7 @@ Scenario: Cleaning up finished work removes its {checkout.lower} after asking
   And its {checkout.lower} is removed
 ```
 
-<!-- intent: issue #8 - "It refuses, and says why, when the worktree has uncommitted changes" -->
+<!-- intent: clean up refuses, and says why, when the worktree has uncommitted changes -->
 
 ```gherkin
 @WORK-CLEAN-002 @status:proposed @persona:Developer
@@ -149,7 +150,8 @@ Scenario: Work with uncommitted changes is not cleaned up
   And nothing is stopped or removed
 ```
 
-<!-- intent: issue #8 - "or commits that were never pushed" -->
+<!-- intent: clean up refuses, and says why, when the worktree has commits that were never pushed
+     -->
 
 ```gherkin
 @WORK-CLEAN-003 @status:proposed @persona:Developer
@@ -160,7 +162,7 @@ Scenario: Work with commits that were never pushed is not cleaned up
   And nothing is stopped or removed
 ```
 
-<!-- intent: issue #8 - delete the branch "only when the branch has been merged into main" -->
+<!-- intent: clean up deletes the branch only when it has been merged into main -->
 
 ```gherkin
 @WORK-CLEAN-004 @status:proposed @persona:Developer
@@ -181,7 +183,7 @@ Scenario: An unmerged branch is kept when its {checkout.lower} is removed
   And its branch still exists on this machine and on the remote
 ```
 
-<!-- intent: issue #8 - "It never touches the main clone" -->
+<!-- intent: clean up never touches the main clone -->
 
 ```gherkin
 @WORK-CLEAN-006 @status:proposed @persona:Developer
@@ -203,9 +205,9 @@ Scenario: The repository's teardown script runs before the {checkout.lower} is r
   Then the teardown script runs in the {checkout.lower} before it is removed
 ```
 
-<!-- intent: the architect, 2026-11-09 - "Close worktree should have some kind of verify script that
-     no code would get lost. Ie rollback or commit to a branch"; a put-aside change is a stash of
-     the repository, which outlives the worktree (D-024) -->
+<!-- intent: closing a worktree checks first that no work would be lost, and offers to save it to
+     the branch or put it aside; a put-aside change is a stash of the repository, which outlives the
+     worktree (D-024) -->
 
 ```gherkin
 @WORK-CLEAN-008 @status:proposed @persona:Developer
@@ -245,10 +247,8 @@ Scenario: Work with commits that were never pushed offers to push them
 
 ### Feature: Worktrees kept for a role
 
-<!-- intent: the architect, 2026-11-09 - "When I add a worktree I would prefer to be pick role or
-     branch specific. Meaning I will delete after it's branch is done"; "Role. Worktrees. Either
-     branch or role. Based and recorded so the rule can value both"; a role worktree keeps its
-     folder, session and ports while branches come and go in it (D-024) -->
+<!-- intent: a worktree is made for a branch, and deleted when the branch is done, or for a role; a
+     role worktree keeps its folder, session and ports while branches come and go in it (D-024) -->
 
 ```gherkin
 @WORK-ROLE-001 @status:proposed @persona:Developer
@@ -298,10 +298,9 @@ Scenario: Cleaning up a role {checkout.lower} forgets the role
 
 ### Feature: Starting and stopping the app stack
 
-<!-- intent: the architect, 2026-11-04 - "proper startup and tear down scripts per repo to run or
-     shut down that work in each worktree. im relying on claude knowing how rather than a
-     standard"; docs/decisions.md D-006 as amended: the stack starts on request, through the
-     repository's up script -->
+<!-- intent: each repository has its own scripts to start and stop what a worktree needs, so
+     starting a stack is the same step everywhere (docs/decisions.md D-006): the stack starts on
+     request, through the repository's up script -->
 
 ```gherkin
 @WORK-STACK-001 @status:proposed @persona:Developer
@@ -322,8 +321,8 @@ Scenario: Stopping the stack runs the repository's down script in the {checkout.
   Then the down script runs in that {checkout.lower}
 ```
 
-<!-- intent: issue #32 - "Clean up runs the stop script before teardown", so nothing the stack
-     started is left running against a worktree that is gone -->
+<!-- intent: clean up runs the stop script before teardown, so nothing the stack started is
+     left running against a worktree that is gone -->
 
 ```gherkin
 @WORK-STACK-003 @status:proposed @persona:Developer
@@ -346,9 +345,9 @@ Scenario: A {project.lower} without an up script is told how to add one
   And nothing is run
 ```
 
-<!-- intent: the architect, 2026-11-07 - a stack started with no session ran on the engine but could
-     not be reached from the client, which forwards running sessions' ports only: "the session must
-     exist ... the run button should start a session if needed" -->
+<!-- intent: a stack started with no session would run on the engine and not be reachable from a
+     client, which forwards running sessions' ports only; so Run starts the session if it is needed
+     (D-013) -->
 
 ```gherkin
 @WORK-STACK-005 @status:proposed @persona:Developer
@@ -361,10 +360,9 @@ Scenario: Starting the stack of a {checkout.lower} with no {session.lower} start
 
 ### Feature: What runs for a session lives as long as the session
 
-<!-- intent: the architect, 2026-11-07 - "anything run for the session like starting the app
-     stack, should be tied to the session. shutting down the session totally vs disconnecting
-     should shut down everything related"; "the point was only within the lifetime of the
-     session"; docs/decisions.md D-020 -->
+<!-- intent: anything run for a session, such as its app stack, lives only as long as the session:
+     ending the session fully, as against leaving it, ends everything started for it
+     (docs/decisions.md D-020) -->
 
 ```gherkin
 @WORK-STACK-006 @status:proposed @persona:Developer
@@ -414,8 +412,8 @@ Scenario: A {session.lower} that ended only a moment ago keeps its stack
   Then nothing is stopped
 ```
 
-<!-- intent: the architect, 2026-11-07 - restart brings the same session back on the current
-     layout, so it is not an end of the session's life -->
+<!-- intent: restart brings the same session back on the current layout, so it is not an end of the
+     session's life -->
 
 ```gherkin
 @WORK-STACK-010 @status:proposed @persona:Developer
@@ -449,7 +447,7 @@ Scenario: A stack started from inside another {session.lower} belongs to its own
   Then the second {checkout.lower}'s stack is still running
 ```
 
-<!-- intent: as WORK-STACK-006 - found 2026-11-07: an editor opened from inside a session carries
+<!-- intent: as WORK-STACK-006 - an editor opened from inside a session carries
      the session's name too; it is the developer's to close, and only what serves on a port
      (with what started it and what it started) is stopped for a session -->
 
@@ -462,9 +460,8 @@ Scenario: An app opened from inside a {session.lower} stays open when the {sessi
   Then the app is still running
 ```
 
-<!-- intent: the architect, 2026-11-08: "this should be enabled in the server hub when it starts.
-     and on local only enabled when needed when running local. and not a seperate thing that runs
-     all the time" - the sweep lives with the app that starts it, never as a job of its own -->
+<!-- intent: the sweep is started on the engine when the app starts, and on a client only
+     while it works local: it lives with the app that starts it, never as a job of its own -->
 
 ```gherkin
 @WORK-STACK-014 @status:proposed @persona:Developer
@@ -475,9 +472,9 @@ Scenario: The sweep runs with what started it and ends with it
   And when what started the watch ends, the watch ends too
 ```
 
-<!-- intent: the architect, 2026-11-09 - clicking one of a {checkout.lower}'s links "did not check
-     and run the up.. get to dead browser". Opening a link first asks the machine its stack runs
-     on whether anything answers on the link's port, and starts the app when nothing does -->
+<!-- intent: a link to a stack that is not running opens a dead page. Opening a link first asks the
+     machine its stack runs on whether anything answers on the link's port, and starts the app when
+     nothing does -->
 
 ```gherkin
 @WORK-STACK-015 @status:proposed @persona:Developer

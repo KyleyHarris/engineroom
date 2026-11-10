@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// Carrying uncommitted work (D-017, amended 2026-11-09): Pack and Unpack run for real against the
+// Carrying uncommitted work (D-017): Pack and Unpack run for real against the
 // test world's clones, with the stash sent between them as the handover sends it (a fetch of its
 // ref).
 

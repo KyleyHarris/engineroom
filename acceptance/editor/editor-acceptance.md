@@ -4,8 +4,7 @@
 command line, on whichever machine the developer is at. Out of scope: installing {editor} or
 its remote extension, and forwarding a {checkout.lower}'s ports, which is the ports area.
 
-**Sourcing**: every scenario's intent was stated by the architect in conversation on 2026-11-04
-(an open-in-{editor} action per {session.lower}), in issue #11, or in the decisions it cites.
+**Sourcing**: every scenario's intent is stated in its own comment, or in the decisions it cites.
 Nothing here is inferred from software.
 
 **Status**: every scenario is `proposed`, written at planning before the software exists.
@@ -40,8 +39,8 @@ software should do.
 
 ### Feature: Opening a session's worktree in the editor
 
-<!-- intent: issue #11 - "On the hub, VS Code opens the worktree directly. The command it runs is
-     shown, like every other action." -->
+<!-- intent: on the {engine.lower}, VS Code opens the worktree directly, and the command it runs is
+     shown, like every other action -->
 
 ```gherkin
 @EDIT-OPEN-001 @status:proposed @persona:Developer
@@ -52,8 +51,8 @@ Scenario: On the {engine.lower}, {editor} opens the {session.lower}'s {checkout.
   And the command that started it is shown
 ```
 
-<!-- intent: issue #11 - "On a client, it opens the same worktree on the hub over Remote-SSH, so I
-     read and debug the hub's files with the hub's toolchain." -->
+<!-- intent: on a {client.lower}, VS Code opens the same worktree on the {engine.lower} over Remote
+     - SSH, so its files are read and debugged with the {engine.lower}'s toolchain -->
 
 ```gherkin
 @EDIT-OPEN-002 @status:proposed @persona:Developer

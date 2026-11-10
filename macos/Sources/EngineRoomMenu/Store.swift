@@ -887,7 +887,7 @@ final class Store: ObservableObject {
         }
     }
 
-    /// The sweep (D-020 as amended 2026-11-08): stops what outlived its session and forgets ended
+    /// The sweep (D-020): stops what outlived its session and forgets ended
     /// sessions. It runs with this app, never as a job of its own: on the engine for as long as the
     /// app runs, and on a client only while it works local, when the sessions are its own. One
     /// `engineroom sweep --watch` sweeps every minute in its own loop, so no shell starts each

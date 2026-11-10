@@ -3,7 +3,7 @@
 **Keep your Claude Code sessions running on one always-on Mac, and work on them from any other
 Mac as if they were local.**
 
-> **Read it as a website.** Everything here, the guide, how it works and every decision, is also
+> **Read it as a website.** Everything here, the setup, the guide and how it works, is also
 > a website built from this repository. Clone it and run, with Go installed:
 >
 > ```sh
@@ -201,8 +201,8 @@ engineroom forward add project-a-fix-login  # reach that worktree's app on this 
   settings and secrets, ports and slots, forwarding, GitHub roots, working local, the menu bar
   app, Ask Claude and tasks, VS Code.
 - **[docs/setup.md](docs/setup.md)**: setting up an engine or a client, item by item.
-- **[docs/decisions.md](docs/decisions.md)**: every design decision, with the problem it solved
-  and the options weighed.
+- **[docs/decisions.md](docs/decisions.md)**: the design decisions, each with the problem it
+  solves and what else was considered.
 - **`acceptance/`**: what the program must do, as Gherkin scenarios, each one proven by an
   end-to-end journey in `journeys/` that drives the real program against a real engine in Docker.
 
