@@ -4,7 +4,9 @@ import SwiftUI
 
 /// Renders the app's real screens to PNG files from sample data, so how the app looks can be seen
 /// and compared with its design after every change, without opening the menu bar panel on anyone's
-/// screen. `EngineRoomMenu --snapshot <dir> [dark]` writes one image per screen and exits.
+/// screen. `--snapshot <dir> [dark]` writes one image per screen and exits: given to the built
+/// product (`macos/.build/debug/EngineRoomMenu`) or to the installed app's executable, which
+/// scripts/install.sh copies into the bundle as `engineroom-menu`.
 ///
 /// Each screen is drawn in an offscreen window rather than with ImageRenderer, which cannot draw
 /// the AppKit-backed controls (buttons, switches, menus) a SwiftUI window uses on macOS. The data
