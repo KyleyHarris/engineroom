@@ -210,8 +210,28 @@ func Create(name, layout, dir string) action.Command {
 	}
 }
 
+// StartOnce is the one command a plan uses to start a session: `engineroom session start`, which
+// takes a lock held for that session's name, starts the session with the Start commands only when
+// it is not already running (deleting what Zellij kept of an ended one first, D-015), and returns
+// once it answers. Two starts of one session at once, from two machines or two windows, then make
+// one session that both can join (sessions obligations O3, O4): Zellij's own background create,
+// run twice at once for one name, can leave no session listed and a server running with no socket.
+// Its description names the commands it runs, so what the plan shows is what runs.
+func StartOnce(name, layout, dir string) action.Command {
+	var inner []string
+	for _, c := range Start(name, layout, dir) {
+		inner = append(inner, c.Display())
+	}
+	return action.Command{
+		Argv: []string{"engineroom", "session", "start", name, layout, dir},
+		Why: "start the session once, under a lock for its name so two starts at once make one session, and wait until it answers; " +
+			"unless it is already running, it runs: " + strings.Join(inner, " ; "),
+		OnFail: "The session did not start; what the start said is above. Nothing else of the action ran after it.",
+	}
+}
+
 // Start is the commands that start a session in the background from a layout, in a directory
-// (Create). On a Mac where the program runs outside the developer's desktop login while one exists
+// (Create). They are run by StartOnce, never put in a plan on their own. On a Mac where the program runs outside the developer's desktop login while one exists
 // (over SSH, say), the start is handed to launchd as a one-time job in that login, so the session,
 // and Claude Code and everything else in it, has the keychain and permissions the developer has at
 // the screen (D-031): the job is written by `engineroom session job`, which shows it, then started

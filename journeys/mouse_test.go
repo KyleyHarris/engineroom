@@ -137,7 +137,7 @@ func TestLearnCopy001(t *testing.T) {
 		AndTheyAreToldItWasSentToTheTerminalsClipboard: func() {
 			// The message names the command it sent; the command itself is checked above, from
 			// the clipboard request, since a long one wraps on screen at both spaces and slashes.
-			term.WaitFor("Sent to the terminal's clipboard: cd ")
+			term.WaitFor("Sent to the terminal's clipboard: engineroom session start project-a")
 			if strings.Contains(term.Screen(), "Copied") {
 				t.Fatalf("the message claims a copy:\n%s", term.Screen())
 			}

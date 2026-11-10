@@ -40,8 +40,8 @@ func TestLearnShow001(t *testing.T) {
 			term.WaitFor("These commands will run, in this order.")
 			screen := term.Screen()
 			first := strings.Index(screen, "1. engineroom layout write --out")
-			second := strings.Index(screen, "2. cd /")
-			third := strings.Index(screen, "4. zellij attach project-a")
+			second := strings.Index(screen, "2. engineroom session start project-a")
+			third := strings.Index(screen, "3. zellij attach project-a")
 			if first < 0 || second < first || third < second {
 				t.Fatalf("the commands are not listed in order:\n%s", screen)
 			}
@@ -60,9 +60,9 @@ func TestLearnShow001(t *testing.T) {
 
 // LEARN-SHOW-002: each command is shown as it starts and with its outcome when it finishes.
 // The layout file is replaced by a named pipe, so the first command (writing the layout) and
-// the second (Zellij reading it) each wait for the journey, and the screen can be read while
-// each is running. Fails if a running command is not shown as running, or its outcome is not
-// shown once it finishes.
+// the second (the start, whose Zellij reads it) each wait for the journey, and the screen can be
+// read while each is running. Fails if a running command is not shown as running, or its outcome
+// is not shown once it finishes.
 func TestLearnShow002(t *testing.T) {
 	m := journey.NewMachine(t)
 	a := m.NewRepo("project-a")
@@ -101,7 +101,7 @@ func TestLearnShow002(t *testing.T) {
 			if !strings.Contains(lineWith(term.Screen(), "engineroom layout write"), "done") {
 				t.Fatalf("the finished command does not show its outcome:\n%s", term.Screen())
 			}
-			if !strings.Contains(lineWith(term.Screen(), "cd /"), "running") {
+			if !strings.Contains(lineWith(term.Screen(), "engineroom session start"), "running") {
 				t.Fatalf("the second command is not shown as running:\n%s", term.Screen())
 			}
 			// Release the second command: meet Zellij at the pipe it is opening, put a real file
@@ -152,7 +152,7 @@ func TestLearnShow003(t *testing.T) {
 		},
 		AndThatCommandAndItsErrorAreShown: func() {
 			line := lineWith(term.Screen(), "FAILED")
-			if !strings.Contains(line, "cd /") {
+			if !strings.Contains(line, "engineroom session start project-a") {
 				t.Fatalf("the failed line does not name the command:\n%s", term.Screen())
 			}
 			term.WaitFor("no such file or directory")
@@ -208,7 +208,7 @@ func TestLearnHist001(t *testing.T) {
 			}
 			// The newest action is selected, and its commands are shown with their outcomes.
 			term.WaitFor("engineroom layout write --out")
-			if !strings.Contains(lineWith(term.Screen(), "cd /"), "ok, done") {
+			if !strings.Contains(lineWith(term.Screen(), "engineroom session start"), "ok, done") {
 				t.Fatalf("the commands are not shown with their outcomes:\n%s", term.Screen())
 			}
 			term.Press(termtest.Down)

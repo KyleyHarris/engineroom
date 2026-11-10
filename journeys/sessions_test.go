@@ -671,13 +671,15 @@ func TestSessNew006(t *testing.T) {
 			m.WaitSession("project-a", "running")
 		},
 		ThenWhatRunsInTheSessionRunsInsideTheDevelopersDesktopLogin: func() {
+			// The start (engineroom session start) prints each command it runs, so what it ran is in
+			// its step's output.
 			var ran []string
 			for _, e := range asList(done["events"]) {
-				for _, c := range asList(asMap(asMap(e)["plan"])["commands"]) {
-					ran = append(ran, fmt.Sprint(asMap(c)["argv"]))
+				if ev := asMap(e); ev["event"] == "step" {
+					ran = append(ran, fmt.Sprint(ev["output"]))
 				}
 			}
-			if !strings.Contains(strings.Join(ran, "\n"), "[launchctl bootstrap "+gui+" ") {
+			if !strings.Contains(strings.Join(ran, "\n"), "+ launchctl bootstrap "+gui+" ") {
 				t.Fatalf("the start did not go through launchd:\n%s", strings.Join(ran, "\n"))
 			}
 			mark := filepath.Join(m.Home, "login")

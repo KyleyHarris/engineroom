@@ -227,3 +227,17 @@ func TestAMissingOrOldZellijIsRefusedWithWhatIsNeeded(t *testing.T) {
 		}
 	}
 }
+
+// A plan starts a session with the one locked start (D-035), and what that start runs is named in
+// what the plan shows. Fails if the plan's command is not the locked start, or its description
+// hides the Zellij command it runs.
+func TestAPlanStartsASessionOnceAndShowsWhatThatRuns(t *testing.T) {
+	t.Setenv(desktop.ModeVar, "off")
+	c := StartOnce("project-a", "/l.kdl", "/src/a b")
+	if got := c.Display(); got != "engineroom session start project-a /l.kdl '/src/a b'" {
+		t.Fatalf("the start is shown as %q", got)
+	}
+	if !strings.Contains(c.Why, "zellij attach --create-background project-a") || !strings.Contains(c.Why, "lock") {
+		t.Fatalf("the start does not say what it runs: %q", c.Why)
+	}
+}

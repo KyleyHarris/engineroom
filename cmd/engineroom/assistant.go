@@ -100,11 +100,9 @@ func assistantPlan(cfg *config.Config, project, checkout string, remote bool) (a
 	plan := action.Plan{Title: "Ask Claude about " + project, Machine: "engine"}
 	if list, err := zj.List(); err == nil {
 		for _, s := range list {
+			// An ended assistant is deleted by the start itself, under the session's lock (zj.StartOnce).
 			if s.Name == name && !s.Ended {
 				return plan, nil
-			}
-			if s.Name == name {
-				plan.Commands = append(plan.Commands, zj.End(name))
 			}
 		}
 	}
@@ -113,7 +111,6 @@ func assistantPlan(cfg *config.Config, project, checkout string, remote bool) (a
 		prepare = append(prepare, "--remote-control")
 	}
 	plan.Commands = append(plan.Commands, action.Command{Argv: prepare, Why: "write what the assistant is told about " + project + ", and its layout"})
-	plan.Commands = append(plan.Commands, zj.Start(name, filepath.Join(assistantDir(), name+".kdl"), c.Path)...)
-	plan.Commands = append(plan.Commands, action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the assistant is ready"})
+	plan.Commands = append(plan.Commands, zj.StartOnce(name, filepath.Join(assistantDir(), name+".kdl"), c.Path))
 	return plan, nil
 }

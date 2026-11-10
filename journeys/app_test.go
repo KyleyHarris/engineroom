@@ -489,7 +489,7 @@ func TestAppHist001(t *testing.T) {
 			out, _ = m.Run("engineroom", "history")
 		},
 		ThenTheStartIsListedWithEachOfItsCommandsAndTheirOutcomes: func() {
-			for _, want := range []string{"done", "Start project-a", "ok          engineroom layout write --remote-control", "ok          cd ", "zellij attach --create-background project-a", "ok          engineroom session wait project-a"} {
+			for _, want := range []string{"done", "Start project-a", "ok          engineroom layout write --remote-control", "ok          engineroom session start project-a"} {
 				if !strings.Contains(out, want) {
 					t.Fatalf("history lacks %q:\n%s", want, out)
 				}
