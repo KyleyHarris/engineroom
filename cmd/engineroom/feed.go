@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -200,7 +199,8 @@ func relayFeed(cfg *config.Config, r source.Remote, args []string, stdin io.Read
 		return feedError(stdout, err)
 	}
 	if err := cmd.Start(); err != nil {
-		return feedError(stdout, err)
+		// ssh could not be run at all (not installed): said as its cause, not as the engine's answer.
+		return feedError(stdout, source.SSHFailure(r.R.Host, err, ""))
 	}
 	lines := bufio.NewScanner(out)
 	lines.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
@@ -223,9 +223,9 @@ func relayFeed(cfg *config.Config, r source.Remote, args []string, stdin io.Read
 		}
 	}
 	err = cmd.Wait()
-	var ee *exec.ExitError
-	if errors.As(err, &ee) && ee.ExitCode() == 255 {
-		return feedError(stdout, fmt.Errorf("%w: %s", source.ErrEngineDown, strings.TrimSpace(stderr.String())))
+	if source.SSHFailed(err) {
+		// Not reached: said with its cause (source.Unreached), as `api sessions` says it.
+		return feedError(stdout, source.SSHFailure(r.R.Host, err, stderr.String()))
 	}
 	if err != nil {
 		return 1
@@ -235,7 +235,9 @@ func relayFeed(cfg *config.Config, r source.Remote, args []string, stdin io.Read
 
 // feedError is apiError's reply on one line, as every line of the feed is one reply.
 func feedError(stdout io.Writer, err error) int {
-	line, _ := json.Marshal(map[string]any{"error": err.Error(), "engineDown": errors.Is(err, source.ErrEngineDown)})
+	reply := map[string]any{"error": err.Error()}
+	markNotReached(reply, err)
+	line, _ := json.Marshal(reply)
 	fmt.Fprintf(stdout, "%s\n", line)
 	return 3
 }

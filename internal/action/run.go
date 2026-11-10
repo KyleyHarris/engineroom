@@ -82,6 +82,9 @@ func Run(ctx context.Context, p Plan, onStep func(Step)) (ok bool) {
 			if err != nil && out == "" {
 				out = err.Error()
 			}
+			if exit == 255 && c.Argv[0] == "ssh" {
+				out = strings.TrimSpace(out + "\n" + LostConnection)
+			}
 			emit(Step{Index: i, Status: StatusFailed, Exit: exit, Output: out})
 			markRest(p, i+1, emit)
 			return false
@@ -91,6 +94,12 @@ func Run(ctx context.Context, p Plan, onStep func(Step)) (ok bool) {
 	}
 	return true
 }
+
+// LostConnection is added to what a command sent to the engine said when ssh ended with its own
+// failure (255): the connection was lost or never made, so the command may have run in part on the
+// engine, or not at all. Its place in the plan says the rest: the commands above it ran, the ones
+// below it did not (connection obligation O2).
+const LostConnection = "ssh ended with its own failure (255): the connection to the engine was lost or never made, so this command may have run in part on the engine, or not at all. The commands above it ran; the ones below it did not."
 
 func markRest(p Plan, from int, emit func(Step)) {
 	for j := from; j < len(p.Commands); j++ {

@@ -190,9 +190,10 @@ func runAPI(args []string, stdout, stderr io.Writer) int {
 }
 
 // apiError prints a refusal or failure as JSON with exit 3, as `engineroom plan` does, marking an engine
-// that did not answer so the app can offer retry or offline.
+// not reached by whether a retry may help (markNotReached), so the app offers retry or offline only then.
 func apiError(stdout io.Writer, err error) int {
-	reply := map[string]any{"error": err.Error(), "engineDown": errors.Is(err, source.ErrEngineDown)}
+	reply := map[string]any{"error": err.Error()}
+	markNotReached(reply, err)
 	var p *roots.Problem
 	if errors.As(err, &p) {
 		reply["problem"] = p
@@ -814,8 +815,23 @@ func apiRun(p action.Plan, stdout io.Writer) int {
 // apiRunRefused ends a run whose plan could not be made: one done event, not ok, carrying the
 // reason, so the app shows why nothing ran.
 func apiRunRefused(stdout io.Writer, err error) int {
-	_ = json.NewEncoder(stdout).Encode(map[string]any{"event": "done", "ok": false, "error": err.Error(), "engineDown": errors.Is(err, source.ErrEngineDown)})
+	reply := map[string]any{"event": "done", "ok": false, "error": err.Error()}
+	markNotReached(reply, err)
+	_ = json.NewEncoder(stdout).Encode(reply)
 	return 3
+}
+
+// markNotReached says in a reply whether the engine was not reached in a way a retry may clear
+// (engineDown: the app offers retry, work locally or offline), and whether its host key changed.
+// An engine not reached for a cause a retry cannot clear (a changed or unknown host key, no ssh
+// here) is not engineDown: the app shows the error, which says the cause and what to do, and
+// offers no retry (connection obligation O10).
+func markNotReached(reply map[string]any, err error) {
+	reply["engineDown"] = source.Retryable(err)
+	var u *source.Unreached
+	if errors.As(err, &u) && u.Cause == source.HostKeyChanged {
+		reply["hostKeyChanged"] = true
+	}
 }
 
 func failText(p action.Plan, s action.Step) string {

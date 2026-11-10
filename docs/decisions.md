@@ -982,3 +982,39 @@ nothing to VoiceOver.
   carries the one action that can always be left again.
 - Return always joining the first card: the panel is opened most often because Claude is
   waiting, and that session is often a worktree's.
+
+## D-034 An engine not reached is said with its cause, and a retry is offered only where it can help
+
+**Problem.** Every failure of ssh to the engine was said as "the engine did not answer" with a
+retry offered. A changed host key was then offered as something to retry, which it never is, and
+ssh missing from the client was said as the engine not answering, with no reason at all.
+
+**Decision.**
+
+- When ssh to the engine fails with its own failure (status 255, or ssh not run at all), the
+  program reads the cause from the sentence ssh writes for it: no answer, a name that does not
+  resolve, ssh not installed, a host key other than the one this machine knows, or a host key
+  this machine has never accepted (`source.Unreached`).
+- An engine that does not answer is not told apart from a network that is down: from the client
+  they look the same, and the message says so rather than guessing.
+- Retry is offered for no answer and for a name that does not resolve, where the engine may be
+  found by asking again. For a changed or unknown host key and for no ssh it is not offered:
+  the message says what to do (check the new key on the engine and remove the old one from the
+  file ssh names; connect once by hand to accept a new engine's key; install ssh). Working
+  locally, switching offline and stopping are offered for every cause.
+- The program never removes or accepts a host key itself: the file it would change is ssh's,
+  outside the program's own state.
+- Every cause still counts as the engine not reached for the program's own reads, so an answer
+  is never read from a connection that failed. The menu bar app is told `engineDown` only where
+  a retry can help, and `hostKeyChanged` for a changed key; for the other causes it shows the
+  message as a problem, with no retry.
+- A command sent to the engine that ends with ssh's own failure says that the connection was
+  lost or never made, so it may have run in part there; the commands before it ran and those
+  after it did not.
+
+**Considered.**
+
+- One message for every failure with ssh's words below it: the headline and the retry would
+  still say the wrong thing for a host key.
+- Removing the old host key on request: it changes ssh's file, and trusting a new key is a check
+  only the developer can make on the engine itself.
