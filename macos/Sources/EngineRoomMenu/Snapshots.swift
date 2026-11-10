@@ -81,7 +81,41 @@ enum Snapshots {
             s.projectError = "project-e is registered, but its folder is not on the engine. Get the repository onto the engine from the repositories list, or take the project off the list, and then read this page again."
             s.windowItem = .project("project-e")
         }),
+        // An action's commands before anything has run, in the window and in the panel: the
+        // notes, each command with its copy button, and Run.
+        ("window-action", true, { s in s.status = sample(Status.self, statusClient); s.repos = repos; s.windowItem = .project("project-a"); pendingAction(s, in: .window) }),
+        ("panel-action", false, { s in s.status = sample(Status.self, statusClient); s.sessions = sessions; s.checkouts = checkouts; s.repos = repos; pendingAction(s, in: .panel) }),
+        // The same action stopped at its second command: each command's outcome in words, the
+        // failed one's output and what to do about it, and Done.
+        ("window-action-failed", true, { s in
+            s.status = sample(Status.self, statusClient); s.repos = repos; s.windowItem = .project("project-a"); pendingAction(s, in: .window)
+            s.stepStatus = [0: "ok", 1: "failed", 2: "not run", 3: "not run"]
+            s.stepOutput = [1: "error: could not stop the api on port 7222"]
+            s.stepFail = [1: "The down script failed, so nothing else was stopped or removed. Fix the script and clean up again."]
+            s.finished = false
+        }),
+        // The two forms reached from the repositories: getting or creating one, and registering a
+        // folder that is already here.
+        ("window-add", true, { s in s.status = sample(Status.self, statusEngine); s.repos = repos; s.windowItem = .repositories; s.page = .add(root: nil) }),
+        ("window-register", true, { s in s.status = sample(Status.self, statusEngine); s.repos = repos; s.windowItem = .repositories; s.page = .register(root: "src", folder: "/Users/dev/src/project-f") }),
     ]
+
+    /// Puts an action on screen as it is before it runs: closing project-a's reports worktree, the
+    /// commands in the order they would run.
+    static func pendingAction(_ s: Store, in surface: Store.Surface) {
+        s.actionIn = surface
+        s.page = .action(title: "Clean up reports on project-a")
+        s.pendingAction = ["clean-session", "project-a-reports"]
+        s.planTitle = "Clean up reports on project-a"
+        s.planMachine = "engine.example"
+        s.planNotes = ["The branch reports is merged into main, so it is deleted here and on the remote."]
+        s.planLines = [
+            "git -C /Users/dev/src/project-a fetch origin",
+            "cd /Users/dev/src/project-a-reports && .engineroom/down",
+            "zellij delete-session project-a-reports",
+            "git -C /Users/dev/src/project-a worktree remove /Users/dev/src/project-a-reports",
+        ]
+    }
 
     /// Draws a view in an offscreen window and writes it as a PNG at twice the size, as a Retina
     /// screen shows it.
@@ -124,15 +158,17 @@ enum Snapshots {
     """
     static var repos: ReposReply { sample(ReposReply.self, reposJSON) }
 
+    /// Every sample Mac has one terminal installed and one looked for and not found, so Settings
+    /// shows its picker with a choice in it and names what it did not find.
     static let statusClient = """
-    {"role":"client","engine":"engine.example","offline":false,"where":"the engine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app"}],"forward":false,"forwarding":true}
+    {"role":"client","engine":"engine.example","offline":false,"where":"the engine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app","path":"/Applications/Ghostty.app"},{"name":"WezTerm","bundle":"WezTerm.app"}],"forward":false,"forwarding":true}
     """
     /// The client of statusClient after it has taken the work over.
     static let statusLocal = """
-    {"role":"client","engine":"engine.example","offline":true,"where":"this machine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app"}],"forward":false,"forwarding":false}
+    {"role":"client","engine":"engine.example","offline":true,"where":"this machine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app","path":"/Applications/Ghostty.app"},{"name":"WezTerm","bundle":"WezTerm.app"}],"forward":false,"forwarding":false}
     """
     static let statusEngine = """
-    {"role":"engine","engine":"","offline":false,"where":"this machine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app"}],"forward":false,"forwarding":false}
+    {"role":"engine","engine":"","offline":false,"where":"this machine","start":"both","terminal":"Ghostty","terminals":[{"name":"Ghostty","bundle":"Ghostty.app","path":"/Applications/Ghostty.app"},{"name":"WezTerm","bundle":"WezTerm.app"}],"forward":false,"forwarding":false}
     """
     static let forwardJSON = """
     {"enabled":false,"connected":true,"forwarded":{"5180":"project-a","7202":"project-a"},"sessions":["project-a"]}

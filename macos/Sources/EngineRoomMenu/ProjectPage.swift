@@ -205,9 +205,10 @@ struct ProjectPageView: View {
     }
 }
 
-/// One checkout on a card (Style.swift): its header (state, name, kind, state in words), then a row
-/// each for its session, its app and the addresses it serves, and Ask Claude and More info at the
-/// foot. Its branch, folder, slot and ports are under More info.
+/// One checkout on a card (Style.swift): its header (state, name, kind, state in words), what it
+/// has unsaved as a chip under it, then a row each for its session (a worktree's Close at the far
+/// end of it), its app, the addresses it serves and its code, and More info at the foot. Its
+/// branch, folder, slot and ports are under More info.
 struct CheckoutCard: View {
     @EnvironmentObject var store: Store
     let project: ProjectPage
@@ -224,9 +225,22 @@ struct CheckoutCard: View {
             // "main" title hid. A role worktree is titled by its role, the branch it holds now
             // beside it in the kind (D-024); any other by the branch it has out.
             CardHeader(state: state, name: checkout.role ?? checkout.branch ?? (checkout.main ? "main clone" : (checkout.work ?? "worktree")), kind: kind)
+            // What would be lost is a chip on a line of its own, as on the panel's tile: in the
+            // header's quiet words it was cut off as soon as the card was narrow.
+            if checkout.changes > 0 {
+                HStack(spacing: 6) { Chip(text: "\(checkout.changes) unsaved", color: .attention) }
+            }
             if let q = checkout.question, checkout.isWaiting { Text(q).font(.app(.detail)).foregroundColor(.attention) }
             if let clash = checkout.clash {
                 Text(clash).font(.app(.caption)).foregroundColor(.attention).fixedSize(horizontal: false, vertical: true)
+                // Nothing of its session can be started from here, so the row holds only Close,
+                // which stays in reach where it is on every other worktree's card.
+                if !checkout.main {
+                    FieldRow("Session") {
+                        Spacer()
+                        close
+                    }
+                }
             } else {
                 if checkout.running {
                     FieldRow("Session") {
@@ -234,6 +248,7 @@ struct CheckoutCard: View {
                             .buttonStyle(.borderedProminent).pointer()
                         Button("Stop") { Task { await store.preview(["stop", checkout.session]) } }.pointer()
                         Spacer()
+                        if !checkout.main { close }
                     }
                 } else {
                     // The three ways to start it (APP-START-001 to 003), each a button in sight and
@@ -249,6 +264,7 @@ struct CheckoutCard: View {
                                 .help("Start it without Remote Control, and open it in \(terminal)")
                             Button("Remote only") { start("remote") }.filled(usual == "remote").pointer()
                                 .help("Start it with Remote Control, and open no window")
+                            if !checkout.main { close.flowEnd() }
                         }
                     }
                 }
@@ -322,8 +338,8 @@ struct CheckoutCard: View {
                     }
                 }
             }
-            // The code, Claude and cleaning up are buttons in sight, drawn like every other; the
-            // row wraps rather than squeezing its words when the card is narrow.
+            // The code and Claude are buttons in sight, drawn like every other; the row wraps
+            // rather than squeezing its words when the card is narrow.
             HStack(alignment: .top, spacing: 10) {
                 Text("Code").font(.app(.caption)).foregroundColor(.secondary).frame(width: 52, alignment: .leading).padding(.top, 4)
                 FlowRow(spacing: 8) {
@@ -337,10 +353,6 @@ struct CheckoutCard: View {
                     }
                     Button { ask() } label: { Label("Ask Claude", systemImage: "sparkles") }
                         .help("A Claude session that knows this \(checkout.main ? "project" : "worktree"): say what you want done")
-                    if !checkout.main {
-                        Button { Task { await store.preview(["clean-session", checkout.session]) } } label: { Label("Close", systemImage: "trash") }
-                            .help("Stop its session, run the teardown script, remove the worktree; its commands are shown first, and it refuses while work would be lost, offering to save, put aside or push it")
-                    }
                 }
                 .lineLimit(1).pointer()
             }
@@ -365,11 +377,18 @@ struct CheckoutCard: View {
         .card()
     }
 
-    /// What the checkout is, and how many files it has changed and not committed, if any: said
-    /// in the header so the Session row keeps its room for its buttons.
+    /// What the checkout is, in the header's quiet words: the main clone, a worktree, or a role
+    /// and the branch it holds now.
     private var kind: String {
-        let what = checkout.main ? "main clone" : (checkout.role != nil ? "role, on \(checkout.branch ?? "no branch")" : "worktree")
-        return checkout.changes > 0 ? "\(what), \(checkout.changes) unsaved" : what
+        checkout.main ? "main clone" : (checkout.role != nil ? "role, on \(checkout.branch ?? "no branch")" : "worktree")
+    }
+
+    /// Close, which only a worktree has: on the row that joins or starts its session, at the far
+    /// end of it and apart from those buttons, as Stop and Close are on the panel's tile. In
+    /// words alone, as every button that changes something is (D-032).
+    private var close: some View {
+        Button("Close") { Task { await store.preview(["clean-session", checkout.session]) } }.pointer()
+            .help("Stop its session, run the teardown script, remove the worktree; its commands are shown first, and it refuses while work would be lost, offering to save, put aside or push it")
     }
 
     private var state: RunState {
@@ -461,31 +480,48 @@ struct GitHubRow: View {
     }
 }
 
-/// Lays its children out left to right, wrapping onto the next line when the row is full.
+/// Lays its children out left to right, wrapping onto the next line when the row is full. A child
+/// marked `flowEnd()` goes to the far end of the line it lands on, so a button that ends something
+/// stands apart from the ones before it without the row having to be one line.
 struct FlowRow: Layout {
     var spacing: CGFloat = 6
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? .infinity
         var x: CGFloat = 0, y: CGFloat = 0, line: CGFloat = 0, widest: CGFloat = 0
+        var ends = false
         for v in subviews {
             let s = v.sizeThatFits(.unspecified)
             if x > 0 && x + s.width > width { x = 0; y += line + spacing; line = 0 }
             x += s.width + spacing
             line = max(line, s.height)
             widest = max(widest, x - spacing)
+            ends = ends || v[FlowEnd.self]
         }
-        return CGSize(width: min(widest, width), height: y + line)
+        // With a child at the far end the row takes all the width it is offered: the far end is
+        // the edge of what holds the row, not wherever its last button happens to stop.
+        return CGSize(width: ends && width.isFinite ? width : min(widest, width), height: y + line)
     }
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.minX, y = bounds.minY, line: CGFloat = 0
         for v in subviews {
             let s = v.sizeThatFits(.unspecified)
             if x > bounds.minX && x + s.width > bounds.maxX { x = bounds.minX; y += line + spacing; line = 0 }
-            v.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(s))
-            x += s.width + spacing
+            let at = v[FlowEnd.self] ? max(x, bounds.maxX - s.width) : x
+            v.place(at: CGPoint(x: at, y: y), proposal: ProposedViewSize(s))
+            x = at + s.width + spacing
             line = max(line, s.height)
         }
     }
+}
+
+/// Whether a child of a FlowRow goes to the far end of its line.
+private struct FlowEnd: LayoutValueKey {
+    static let defaultValue = false
+}
+
+extension View {
+    /// In a FlowRow, puts this child at the far end of the line it lands on.
+    func flowEnd() -> some View { layoutValue(key: FlowEnd.self, value: true) }
 }
 
 /// On a client working on the engine: one session's forwarding switch, beside its links. Nothing on

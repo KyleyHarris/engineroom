@@ -175,17 +175,19 @@ struct Header: View {
 }
 
 /// Says this Mac is working local, on every screen while it is. It carries the button that hands
-/// the work back unless the screen already has one in sight (the panel's header does).
+/// the work back unless the screen already has one in sight (the panel's header does), and sits
+/// at the gutter of the surface it is on, so it lines up with what is under it.
 struct OfflineBanner: View {
     @EnvironmentObject var store: Store
     var button = true
+    var gutter = Gutter.panel
     var body: some View {
         Banner(tone: .attention, text: "Working local: this Mac has the work. Hand it back to the engine when you are done.") {
             if button {
                 Button("Hand back to the engine") { Task { await store.switchOffline(false) } }.controlSize(.small).pointer()
             }
         }
-        .padding(.horizontal, Gutter.panel).padding(.bottom, 6)
+        .padding(.horizontal, gutter).padding(.bottom, 6)
     }
 }
 
@@ -216,13 +218,15 @@ struct EngineDownView: View {
     }
 }
 
-/// A row of small buttons that sits at the bottom of a page.
+/// The bar at the bottom of an action's page: its buttons stay in sight while its commands scroll,
+/// at the gutter of the surface it is on, so they line up with the commands above them.
 struct Footer<Content: View>: View {
+    var gutter = Gutter.panel
     @ViewBuilder var content: Content
     var body: some View {
         VStack(spacing: 0) {
             Divider()
-            HStack(spacing: 8) { content }.padding(10)
+            HStack(spacing: 8) { content }.padding(.horizontal, gutter).padding(.vertical, 10)
         }
     }
 }
@@ -260,16 +264,17 @@ struct QuitButton: View {
     }
 }
 
-/// The back link at the top of a page.
+/// The back link at the top of a page reached from another, at the gutter of the surface it is on.
 struct BackLink: View {
     @EnvironmentObject var store: Store
     var label = "Back"
+    var gutter = Gutter.panel
     var body: some View {
         HStack {
             Button("‹ \(label)") { store.close() }.buttonStyle(.link).pointer()
             Spacer()
         }
-        .padding(.horizontal, Gutter.panel).padding(.bottom, 4)
+        .padding(.horizontal, gutter).padding(.bottom, 4)
     }
 }
 

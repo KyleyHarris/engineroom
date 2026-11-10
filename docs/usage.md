@@ -435,9 +435,10 @@ Settings has the same buttons. The panel opens on the project
 you last chose, and comes back to it after an action. Its gear opens the window, which holds
 everything else: a sidebar of your projects (pinned first), the repositories in your roots (pinned,
 registered by category, here but not registered, and on GitHub but not here), the history and the
-settings. A project's page shows each checkout (the main clone and every worktree) as a card: Join
-or Start and Stop for its session, Run and Stop for its app and its tasks, the links it serves with
-its Forward switch, VS Code, Finder (when the folder is on this Mac) and Ask Claude, and under More info its branch, folder, slot and ports. A project
+settings. A project's page shows each checkout (the main clone and every worktree) as a card: what it
+has unsaved, Join or Start and Stop for its session (and Close, for a worktree), Run and Stop for
+its app and its tasks, the links it serves with its Forward switch, VS Code, Finder (when the
+folder is on this Mac) and Ask Claude, and under More info its branch, folder, slot and ports. A project
 on GitHub has one line under its name linking to the repository's code, issues and pull requests,
 and each checkout whose branch GitHub has links to that branch and the pull requests from it. The
 page also adds a worktree, shows the project's scripts, ports and secrets from your settings, and pins,

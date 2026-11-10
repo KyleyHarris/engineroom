@@ -9,6 +9,8 @@ import SwiftUI
 // - a button in words changes something (Join, Stop, Close); a button that is only an icon opens
 //   something elsewhere or copies (VS Code, Finder, GitHub, the branch name); one button of a card
 //   is filled, the one most often pressed;
+// - a page of the window is its title line, then what it has on cards: a list is a card of rows
+//   with a hairline between them, a setting a row of its card with its control at the far end;
 // - a colour says one thing wherever it is used (Color.attention, .good, .bad, .busy);
 // - links drawn as links; technical detail behind More info.
 //
@@ -60,7 +62,7 @@ enum Radius {
 enum Gutter {
     /// A page in the window.
     static let page: CGFloat = 20
-    /// The panel, and the pages narrow enough to be shown in it.
+    /// The panel, and an action's commands when the panel shows them.
     static let panel: CGFloat = 12
 }
 
@@ -282,6 +284,32 @@ struct LinkButton: View {
     }
 }
 
+/// A card listing things one under another with a hairline between them: how a page lists what it
+/// has (the repositories, a day of the history). `title` names the card in its first line, for a
+/// list that is one of several under a heading. A list that may be long is drawn lazily, only the
+/// rows in sight, so showing it costs the same whatever its length.
+struct ListCard<Item, Row: View>: View {
+    let items: [Item]
+    var title: String? = nil
+    var lazy = false
+    @ViewBuilder var row: (Item) -> Row
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let title { Text(title).font(.app(.fine, weight: .semibold)).foregroundColor(.secondary) }
+            if lazy { LazyVStack(spacing: 0) { rows } } else { VStack(spacing: 0) { rows } }
+        }
+        .card()
+    }
+
+    @ViewBuilder private var rows: some View {
+        ForEach(Array(items.enumerated()), id: \.offset) { i, item in
+            if i > 0 { Divider().padding(.vertical, 2) }
+            row(item).padding(.vertical, 4)
+        }
+    }
+}
+
 // MARK: what a screen says before, or instead of, its content
 
 /// What a screen must say before anything else: a problem, something that needs the developer, or
@@ -345,6 +373,9 @@ extension EmptyState where Action == EmptyView {
 struct PageHeader<Trailing: View>: View {
     let title: String
     var detail: String? = nil
+    /// Set on a page reached from another, whose link back sits above the title and has already
+    /// taken the room at the top of the page.
+    var underLink = false
     @ViewBuilder var trailing: Trailing
 
     var body: some View {
@@ -354,10 +385,12 @@ struct PageHeader<Trailing: View>: View {
             Spacer()
             trailing
         }
-        .padding(.horizontal, Gutter.page).padding(.top, 16)
+        .padding(.horizontal, Gutter.page).padding(.top, underLink ? 2 : 16)
     }
 }
 
 extension PageHeader where Trailing == EmptyView {
-    init(title: String, detail: String? = nil) { self.init(title: title, detail: detail) { EmptyView() } }
+    init(title: String, detail: String? = nil, underLink: Bool = false) {
+        self.init(title: title, detail: detail, underLink: underLink) { EmptyView() }
+    }
 }

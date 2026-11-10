@@ -15,7 +15,7 @@ struct MainWindow: View {
                 .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
         } detail: {
             VStack(spacing: 0) {
-                if store.status?.offline == true { OfflineBanner().padding(.top, 8) }
+                if store.status?.offline == true { OfflineBanner(gutter: Gutter.page).padding(.top, 8) }
                 detail
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -66,7 +66,7 @@ struct MainWindow: View {
             default:
                 switch store.windowItem {
                 case .project(let name): ProjectPageView(name: name)
-                case .repositories: ReposView().padding(.top, 10)
+                case .repositories: ReposView()
                 case .history: HistoryView()
                 case .settings: SettingsView()
                 case nil:

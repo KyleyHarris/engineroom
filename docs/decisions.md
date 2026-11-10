@@ -1145,5 +1145,16 @@ Decision:   - A colour says one thing wherever it is used. Orange: something nee
             - Working local is turned on and off by a button in words, in the header and in
               Settings, and the header's badge says when it is on. Quit stands apart from refresh
               and the gear; Command-Q is unchanged.
+            - Every page of the window starts with its title line and shows what it has as cards
+              on the grey window: a project, the repositories, the history, the settings, and the
+              forms that add or register a repository. A page reached from another has the link
+              back above its title. A list is a card of rows with a hairline between them; a
+              setting is a row of its card with its control at the far end.
+            - What a checkout would lose is a chip under its name, on the panel and on the page.
+              Close, which only a worktree has, is at the far end of the row that joins or starts
+              its session, apart from those buttons.
+            - An action's commands have one way back, the link at the top, in sight before, during
+              and after a run. The bar at the foot holds what goes on: Copy, then Run or Done. A
+              failed command is said in one word, "failed", wherever the app shows it.
 Status:     accepted. Refines D-019's one visual language and D-025's buttons in sight; changes no
             function of either.
