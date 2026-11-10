@@ -101,11 +101,9 @@ func upgradePlan(cfg *config.Config, remote bool) action.Plan {
 	if remote {
 		prepare = append(prepare, "--remote-control")
 	}
-	plan.Commands = append(plan.Commands,
-		action.Command{Argv: prepare, Why: "write the upgrade session's brief (the steps, and what it may fix or must ask about) and its layout"},
-		zj.Create(name, filepath.Join(assistantDir(), name+".kdl"), dir),
-		action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the upgrade session is ready"},
-	)
+	plan.Commands = append(plan.Commands, action.Command{Argv: prepare, Why: "write the upgrade session's brief (the steps, and what it may fix or must ask about) and its layout"})
+	plan.Commands = append(plan.Commands, zj.Start(name, filepath.Join(assistantDir(), name+".kdl"), dir)...)
+	plan.Commands = append(plan.Commands, action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the upgrade session is ready"})
 	plan.Notes = append(plan.Notes, "Claude pulls the clone, installs the new build, restarts the app and says what changed, in the session "+name+". It asks before anything that could lose work.")
 	return plan
 }

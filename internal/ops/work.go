@@ -59,14 +59,12 @@ func createCommands(name, dir string, start Start) []action.Command {
 		write = append(write, "--remote-control")
 		why = "write the standard layout, with the agent started under Remote Control"
 	}
-	cmds := []action.Command{
-		{Argv: append(write, "--out", LayoutFile(start.RemoteControl)), Why: why},
-		zj.Create(name, LayoutFile(start.RemoteControl), dir),
-		// Zellij returns from a background create before the session accepts clients, so
-		// joining straight away can find no session. Waiting is a command of its own, so it is
-		// seen like any other step.
-		{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the session is ready"},
-	}
+	cmds := []action.Command{{Argv: append(write, "--out", LayoutFile(start.RemoteControl)), Why: why}}
+	cmds = append(cmds, zj.Start(name, LayoutFile(start.RemoteControl), dir)...)
+	// Zellij returns from a background create before the session accepts clients (and a start
+	// through the desktop login returns before its job has run), so joining straight away can
+	// find no session. Waiting is a command of its own, so it is seen like any other step.
+	cmds = append(cmds, action.Command{Argv: []string{"engineroom", "session", "wait", name}, Why: "wait until the session is ready"})
 	if !start.NoJoin {
 		cmds = append(cmds, zj.Attach(name))
 	}

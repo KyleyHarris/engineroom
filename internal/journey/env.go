@@ -166,6 +166,9 @@ func (m *Machine) Env() []string {
 		"FAKE_AGENT_LOG=" + m.AgentLog,
 		"FAKE_AGENT_PROMPTS=" + m.AgentPromptLog,
 		"FAKE_EDITOR_LOG=" + m.EditorLog,
+		// Sessions start as the journey runs, never in the developer's real desktop login (D-031);
+		// the journey that proves that route turns it on through Extra, which comes later and wins.
+		"ENGINEROOM_DESKTOP_SESSIONS=off",
 	}, m.Extra...)
 }
 

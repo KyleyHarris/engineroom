@@ -144,6 +144,7 @@ var Fields = map[string][]string{
 	"SessNew003":     {"GivenNoProjectCalledAcmeSiteIsRegistered", "WhenTheDeveloperOpensAcmeSite", "ThenTheyAreToldItIsNotARegisteredProject", "AndTheyAreShownTheRegisteredProjects", "AndNoSessionIsCreated"},
 	"SessNew004":     {"GivenAProjectHasNoSessionOnTheEngine", "WhenTheDeveloperStartsItWithoutJoining", "ThenASessionIsCreatedInItsCheckoutAndIsRunning", "AndTheDeveloperStaysWhereTheyWereShownTheListOfSessions"},
 	"SessNew005":     {"GivenTheProgramIsRunByAClaudeCodeAgentWithThatAgentsMarkersInItsEnvironment", "WhenItStartsAProjectSSession", "ThenTheAgentInThatSessionIsGivenNoneOfThoseMarkers"},
+	"SessNew006":     {"GivenTheDeveloperIsLoggedInAtTheEnginesScreen", "AndTheProgramRunsOnTheEngineOutsideThatLoginAsItDoesOverSSH", "WhenItStartsAProjectSSession", "ThenWhatRunsInTheSessionRunsInsideTheDevelopersDesktopLogin", "AndNothingOfHowItWasStartedThereIsLeftRunningOrLoaded"},
 	"SessRemote001":  {"GivenTheDeveloperIsChoosingAProjectToOpen", "WhenTheyTurnRemoteControlOn", "ThenTheChoiceIsShownAsOn", "AndItIsStillOnTheNextTimeTheProgramIsStarted"},
 	"SessRemote002":  {"GivenRemoteControlIsOn", "AndAProjectHasNoSessionOnTheEngine", "WhenTheDeveloperOpensIt", "ThenClaudeCodeInTheNewSessionStartsWithRemoteControl", "AndTheNameItIsReachedByIsTheSessionsName"},
 	"SessRemote003":  {"GivenRemoteControlIsOnForTheClientAndOffOnTheEngine", "WhenTheDeveloperOpensAProjectWithNoSessionFromTheClient", "ThenClaudeCodeInTheNewSessionStartsWithRemoteControl"},
@@ -4986,6 +4987,43 @@ func (s SessNew005) Scenario() Scenario {
 			{Text: "Given the program is run by a Claude Code agent, with that agent's markers in its environment", Display: "Given the program is run by a Claude Code agent, with that agent's markers in its environment", Fn: s.GivenTheProgramIsRunByAClaudeCodeAgentWithThatAgentsMarkersInItsEnvironment},
 			{Text: "When it starts a {project.lower}'s {session.lower}", Display: "When it starts a project's session", Fn: s.WhenItStartsAProjectSSession},
 			{Text: "Then the agent in that {session.lower} is given none of those markers", Display: "Then the agent in that session is given none of those markers", Fn: s.ThenTheAgentInThatSessionIsGivenNoneOfThoseMarkers},
+		},
+	}
+}
+
+// SessNew006 is SESS-NEW-006: A session started from outside the Engine's desktop login runs inside it
+//
+// Intent: the architect, 2026-11-10 - "start it in an appropriate session with the same rights and permissions as if i was coded directly on the machine": a {session.lower} started from another machine, over SSH, stayed in that SSH login, where the login keychain is locked. The developer leaves the {engine.lower} logged in at its screen; with no one logged in there, a {session.lower} starts as before
+// Source: acceptance/sessions/sessions-acceptance.md
+type SessNew006 struct {
+	// Given the developer is logged in at the Engine's screen
+	GivenTheDeveloperIsLoggedInAtTheEnginesScreen func()
+	// And the program runs on the engine outside that login, as it does over SSH
+	AndTheProgramRunsOnTheEngineOutsideThatLoginAsItDoesOverSSH func()
+	// When it starts a project's session
+	WhenItStartsAProjectSSession func()
+	// Then what runs in the session runs inside the developer's desktop login
+	ThenWhatRunsInTheSessionRunsInsideTheDevelopersDesktopLogin func()
+	// And nothing of how it was started there is left running or loaded
+	AndNothingOfHowItWasStartedThereIsLeftRunningOrLoaded func()
+}
+
+// Scenario describes SESS-NEW-006 with the clause functions this journey supplied.
+func (s SessNew006) Scenario() Scenario {
+	return Scenario{
+		ID:      "SESS-NEW-006",
+		Title:   "A session started from outside the Engine's desktop login runs inside it",
+		Feature: "Opening a project",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "the architect, 2026-11-10 - \"start it in an appropriate session with the same rights and permissions as if i was coded directly on the machine\": a {session.lower} started from another machine, over SSH, stayed in that SSH login, where the login keychain is locked. The developer leaves the {engine.lower} logged in at its screen; with no one logged in there, a {session.lower} starts as before",
+		Source:  "acceptance/sessions/sessions-acceptance.md",
+		Steps: []Step{
+			{Text: "Given the developer is logged in at the {engine.possessive} screen", Display: "Given the developer is logged in at the Engine's screen", Fn: s.GivenTheDeveloperIsLoggedInAtTheEnginesScreen},
+			{Text: "And the program runs on the {engine.lower} outside that login, as it does over SSH", Display: "And the program runs on the engine outside that login, as it does over SSH", Fn: s.AndTheProgramRunsOnTheEngineOutsideThatLoginAsItDoesOverSSH},
+			{Text: "When it starts a {project.lower}'s {session.lower}", Display: "When it starts a project's session", Fn: s.WhenItStartsAProjectSSession},
+			{Text: "Then what runs in the {session.lower} runs inside the developer's desktop login", Display: "Then what runs in the session runs inside the developer's desktop login", Fn: s.ThenWhatRunsInTheSessionRunsInsideTheDevelopersDesktopLogin},
+			{Text: "And nothing of how it was started there is left running or loaded", Display: "And nothing of how it was started there is left running or loaded", Fn: s.AndNothingOfHowItWasStartedThereIsLeftRunningOrLoaded},
 		},
 	}
 }

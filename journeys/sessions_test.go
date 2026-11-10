@@ -3,6 +3,10 @@
 package journeys
 
 import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -632,6 +636,83 @@ func TestSessNew005(t *testing.T) {
 				if strings.Contains(env, v+"=") {
 					t.Errorf("%s reached the session's agent", v)
 				}
+			}
+		},
+	}, term0(&term))
+}
+
+// SESS-NEW-006: a session started from outside the desktop login runs inside it, through a launchd
+// job that is gone once it has started the session. The route is turned on outright, since the
+// journeys keep it off; run from outside the desktop login (an SSH login, or a Claude Code session
+// started from one), the login the session's pane reports is the proof: without the route it
+// would be the runner's own. Fails if the start does not go through launchd, a command run in the
+// session is not in the desktop login, or the job is still loaded or running afterwards.
+func TestSessNew006(t *testing.T) {
+	m := journey.NewMachine(t)
+	m.BeEngine("project-a", m.NewRepo("project-a"))
+	m.Extra = append(m.Extra, "ENGINEROOM_DESKTOP_SESSIONS=on")
+	gui := fmt.Sprintf("gui/%d", os.Getuid())
+	var done map[string]any
+	var term *termtest.Terminal
+
+	scenarios.Run(t, scenarios.SessNew006{
+		GivenTheDeveloperIsLoggedInAtTheEnginesScreen: func() {
+			if exec.Command("launchctl", "print", gui).Run() != nil {
+				t.Skip("no one is logged in at this Mac's screen, so there is no desktop login to start in")
+			}
+		},
+		AndTheProgramRunsOnTheEngineOutsideThatLoginAsItDoesOverSSH: func() {
+			if out, _ := exec.Command("launchctl", "managername").Output(); strings.TrimSpace(string(out)) == "Aqua" {
+				t.Log("this run is itself inside the desktop login, so the login the session reports cannot tell the routes apart; the launchd job is still checked")
+			}
+		},
+		WhenItStartsAProjectSSession: func() {
+			done = mustRun(t, m, "start", "project-a", "--mode", "zellij")
+			m.WaitSession("project-a", "running")
+		},
+		ThenWhatRunsInTheSessionRunsInsideTheDevelopersDesktopLogin: func() {
+			var ran []string
+			for _, e := range asList(done["events"]) {
+				for _, c := range asList(asMap(asMap(e)["plan"])["commands"]) {
+					ran = append(ran, fmt.Sprint(asMap(c)["argv"]))
+				}
+			}
+			if !strings.Contains(strings.Join(ran, "\n"), "[launchctl bootstrap "+gui+" ") {
+				t.Fatalf("the start did not go through launchd:\n%s", strings.Join(ran, "\n"))
+			}
+			mark := filepath.Join(m.Home, "login")
+			if out, err := m.Run("zellij", "--session", "project-a", "run", "--", "sh", "-c", "launchctl managername > "+mark); err != nil {
+				t.Fatalf("running in the session: %v\n%s", err, out)
+			}
+			deadline := time.Now().Add(10 * time.Second)
+			for {
+				if b, _ := os.ReadFile(mark); strings.TrimSpace(string(b)) != "" {
+					if got := strings.TrimSpace(string(b)); got != "Aqua" {
+						t.Fatalf("a command in the session runs in the %q login, not the desktop's", got)
+					}
+					break
+				}
+				if time.Now().After(deadline) {
+					t.Fatal("the command run in the session never reported its login")
+				}
+				time.Sleep(200 * time.Millisecond)
+			}
+		},
+		AndNothingOfHowItWasStartedThereIsLeftRunningOrLoaded: func() {
+			jobs, _ := filepath.Glob(filepath.Join(m.Home, ".local", "state", "engineroom", "jobs", "*.plist"))
+			if len(jobs) != 1 {
+				t.Fatalf("expected the one job file, found %q", jobs)
+			}
+			label := strings.TrimSuffix(filepath.Base(jobs[0]), ".plist")
+			deadline := time.Now().Add(5 * time.Second)
+			for exec.Command("launchctl", "print", gui+"/"+label).Run() == nil {
+				if time.Now().After(deadline) {
+					t.Fatalf("the job %s is still loaded", label)
+				}
+				time.Sleep(200 * time.Millisecond)
+			}
+			if out, _ := exec.Command("pgrep", "-f", "launchctl bootout "+gui+"/"+label).Output(); len(strings.TrimSpace(string(out))) > 0 {
+				t.Fatalf("the job's shell still runs: %s", out)
 			}
 		},
 	}, term0(&term))

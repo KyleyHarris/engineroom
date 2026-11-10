@@ -209,6 +209,22 @@ Scenario: A {session.lower} started by a running Claude Code agent has an agent 
   Then the agent in that {session.lower} is given none of those markers
 ```
 
+<!-- intent: the architect, 2026-11-10 - "start it in an appropriate session with the same rights and
+     permissions as if i was coded directly on the machine": a {session.lower} started from another
+     machine, over SSH, stayed in that SSH login, where the login keychain is locked. The developer
+     leaves the {engine.lower} logged in at its screen; with no one logged in there, a {session.lower}
+     starts as before -->
+
+```gherkin
+@SESS-NEW-006 @status:proposed @persona:Developer
+Scenario: A {session.lower} started from outside the {engine.possessive} desktop login runs inside it
+  Given the developer is logged in at the {engine.possessive} screen
+  And the program runs on the {engine.lower} outside that login, as it does over SSH
+  When it starts a {project.lower}'s {session.lower}
+  Then what runs in the {session.lower} runs inside the developer's desktop login
+  And nothing of how it was started there is left running or loaded
+```
+
 ### Feature: Remote Control
 
 <!-- intent: the architect, 2026-11-04 - "remote control enabled as a switch before opening a

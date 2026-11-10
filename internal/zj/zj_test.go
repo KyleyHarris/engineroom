@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/KyleyHarris/engineroom/internal/action"
+
+	"github.com/KyleyHarris/engineroom/internal/desktop"
 )
 
 func TestParseSessionList(t *testing.T) {
@@ -161,5 +163,27 @@ func TestASessionStartsWithoutAnotherSessionsMarkers(t *testing.T) {
 		if !strings.HasPrefix(strings.Join(c.Argv, " "), prefix) {
 			t.Errorf("%s starts Zellij with the markers: %v", name, c.Argv)
 		}
+	}
+}
+
+// Fails if a start that should go through the desktop login runs Zellij directly (the session
+// would stay in the login that ran the program), or one that should not adds a launchd job.
+func TestStartGoesThroughTheDesktopLoginWhenAsked(t *testing.T) {
+	t.Setenv(desktop.ModeVar, "off")
+	if got := Start("project-a", "/l.kdl", "/src/a"); len(got) != 1 || !strings.Contains(strings.Join(got[0].Argv, " "), "zellij attach --create-background project-a") {
+		t.Fatalf("off: %+v", got)
+	}
+	t.Setenv(desktop.ModeVar, "on")
+	domain, ok := desktop.Domain()
+	if !ok {
+		t.Skip("no desktop login on this machine")
+	}
+	got := Start("project-a", "/l.kdl", "/src/a")
+	if len(got) != 2 || strings.Join(got[0].Argv, " ") != "engineroom session job project-a /l.kdl /src/a" ||
+		strings.Join(got[1].Argv, " ") != "launchctl bootstrap "+domain+" "+desktop.JobFile("project-a") {
+		t.Fatalf("on: %+v", got)
+	}
+	if !strings.Contains(got[0].Why, "zellij attach --create-background project-a") {
+		t.Fatalf("the job's command is not shown: %q", got[0].Why)
 	}
 }
