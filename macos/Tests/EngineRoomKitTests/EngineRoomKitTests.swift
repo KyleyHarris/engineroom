@@ -83,7 +83,7 @@ final class EngineRoomKitTests: XCTestCase {
         XCTAssertFalse(try decode(#"{"role":"client","offline":false,"where":"engine","terminals":[],"start":"zellij"}"#).forwards)
     }
 
-    // D-020 as amended 2026-11-08: the app runs the sweep on the engine, and on a client only while it
+    // D-020: the app runs the sweep on the engine, and on a client only while it
     // works local. Fails if a client working on the engine would sweep (a process every minute for
     // nothing) or the engine or a client working local would not.
     func testTheSweepRunsOnlyWhereTheSessionsAreThisMachines() throws {

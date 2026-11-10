@@ -45,13 +45,6 @@ var version = "dev"
 var built = ""
 
 func main() {
-	// The program was zellij-claude-hub before (D-026): its own folders under that name are moved
-	// to the new one the first time it runs, and said once. Here in main, never in run, so a test
-	// that calls run in this process can never move a real machine's folders (one did, once, and
-	// the installed build then found no configuration).
-	for _, m := range paths.Migrate() {
-		fmt.Fprintf(os.Stderr, "engineroom: moved %s (the program's new name)\n", m)
-	}
 	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
 }
 
@@ -279,7 +272,6 @@ func usage(w io.Writer) {
                                          two minutes, and forget ended sessions (D-020); silent if none
   engineroom sweep --watch                     sweep every minute while the app that started it runs (the
                                          app starts it on the engine, and on a client while working local)
-  engineroom sweep --uninstall                 remove the launchd job an earlier build installed
   engineroom session reap <name> [--dry-run]   stop the servers still running for a session that has ended
   engineroom session job <name> <layout> <dir> write the launchd job that starts a session in the desktop login
   engineroom process stop <pid> --port <n>     stop one process, only while it still listens on that port

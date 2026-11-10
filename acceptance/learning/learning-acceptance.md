@@ -4,8 +4,8 @@
 afterwards. Applies to every action the tool takes in every area. Out of scope: explaining what a
 command does beyond showing it and its result.
 
-**Sourcing**: every scenario's intent was stated by the architect in conversation on 2026-11-04.
-Nothing here is inferred from software; none exists yet.
+**Sourcing**: every scenario's intent is stated in its own comment, or in the decisions it cites.
+Nothing here is inferred from software.
 
 **Status**: every scenario is `proposed`, written at planning before the software exists.
 `proposed` is a proposal to be confirmed, `derived` is written up from delivered software,
@@ -38,8 +38,7 @@ software should do.
 
 ### Feature: Seeing what an action does
 
-<!-- intent: the architect, 2026-11-04 - "when it does them. show me what was done so i learn
-     over time" -->
+<!-- intent: the program shows what it did, so the developer learns the commands over time -->
 
 ```gherkin
 @LEARN-SHOW-001 @status:proposed @persona:Developer
@@ -85,8 +84,8 @@ Scenario: Every action is kept in a history
   Then each action is listed with when it ran, which machine it ran on, its commands and their outcomes
 ```
 
-<!-- intent: the history is only worth reading if it is true: a join that could not attach was kept
-     as done (found 2026-11-07) -->
+<!-- intent: the history is only worth reading if it is true: a join that could not attach is never
+     kept as done -->
 
 ```gherkin
 @LEARN-HIST-003 @status:proposed @persona:Developer
@@ -108,9 +107,9 @@ Scenario: The commands of a past action can be copied and run by hand
 
 ### Feature: Copying commands to learn them
 
-<!-- intent: the architect, 2026-11-04 - "commands i want to learn can have a copy line, or copy
-     batch button or click": one command or a whole action goes to the clipboard of the terminal
-     the developer is looking at, which works over SSH and through Zellij -->
+<!-- intent: a command worth learning can be copied, one line or a whole action: it goes to the
+     clipboard of the terminal the developer is looking at, which works over SSH and through Zellij
+     -->
 
 ```gherkin
 @LEARN-COPY-001 @status:proposed @persona:Developer
@@ -121,8 +120,8 @@ Scenario: One command of an action can be copied
   And they are told it was sent to the terminal's clipboard
 ```
 
-<!-- intent: as LEARN-COPY-001, and the architect, 2026-11-05, approving "copy all joins the
-     commands with &&": a pasted action stops at its first failure, as the program does -->
+<!-- intent: as LEARN-COPY-001; copy all joins the commands with &&, so a pasted action stops at its
+     first failure, as the program does -->
 
 ```gherkin
 @LEARN-COPY-002 @status:proposed @persona:Developer

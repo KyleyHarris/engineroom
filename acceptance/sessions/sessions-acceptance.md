@@ -4,9 +4,8 @@
 on the {engine.lower}, and starting them with Claude Code Remote Control. Out of scope: creating new {checkout.lowerPlural} for new work, ports, and
 opening an editor, which have their own areas.
 
-**Sourcing**: every scenario's intent was stated by the architect in conversation on 2026-11-04,
-or shown in the concept mockups the architect approved that day ("i like your mockups"). Nothing
-here is inferred from software; none exists yet.
+**Sourcing**: every scenario's intent is stated in its own comment, or in the decisions it cites.
+Nothing here is inferred from software.
 
 **Status**: every scenario is `proposed`, written at planning before the software exists.
 `proposed` is a proposal to be confirmed, `derived` is written up from delivered software,
@@ -56,8 +55,8 @@ software should do.
 
 ### Feature: Seeing sessions
 
-<!-- intent: the architect, 2026-11-04 - a tool that "knows about all this stuff and what i do";
-     the approved concept mockups list every session with its project, worktree and state -->
+<!-- intent: the tool knows every session and where it belongs: the list shows each one with its
+     project, worktree and state -->
 
 ```gherkin
 @SESS-LIST-001 @status:proposed @persona:Developer
@@ -67,10 +66,8 @@ Scenario: Every {session.lower} on the {engine.lower} is listed
   Then each {session.lower} is listed with its {project.lower}, its {checkout.lower} and whether it is running
 ```
 
-<!-- intent: the approved concept mockups, 2026-11-04 - a session waiting for an answer is shown
-     with its question; the architect, 2026-11-08 - "i want my list in fixed order. if something is
-     waiting on claude i dont need it in a different order. that can just be an icon or something
-     like a claude icon showing" -->
+<!-- intent: a session waiting for an answer is shown with its question, as a mark on its own line;
+     the list keeps its fixed order and a waiting session is never moved (D-022) -->
 
 ```gherkin
 @SESS-LIST-002 @status:proposed @persona:Developer
@@ -94,8 +91,7 @@ Scenario: An ended {session.lower} is shown as ended
   And it is not shown as running
 ```
 
-<!-- intent: the architect, 2026-11-04 - "help me do these things easily"; an empty list has to
-     lead somewhere -->
+<!-- intent: an empty list has to lead somewhere -->
 
 ```gherkin
 @SESS-LIST-004 @status:proposed @persona:Developer
@@ -106,8 +102,8 @@ Scenario: With no {session.lowerPlural}, the list offers to open a {project.lowe
   And they are offered the registered {project.lowerPlural} to open
 ```
 
-<!-- intent: the architect, 2026-11-08 - "i think pinned ones are always there. always at the top,
-     and always maintain a consistent order so its not random"; "i want my list in fixed order" -->
+<!-- intent: pinned projects are always there and always first, and the order is fixed, so nothing
+     moves between two looks (D-022) -->
 
 ```gherkin
 @SESS-LIST-005 @status:proposed @persona:Developer
@@ -120,8 +116,8 @@ Scenario: The pinned {project.lowerPlural}' {session.lowerPlural} are listed fir
 
 ### Feature: Joining a session
 
-<!-- intent: the architect, 2026-11-04 - "always use zellij so that i can switch autonomously
-     between server or client on the same session" -->
+<!-- intent: Claude always runs inside Zellij, so the same session can be reached from the engine or
+     from a client -->
 
 ```gherkin
 @SESS-JOIN-001 @status:proposed @persona:Developer
@@ -145,10 +141,9 @@ Scenario: Leaving a {session.lower} keeps it running
 
 ### Feature: Opening a project
 
-<!-- intent: the architect, 2026-11-04 - "i should never launch claude direct from ghosstty
-     anymore. i should always use zellij"; amended the same day for a small screen: Claude Code
-     gets the whole tab, and "get rid of the exta terminals", since Zellij opens a tab whenever
-     one is needed and the repository's own scripts start its stack (issue #32) -->
+<!-- intent: Claude Code is always started inside Zellij, never directly in a terminal. On a
+     small screen it gets the whole tab, with no extra terminal panes, since Zellij opens a tab
+     whenever one is needed and the repository's own scripts start its stack -->
 
 ```gherkin
 @SESS-NEW-001 @status:proposed @persona:Developer
@@ -170,8 +165,8 @@ Scenario: Opening a {project.lower} that has a {session.lower} joins it
   And no second {session.lower} is created
 ```
 
-<!-- intent: the architect, 2026-11-04 - "without remembering all the tooling, names"; a name the
-     tool does not know is answered with the names it does -->
+<!-- intent: names need not be remembered; a name the tool does not know is answered with the names
+     it does -->
 
 ```gherkin
 @SESS-NEW-003 @status:proposed @persona:Developer
@@ -183,9 +178,8 @@ Scenario: Opening a {project.lower} that is not registered names the ones that a
   And no {session.lower} is created
 ```
 
-<!-- intent: the architect, 2026-11-04 - "i also might want to laucnh without even having zellij
-     open. because remote control will be used after the session started. so moving off the hub
-     woudl be optional" -->
+<!-- intent: a session can be started without a Zellij window open at all, because Remote Control
+     is used once the session runs; joining it in a terminal is optional -->
 
 ```gherkin
 @SESS-NEW-004 @status:proposed @persona:Developer
@@ -196,10 +190,10 @@ Scenario: A {project.lower} can be started without joining its {session.lower}
   And the developer stays where they were, shown the list of {session.lowerPlural}
 ```
 
-<!-- intent: the architect, 2026-11-08 - "transcript saving off? i dont recall this being something
-     i did": a {session.lower} started by engineroom from inside a Claude Code session (Claude running
-     engineroom, or the app opened from one) gave its agent that session's markers, and the agent saved
-     no transcript. A {session.lower}'s agent is the developer's own, whatever started it -->
+<!-- intent: a {session.lower} started by engineroom from inside a Claude Code session (Claude
+     running engineroom, or the app opened from one) must not be given that session's markers, with
+     which its agent would save no transcript. A {session.lower}'s agent is the developer's own,
+     whatever started it -->
 
 ```gherkin
 @SESS-NEW-005 @status:proposed @persona:Developer
@@ -209,11 +203,10 @@ Scenario: A {session.lower} started by a running Claude Code agent has an agent 
   Then the agent in that {session.lower} is given none of those markers
 ```
 
-<!-- intent: the architect, 2026-11-10 - "start it in an appropriate session with the same rights and
-     permissions as if i was coded directly on the machine": a {session.lower} started from another
-     machine, over SSH, stayed in that SSH login, where the login keychain is locked. The developer
-     leaves the {engine.lower} logged in at its screen; with no one logged in there, a {session.lower}
-     starts as before -->
+<!-- intent: a {session.lower} has the rights it would have if the developer had started it at the
+     machine itself: one started from another machine, over SSH, would stay in that SSH login, where
+     the login keychain is locked (D-031). The developer leaves the {engine.lower} logged in at its
+     screen; with no one logged in there, a {session.lower} starts as before -->
 
 ```gherkin
 @SESS-NEW-006 @status:proposed @persona:Developer
@@ -227,9 +220,8 @@ Scenario: A {session.lower} started from outside the {engine.possessive} desktop
 
 ### Feature: Remote Control
 
-<!-- intent: the architect, 2026-11-04 - "remote control enabled as a switch before opening a
-     session.. and remember it"; Remote Control is where pasting images works, so the choice is
-     made once and kept -->
+<!-- intent: Remote Control is a switch set before a session is opened, and remembered; it is where
+     pasting images works, so the choice is made once and kept -->
 
 ```gherkin
 @SESS-REMOTE-001 @status:proposed @persona:Developer
@@ -240,8 +232,8 @@ Scenario: The Remote Control choice is shown before opening and remembered
   And it is still on the next time the program is started
 ```
 
-<!-- intent: the architect, 2026-11-04 - "can the hub automatically start the claude session
-     inside the zellij with a same name and remote control" -->
+<!-- intent: engineroom starts the Claude session inside Zellij under the same name, with Remote
+     Control -->
 
 ```gherkin
 @SESS-REMOTE-002 @status:proposed @persona:Developer
@@ -279,7 +271,7 @@ Scenario: The Remote Control choice never changes a running {session.lower}
 
 ### Feature: Switching sessions
 
-<!-- intent: the architect, 2026-11-04 - "or the session itself needs to be able to swtich" -->
+<!-- intent: a session can be left for another from inside it, without going back to a shell -->
 
 ```gherkin
 @SESS-SWITCH-001 @status:proposed @persona:Developer
@@ -292,9 +284,8 @@ Scenario: From inside a {session.lower}, the developer moves to another
 
 ### Feature: Stopping a session
 
-<!-- intent: the architect, 2026-11-04 - "I should be able to stop any session that's running
-     right? That's the point of the tool"; and the standing rule that nothing is stopped
-     without a clear ask -->
+<!-- intent: any running session can be stopped from the tool, and nothing is stopped without a
+     clear ask -->
 
 ```gherkin
 @SESS-STOP-001 @status:proposed @persona:Developer
@@ -327,9 +318,9 @@ Scenario: Declining the confirmation leaves the {session.lower} running
 
 ### Feature: Starting a session again
 
-<!-- intent: the architect, 2026-11-07 - "why would we bring it back"; a session is running or it
-     is not there, so one that ended (the engine restarted, or it was quit from inside Zellij) starts
-     fresh from the current layout, never as Zellij's old snapshot (D-015) -->
+<!-- intent: a session is running or it is not there, so one that ended (the engine restarted, or it
+     was quit from inside Zellij) starts fresh from the current layout, never as Zellij's old
+     snapshot (D-015) -->
 
 ```gherkin
 @SESS-BACK-001 @status:proposed @persona:Developer
@@ -352,8 +343,8 @@ Scenario: Starting a {session.lower} again continues the Claude Code conversatio
   And a new, empty conversation is not started in its place
 ```
 
-<!-- intent: the architect, 2026-11-07 - "restart is good": a running session on an old layout is
-     put on the current one from the app, with no terminal command -->
+<!-- intent: a running session on an old layout is put on the current one from the app, with no
+     terminal command (D-015) -->
 
 ```gherkin
 @SESS-BACK-003 @status:proposed @persona:Developer
@@ -364,9 +355,9 @@ Scenario: Restarting a running {session.lower} puts it on the current layout
   And Claude Code continues the conversation it was having
 ```
 
-<!-- intent: the architect, 2026-11-07 - "the current running session exits back to hub console or
-     something and then it cant resume": a window joined to a session from a client is left on the
-     session list when the session is restarted, and the next join brings that window forward -->
+<!-- intent: a restarted session must stay within reach: a window joined to a session from a
+     client is left on the session list when the session is restarted, and the next join brings
+     that window forward -->
 
 ```gherkin
 @SESS-BACK-004 @status:proposed @persona:Developer
@@ -379,8 +370,8 @@ Scenario: Restarting a {session.lower} joined from a {client.lower} ends the joi
 
 ### Feature: Using the mouse
 
-<!-- intent: the architect, 2026-11-04 - "the hub appication is not mouse interactive yet": a row
-     is chosen by clicking it, and acted on by clicking it again, as enter does -->
+<!-- intent: the terminal interface answers the mouse: a row is chosen by clicking it, and
+     acted on by clicking it again, as enter does -->
 
 ```gherkin
 @SESS-MOUSE-001 @status:proposed @persona:Developer

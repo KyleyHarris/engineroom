@@ -53,11 +53,6 @@ func loadDoc(root string, dc DocConfig) (*Doc, error) {
 	if err != nil {
 		return nil, err
 	}
-	if dc.Format == "record" {
-		if src, err = recordsToMarkdown(src, dc.Source, dc.Split+1); err != nil {
-			return nil, err
-		}
-	}
 	tree := markdown.Parser().Parse(text.NewReader(src))
 	if err := refuseRawHTML(tree, src, dc.Source); err != nil {
 		return nil, err
@@ -87,13 +82,7 @@ func loadDoc(root string, dc DocConfig) (*Doc, error) {
 				d.Title = plainText(h, src)
 				index.Title = d.Title
 			case h.Level >= 2 && h.Level <= dc.Split:
-				name := id
-				if dc.pageName != nil {
-					if m := dc.pageName.FindStringSubmatch(plainText(h, src)); m != nil {
-						name = githubSlug(m[1])
-					}
-				}
-				file := path.Join(dc.Slug, name+".html")
+				file := path.Join(dc.Slug, id+".html")
 				if files[file] {
 					return nil, fmt.Errorf("%s: two pages would both be %s", dc.Source, file)
 				}
@@ -174,7 +163,7 @@ func plainText(n ast.Node, src []byte) string {
 
 // githubSlug is the id GitHub gives a heading: lower case, everything but letters, digits,
 // underscores, hyphens and spaces dropped, then each space a hyphen. Runs of spaces are not
-// collapsed, which is why "D-001  2026" becomes "d-001--2026", as on GitHub.
+// collapsed, which is why "Ports  and slots" becomes "ports--and-slots", as on GitHub.
 func githubSlug(s string) string {
 	var b strings.Builder
 	for _, r := range strings.ToLower(s) {
@@ -210,25 +199,18 @@ type site struct {
 
 // resolveLinks rewrites every link and image on a page for the site. A link to a rendered doc
 // goes to the page that holds its heading; a link to any other file in the repository goes to
-// that file on GitHub; a decision named in the text (D-013) becomes a link to its page. Anything
-// that resolves to nothing fails the build, so a broken link is found here and not by a reader.
+// that file on GitHub. Anything that resolves to nothing fails the build, so a broken link is
+// found here and not by a reader.
 func (s *site) resolveLinks(p *Page) error {
 	var links []ast.Node
-	var texts []*ast.Text
 	for _, n := range p.nodes {
 		_ = ast.Walk(n, func(c ast.Node, entering bool) (ast.WalkStatus, error) {
 			if !entering {
 				return ast.WalkContinue, nil
 			}
-			switch v := c.(type) {
+			switch c.(type) {
 			case *ast.Link, *ast.Image:
 				links = append(links, c)
-			case *ast.Heading, *ast.CodeSpan, *ast.AutoLink:
-				return ast.WalkSkipChildren, nil
-			case *ast.Text:
-				if !insideLink(v) {
-					texts = append(texts, v)
-				}
 			}
 			return ast.WalkContinue, nil
 		})
@@ -249,22 +231,7 @@ func (s *site) resolveLinks(p *Page) error {
 			v.Destination = []byte(dest)
 		}
 	}
-	for _, t := range texts {
-		if err := s.linkMentions(p, t); err != nil {
-			return err
-		}
-	}
 	return nil
-}
-
-func insideLink(n ast.Node) bool {
-	for p := n.Parent(); p != nil; p = p.Parent() {
-		switch p.(type) {
-		case *ast.Link, *ast.AutoLink, *ast.Image:
-			return true
-		}
-	}
-	return false
 }
 
 var hasScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
@@ -353,61 +320,6 @@ func (s *site) imageTarget(p *Page, dest string) (string, error) {
 	file := path.Join("files", repoPath)
 	s.assets[repoPath] = file
 	return relative(p.File, file), nil
-}
-
-// linkMentions turns each mention in a run of text of a page another doc names (a decision,
-// D-013, in the decisions doc) into a link to that page, so a reader can follow the reason behind
-// any rule. The text node is split around each mention; a mention that names no page fails the
-// build, because it names something that does not exist.
-func (s *site) linkMentions(p *Page, t *ast.Text) error {
-	for _, d := range s.docs {
-		if d.Config.mentions == nil {
-			continue
-		}
-		if err := s.linkMentionsOf(d, p, t); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *site) linkMentionsOf(d *Doc, p *Page, t *ast.Text) error {
-	src := p.Doc.src
-	seg := t.Segment
-	value := seg.Value(src)
-	matches := d.Config.mentions.FindAllIndex(value, -1)
-	if matches == nil {
-		return nil
-	}
-	parent := t.Parent()
-	start := 0
-	for _, m := range matches {
-		mention := string(value[m[0]:m[1]])
-		file := path.Join(d.Config.Slug, githubSlug(mention)+".html")
-		var target *Page
-		for _, dp := range d.Pages[1:] {
-			if dp.File == file {
-				target = dp
-			}
-		}
-		if target == nil {
-			return fmt.Errorf("%s: names %s, which has no page in %s", p.Doc.Config.Source, mention, d.Config.Source)
-		}
-		if target == p {
-			continue // a page naming itself stays plain text
-		}
-		if m[0] > start {
-			parent.InsertBefore(parent, t, ast.NewTextSegment(text.NewSegment(seg.Start+start, seg.Start+m[0])))
-		}
-		link := ast.NewLink()
-		link.Destination = []byte(relative(p.File, target.File))
-		link.AppendChild(link, ast.NewTextSegment(text.NewSegment(seg.Start+m[0], seg.Start+m[1])))
-		parent.InsertBefore(parent, t, link)
-		start = m[1]
-	}
-	// What follows the last mention stays in the original node, which keeps its line breaks.
-	t.Segment = text.NewSegment(seg.Start+start, seg.Stop)
-	return nil
 }
 
 // relative is the address of one file in the built site as seen from another.

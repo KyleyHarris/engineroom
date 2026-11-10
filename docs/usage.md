@@ -132,7 +132,7 @@ branch and push it, put them aside as a stash of the repository (which outlives 
 throwing work away is never offered.
 
 A worktree can instead be kept for a role, such as a designer's, a tester's, or a primary and a
-secondary, holding one branch after another (D-024). It is named `<project>-<role>`, so its
+secondary, holding one branch after another. It is named `<project>-<role>`, so its
 session name and its ports stay the same whichever branch it holds:
 
 ```sh
@@ -160,7 +160,7 @@ keyed by the project's GitHub owner and name). It holds the project's `engineroo
 work in but do not own.
 
 Keep the settings folder in a private git repository of your own and it is the same on every
-machine (D-014):
+machine:
 
 ```bash
 engineroom settings init git@github.com:<you>/engineroom-settings.git   # git init, git-crypt init, commit, push
@@ -276,8 +276,8 @@ to = "server/appsettings.Worktree.json"
   and the project's as `ENGINEROOM_PORT_<KEY>`, `ENGINEROOM_NAME_<KEY>` and
   `ENGINEROOM_DERIVED_<KEY>` (for example `ENGINEROOM_PORT_WEB`), the key in capitals with
   anything not a letter or digit made `_`, whatever the record is called. A port, name or derived
-  value whose variable would be the same as another's is refused when the settings are read
-  (D-028). The record and `{{key}}` keep the plain keys. The project's own code reads
+  value whose variable would be the same as another's is refused when the settings are read.
+  The record and `{{key}}` keep the plain keys. The project's own code reads
   its ports from the record (or `engineroom slot get <key>`, `engineroom slot env`), falling back to slot 1's
   numbers when there is none. A port written into a config file is used
   whatever is reserved.
@@ -309,7 +309,7 @@ the watch opens nothing; the app opens it again at launch, on wake, when you ope
 after each action it runs. `engineroom forward` brings the forwards in line once; `engineroom forward --check`
 does so only over a connection already open. Apart from the watch, the app keeps one connection to
 the engine open while it runs, `engineroom api feed`, over which the engine sends the sessions only when they
-change; it reads nothing on a timer (D-023).
+change; it reads nothing on a timer.
 
 ### Repositories from GitHub
 
@@ -352,7 +352,7 @@ a meter for each machine, the project it last read and the command doing the rea
 a time, CONN-HANDOFF-013).
 
 A handover leaves the receiving machine in the giving machine's state, checkout by checkout: the
-same branch, at the same commit, with the same uncommitted work (D-017, amended). It is all or
+same branch, at the same commit, with the same uncommitted work. It is all or
 nothing:
 
 - **Checked first.** Working it out finds anything that would stop the receiving machine reaching
@@ -409,8 +409,8 @@ after the engine's under a heading of their own.
 ### The menu bar app
 
 `scripts/install.sh --app` builds the menu bar app into `~/Applications/engineroom.app`. It has two
-parts. The panel from the menu bar holds what you use many times a day, as a list and a detail
-(D-025). The list is one row per project: your pinned projects first, always there whether running
+parts. The panel from the menu bar holds what you use many times a day, as a list and a detail.
+The list is one row per project: your pinned projects first, always there whether running
 or not, then every other project with a session running, each in a fixed order by name, with one
 light for all its sessions (Claude's mark when one waits for you). Point at a project, or click it,
 and the right shows its GitHub line (code, issues, pull requests) and one compact card per
@@ -432,8 +432,8 @@ made from; it pulls `main`, runs `scripts/install.sh --app`, restarts the app wi
 `engineroom app relaunch` and says what changed, and it asks before anything that could lose work.
 Each press starts a new upgrade session, ending one left from an earlier upgrade (APP-UPGRADE-003).
 Settings has the same buttons. The panel opens on the project
-you last chose, and comes back to it after an action. The list is worked from the keyboard too
-(D-033): Down and Up choose a project, Return joins or starts it (its session that waits for you,
+you last chose, and comes back to it after an action. The list is worked from the keyboard too:
+Down and Up choose a project, Return joins or starts it (its session that waits for you,
 else its first running one, else it starts its first checkout; the button Return presses carries a
 return mark), and Escape closes the panel, or goes back from an action's commands. Its gear opens the window, which holds
 everything else: a sidebar of your projects (pinned first), the repositories in your roots (pinned,
@@ -454,8 +454,8 @@ api = "http://localhost:{{api}}/health"
 ```
 
 Without them each port is shown as `http://localhost:<port>`. A session is running or it is not
-there (D-015): closing the terminal window leaves it running, Stop ends it fully, and starting
-one that ended starts it fresh. What runs for a session lives as long as it (D-020): Stop runs
+there: closing the terminal window leaves it running, Stop ends it fully, and starting
+one that ended starts it fresh. What runs for a session lives as long as it: Stop runs
 the project's down, ends the session, then stops anything still running that was started for it
 (`engineroom session reap <name>`; `--dry-run` only says what); Restart keeps the stack running.
 Everything engineroom runs for a checkout carries `ENGINEROOM_SESSION`, the checkout's session, so it is known

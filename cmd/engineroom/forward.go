@@ -340,8 +340,8 @@ func forwardedOf(have forward.Have) map[string]string {
 	return out
 }
 
-// closeForwardsForLocal closes every forward when a client starts working local (the independent
-// review, 2026-11-07): this machine then runs its own stacks on the same port numbers, and a
+// closeForwardsForLocal closes every forward when a client starts working local (PORT-FWD-004):
+// this machine then runs its own stacks on the same port numbers, and a
 // forward left open would answer for them with the engine's servers, so a local up script would find
 // the port taken and start nothing. Forwarding stays switched on and resumes when the client
 // hands back to the engine. A failure to close is not the switch's failure.

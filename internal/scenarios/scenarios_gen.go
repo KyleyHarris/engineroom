@@ -195,7 +195,7 @@ var Fields = map[string][]string{
 
 // AppAdd001 is APP-ADD-001: A repository is got from GitHub into a chosen root and category
 //
-// Intent: the architect, 2026-11-05 - "create, get hub repository, and what location and category it would go into"
+// Intent: a repository is created or brought in from the app, with the place and the category it goes into chosen there
 // Source: acceptance/app/app-acceptance.md
 type AppAdd001 struct {
 	// Given a root whose owner has a repository called "widget" that is not here
@@ -216,7 +216,7 @@ func (s AppAdd001) Scenario() Scenario {
 		Feature: "Repositories",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"create, get hub repository, and what location and category it would go into\"",
+		Intent:  "a repository is created or brought in from the app, with the place and the category it goes into chosen there",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {root.lower} whose owner has a repository called \"widget\" that is not here", Display: "Given a root whose owner has a repository called \"widget\" that is not here", Fn: s.GivenARootWhoseOwnerHasARepositoryCalledWidgetThatIsNotHere},
@@ -263,7 +263,7 @@ func (s AppAdd002) Scenario() Scenario {
 
 // AppAsk001 is APP-ASK-001: Asking Claude about a worktree opens a session that already knows it
 //
-// Intent: the architect, 2026-11-07 - "an AI button which opens a Claude session with context about what we opened understand the skills and says what do you want to do ... maybe we won't discuss what port numbers were using"
+// Intent: one button opens a Claude session that already knows what was open (the project, the checkout, its ports and scripts) and how engineroom wants things done, so the developer says what they want without explaining the setup (D-018)
 // Source: acceptance/app/app-acceptance.md
 type AppAsk001 struct {
 	// Given a project with ports, whose main clone the developer is looking at in the app
@@ -286,7 +286,7 @@ func (s AppAsk001) Scenario() Scenario {
 		Feature: "Asking Claude about what is open",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - \"an AI button which opens a Claude session with context about what we opened understand the skills and says what do you want to do ... maybe we won't discuss what port numbers were using\"",
+		Intent:  "one button opens a Claude session that already knows what was open (the project, the checkout, its ports and scripts) and how engineroom wants things done, so the developer says what they want without explaining the setup (D-018)",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} with ports, whose main clone the developer is looking at in the app", Display: "Given a project with ports, whose main clone the developer is looking at in the app", Fn: s.GivenAProjectWithPortsWhoseMainCloneTheDeveloperIsLookingAtInTheApp},
@@ -300,7 +300,7 @@ func (s AppAsk001) Scenario() Scenario {
 
 // AppEdit001 is APP-EDIT-001: VS Code opens a project directly on the engine, and over SSH from a client
 //
-// Intent: issue #29 and docs/decisions.md D-007 - the app "knows if it is the client or server and launch vs code local or ssh"
+// Intent: docs/decisions.md D-007 - the app knows whether this machine is the engine or a client, and opens VS Code on the folder directly or over SSH to match
 // Source: acceptance/app/app-acceptance.md
 type AppEdit001 struct {
 	// Given a project registered on the engine
@@ -321,7 +321,7 @@ func (s AppEdit001) Scenario() Scenario {
 		Feature: "VS Code",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #29 and docs/decisions.md D-007 - the app \"knows if it is the client or server and launch vs code local or ssh\"",
+		Intent:  "docs/decisions.md D-007 - the app knows whether this machine is the engine or a client, and opens VS Code on the folder directly or over SSH to match",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} registered on the {engine.lower}", Display: "Given a project registered on the engine", Fn: s.GivenAProjectRegisteredOnTheEngine},
@@ -334,7 +334,7 @@ func (s AppEdit001) Scenario() Scenario {
 
 // AppFeed001 is APP-FEED-001: A change on the engine reaches the app without the app asking
 //
-// Intent: the architect, 2026-11-09 - "a server tracking everything low cost can easily send batches of data"; "I'm not sure if the panel needs to check local things every 15 seconds"; battery on the laptop is the cost to avoid, the engine is plugged in. The engine looks at its own sessions and sends the app a list only when it changed, over one connection the app keeps (D-023).
+// Intent: reading the sessions on a timer costs a client a connection per look, and its battery; the engine tracks its own sessions cheaply. The engine looks at its own sessions and sends the app a list only when it changed, over one connection the app keeps (D-023).
 // Source: acceptance/app/app-acceptance.md
 type AppFeed001 struct {
 	// Given the app on a client follows the Engine's sessions
@@ -355,7 +355,7 @@ func (s AppFeed001) Scenario() Scenario {
 		Feature: "Staying up to date",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"a server tracking everything low cost can easily send batches of data\"; \"I'm not sure if the panel needs to check local things every 15 seconds\"; battery on the laptop is the cost to avoid, the engine is plugged in. The engine looks at its own sessions and sends the app a list only when it changed, over one connection the app keeps (D-023).",
+		Intent:  "reading the sessions on a timer costs a client a connection per look, and its battery; the engine tracks its own sessions cheaply. The engine looks at its own sessions and sends the app a list only when it changed, over one connection the app keeps (D-023).",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the app on a {client.lower} follows the {engine.possessive} {session.lowerPlural}", Display: "Given the app on a client follows the Engine's sessions", Fn: s.GivenTheAppOnAClientFollowsTheEnginesSessions},
@@ -461,7 +461,7 @@ func (s AppFeed004) Scenario() Scenario {
 
 // AppFeed005 is APP-FEED-005: The menu bar shows Claude's mark while a session waits, with the panel closed
 //
-// Intent: the architect, 2026-11-09, agreeing the feed stays connected while the app runs: the menu bar says Claude is waiting without the panel being opened. Drawn by the app from the list the feed gives it, so it is checked by the app's own tests.
+// Intent: the feed stays connected while the app runs, so the menu bar says Claude is waiting without the panel being opened. Drawn by the app from the list the feed gives it, so it is checked by the app's own tests.
 // Source: acceptance/app/app-acceptance.md
 type AppFeed005 struct {
 	// Given the app follows the sessions and its panel is closed
@@ -482,7 +482,7 @@ func (s AppFeed005) Scenario() Scenario {
 		Feature: "Staying up to date",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09, agreeing the feed stays connected while the app runs: the menu bar says Claude is waiting without the panel being opened. Drawn by the app from the list the feed gives it, so it is checked by the app's own tests.",
+		Intent:  "the feed stays connected while the app runs, so the menu bar says Claude is waiting without the panel being opened. Drawn by the app from the list the feed gives it, so it is checked by the app's own tests.",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the app follows the {session.lowerPlural} and its panel is closed", Display: "Given the app follows the sessions and its panel is closed", Fn: s.GivenTheAppFollowsTheSessionsAndItsPanelIsClosed},
@@ -495,7 +495,7 @@ func (s AppFeed005) Scenario() Scenario {
 
 // AppFeed006 is APP-FEED-006: The app is told what is unsaved, unpushed and done in each worktree of a pinned project
 //
-// Intent: the architect, 2026-11-09 - the panel's compact card shows what is unsaved, what is not pushed and how far behind main a checkout is, and whether its branch is done, live where it is cheap: read on the engine from its own disk and sent with the sessions (D-025)
+// Intent: the panel's compact card shows what is unsaved, what is not pushed and how far behind main a checkout is, and whether its branch is done, live where it is cheap: read on the engine from its own disk and sent with the sessions (D-025)
 // Source: acceptance/app/app-acceptance.md
 type AppFeed006 struct {
 	// Given a pinned project has a worktree with a file changed and a commit that is not on the remote
@@ -522,7 +522,7 @@ func (s AppFeed006) Scenario() Scenario {
 		Feature: "Staying up to date",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - the panel's compact card shows what is unsaved, what is not pushed and how far behind main a checkout is, and whether its branch is done, live where it is cheap: read on the engine from its own disk and sent with the sessions (D-025)",
+		Intent:  "the panel's compact card shows what is unsaved, what is not pushed and how far behind main a checkout is, and whether its branch is done, live where it is cheap: read on the engine from its own disk and sent with the sessions (D-025)",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a pinned {project.lower} has a {checkout.lower} with a file changed and a commit that is not on the remote", Display: "Given a pinned project has a worktree with a file changed and a commit that is not on the remote", Fn: s.GivenAPinnedProjectHasACheckoutWithAFileChangedAndACommitThatIsNotOnTheRemote},
@@ -569,7 +569,7 @@ func (s AppHist001) Scenario() Scenario {
 
 // AppList001 is APP-LIST-001: The app is told which session is waiting for the developer, with its question
 //
-// Intent: issue #29 - "lists the sessions (waiting ones marked)"; the architect, 2026-11-08 - "dont have a waiting for you section that duplicates everything. just make that a hint on the line"
+// Intent: the panel lists the sessions with the waiting ones marked on their own line, never in a section of their own that lists them twice
 // Source: acceptance/app/app-acceptance.md
 type AppList001 struct {
 	// Given the engine has a session waiting for the developer and one that is not
@@ -590,7 +590,7 @@ func (s AppList001) Scenario() Scenario {
 		Feature: "Sessions",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #29 - \"lists the sessions (waiting ones marked)\"; the architect, 2026-11-08 - \"dont have a waiting for you section that duplicates everything. just make that a hint on the line\"",
+		Intent:  "the panel lists the sessions with the waiting ones marked on their own line, never in a section of their own that lists them twice",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.lower} has a {session.lower} waiting for the developer and one that is not", Display: "Given the engine has a session waiting for the developer and one that is not", Fn: s.GivenTheEngineHasASessionWaitingForTheDeveloperAndOneThatIsNot},
@@ -603,7 +603,7 @@ func (s AppList001) Scenario() Scenario {
 
 // AppList002 is APP-LIST-002: The panel keeps one order, pinned projects first, whatever is waiting
 //
-// Intent: the architect, 2026-11-08 - "i dont like the order of information changing based on claude is waiting. i think pinned ones are always there. always at the top, and always maintain a consistent order so its not random". The order is laid out by the app from the list the engine gives it, so it is checked by the app's own tests.
+// Intent: a list whose order changes whenever Claude starts waiting never has anything where it was last seen. Pinned projects are always there and always first, and the order never changes (D-022). The order is laid out by the app from the list the engine gives it, so it is checked by the app's own tests.
 // Source: acceptance/app/app-acceptance.md
 type AppList002 struct {
 	// Given the pinned project beta with no running session
@@ -628,7 +628,7 @@ func (s AppList002) Scenario() Scenario {
 		Feature: "Sessions",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-08 - \"i dont like the order of information changing based on claude is waiting. i think pinned ones are always there. always at the top, and always maintain a consistent order so its not random\". The order is laid out by the app from the list the engine gives it, so it is checked by the app's own tests.",
+		Intent:  "a list whose order changes whenever Claude starts waiting never has anything where it was last seen. Pinned projects are always there and always first, and the order never changes (D-022). The order is laid out by the app from the list the engine gives it, so it is checked by the app's own tests.",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the pinned {project.lower} beta with no running {session.lower}", Display: "Given the pinned project beta with no running session", Fn: s.GivenThePinnedProjectBetaWithNoRunningSession},
@@ -643,7 +643,7 @@ func (s AppList002) Scenario() Scenario {
 
 // AppList003 is APP-LIST-003: A session in the panel links to its project and its branch on GitHub
 //
-// Intent: the architect, 2026-11-08 - "it would be valuable for a github line to exist on the drop down panel for speed"
+// Intent: a project's code, issues and pull requests on GitHub are one click from the panel, with no browser search in between
 // Source: acceptance/app/app-acceptance.md
 type AppList003 struct {
 	// Given a project whose origin is the GitHub repository acme/widget
@@ -666,7 +666,7 @@ func (s AppList003) Scenario() Scenario {
 		Feature: "Sessions",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-08 - \"it would be valuable for a github line to exist on the drop down panel for speed\"",
+		Intent:  "a project's code, issues and pull requests on GitHub are one click from the panel, with no browser search in between",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} whose origin is the GitHub repository acme/widget", Display: "Given a project whose origin is the GitHub repository acme/widget", Fn: s.GivenAProjectWhoseOriginIsTheGitHubRepositoryAcmeWidget},
@@ -680,7 +680,7 @@ func (s AppList003) Scenario() Scenario {
 
 // AppList004 is APP-LIST-004: The panel lists one row per project, each with one light for all its sessions
 //
-// Intent: the architect, 2026-11-08 - "a very small clean list of my pinned or running items ... with a little bit bigger text ... running lights to show running or running and Claude is waiting ... if you click on it or mouse over it, you would see the panel based information on the right hand side". Laid out by the app from the feed, so it is checked by the app's tests.
+// Intent: the panel is a short, readable list of the pinned and running projects, each with one light for running and for Claude waiting; pointing at a project or clicking it shows that project on the right (D-025). Laid out by the app from the feed, so it is checked by the app's tests.
 // Source: acceptance/app/app-acceptance.md
 type AppList004 struct {
 	// Given the pinned project beta, with no running session
@@ -705,7 +705,7 @@ func (s AppList004) Scenario() Scenario {
 		Feature: "Staying up to date",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-08 - \"a very small clean list of my pinned or running items ... with a little bit bigger text ... running lights to show running or running and Claude is waiting ... if you click on it or mouse over it, you would see the panel based information on the right hand side\". Laid out by the app from the feed, so it is checked by the app's tests.",
+		Intent:  "the panel is a short, readable list of the pinned and running projects, each with one light for running and for Claude waiting; pointing at a project or clicking it shows that project on the right (D-025). Laid out by the app from the feed, so it is checked by the app's tests.",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the pinned {project.lower} beta, with no running {session.lower}", Display: "Given the pinned project beta, with no running session", Fn: s.GivenThePinnedProjectBetaWithNoRunningSession},
@@ -720,7 +720,7 @@ func (s AppList004) Scenario() Scenario {
 
 // AppLogin001 is APP-LOGIN-001: The app can open at login
 //
-// Intent: issue #29 - "It can start at login"
+// Intent: the app can start at login
 // Source: acceptance/app/app-acceptance.md
 type AppLogin001 struct {
 	// Given the app is installed
@@ -741,7 +741,7 @@ func (s AppLogin001) Scenario() Scenario {
 		Feature: "Opening at login",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #29 - \"It can start at login\"",
+		Intent:  "the app can start at login",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the app is installed", Display: "Given the app is installed", Fn: s.GivenTheAppIsInstalled},
@@ -754,7 +754,7 @@ func (s AppLogin001) Scenario() Scenario {
 
 // AppPage001 is APP-PAGE-001: A project's page shows the main clone and each worktree with its own ports and links
 //
-// Intent: the architect, 2026-11-06 - "i prefer if we click it and then when on it all actions and things we can do are clear and obvious"; "repo, then each worktree. and each worktree has join or start ... open vs code ... start stop stack"; "the ports are per worktree"
+// Intent: clicking a project opens its page, where everything that can be done is in sight: the repository, then each checkout with its own join or start, editor, stack and ports (D-016)
 // Source: acceptance/app/app-acceptance.md
 type AppPage001 struct {
 	// Given a project with ports, a running session in its main clone, and a worktree with no session
@@ -777,7 +777,7 @@ func (s AppPage001) Scenario() Scenario {
 		Feature: "A repository's page",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-06 - \"i prefer if we click it and then when on it all actions and things we can do are clear and obvious\"; \"repo, then each worktree. and each worktree has join or start ... open vs code ... start stop stack\"; \"the ports are per worktree\"",
+		Intent:  "clicking a project opens its page, where everything that can be done is in sight: the repository, then each checkout with its own join or start, editor, stack and ports (D-016)",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} with ports, a running {session.lower} in its main clone, and a {checkout.lower} with no {session.lower}", Display: "Given a project with ports, a running session in its main clone, and a worktree with no session", Fn: s.GivenAProjectWithPortsARunningSessionInItsMainCloneAndACheckoutWithNoSession},
@@ -791,7 +791,7 @@ func (s AppPage001) Scenario() Scenario {
 
 // AppPage002 is APP-PAGE-002: Pinning and categorising a project from its page changes how it is listed
 //
-// Intent: the architect, 2026-11-06 - "the view ideally of repos would have a pinned section. a registered section. un registered section"; "we need to unregister old ones when needed"
+// Intent: the repositories are listed in sections (pinned, registered, not registered), and a project no longer worked on can be unregistered from its page (D-016)
 // Source: acceptance/app/app-acceptance.md
 type AppPage002 struct {
 	// Given a registered project with no category
@@ -812,7 +812,7 @@ func (s AppPage002) Scenario() Scenario {
 		Feature: "A repository's page",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-06 - \"the view ideally of repos would have a pinned section. a registered section. un registered section\"; \"we need to unregister old ones when needed\"",
+		Intent:  "the repositories are listed in sections (pinned, registered, not registered), and a project no longer worked on can be unregistered from its page (D-016)",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a registered {project.lower} with no {category.lower}", Display: "Given a registered project with no category", Fn: s.GivenARegisteredProjectWithNoCategory},
@@ -859,7 +859,7 @@ func (s AppPage003) Scenario() Scenario {
 
 // AppPage004 is APP-PAGE-004: A running session carries the addresses its stack serves, filled from its slot
 //
-// Intent: the architect, 2026-11-07 - "i should alos have hyperlinks in the hub menu to click on any api or urls it exposes.. i can't copy from a zelij ssh terminal"
+// Intent: every address a running stack serves is a link in the app, because an address cannot be copied out of a terminal reached over SSH
 // Source: acceptance/app/app-acceptance.md
 type AppPage004 struct {
 	// Given a project whose settings name the link "app" as https on its "ui" port
@@ -878,7 +878,7 @@ func (s AppPage004) Scenario() Scenario {
 		Feature: "A repository's page",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - \"i should alos have hyperlinks in the hub menu to click on any api or urls it exposes.. i can't copy from a zelij ssh terminal\"",
+		Intent:  "every address a running stack serves is a link in the app, because an address cannot be copied out of a terminal reached over SSH",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} whose settings name the link \"app\" as https on its \"ui\" port", Display: "Given a project whose settings name the link \"app\" as https on its \"ui\" port", Fn: s.GivenAProjectWhoseSettingsNameTheLinkAppAsHttpsOnItsUiPort},
@@ -890,7 +890,7 @@ func (s AppPage004) Scenario() Scenario {
 
 // AppPage005 is APP-PAGE-005: A project on GitHub links to its code, issues and pull requests
 //
-// Intent: the architect, 2026-11-08 - "a shortcut to get to the github repo. a single github line that can link to code or issues or pr's with links would be very good"
+// Intent: one GitHub line per project links to its code, its issues and its pull requests
 // Source: acceptance/app/app-acceptance.md
 type AppPage005 struct {
 	// Given a project whose origin is the GitHub repository acme/widget
@@ -909,7 +909,7 @@ func (s AppPage005) Scenario() Scenario {
 		Feature: "A repository's page",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-08 - \"a shortcut to get to the github repo. a single github line that can link to code or issues or pr's with links would be very good\"",
+		Intent:  "one GitHub line per project links to its code, its issues and its pull requests",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} whose origin is the GitHub repository acme/widget", Display: "Given a project whose origin is the GitHub repository acme/widget", Fn: s.GivenAProjectWhoseOriginIsTheGitHubRepositoryAcmeWidget},
@@ -1023,7 +1023,7 @@ func (s AppPreview001) Scenario() Scenario {
 
 // AppRepos001 is APP-REPOS-001: Every repository of a root is listed with where it is
 //
-// Intent: the architect, 2026-11-05 - "show all available repositories with groups and categories, even call Git and map ones that are not registered with the hub"
+// Intent: the app shows every repository there is, grouped by category, including those on GitHub and on this machine that are not registered with engineroom yet
 // Source: acceptance/app/app-acceptance.md
 type AppRepos001 struct {
 	// Given a root whose owner has one repository on GitHub that is not here
@@ -1048,7 +1048,7 @@ func (s AppRepos001) Scenario() Scenario {
 		Feature: "Repositories",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"show all available repositories with groups and categories, even call Git and map ones that are not registered with the hub\"",
+		Intent:  "the app shows every repository there is, grouped by category, including those on GitHub and on this machine that are not registered with engineroom yet",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {root.lower} whose owner has one repository on GitHub that is not here", Display: "Given a root whose owner has one repository on GitHub that is not here", Fn: s.GivenARootWhoseOwnerHasOneRepositoryOnGitHubThatIsNotHere},
@@ -1097,7 +1097,7 @@ func (s AppRepos002) Scenario() Scenario {
 
 // AppRepos003 is APP-REPOS-003: A repository on GitHub that is not here can be hidden from the list, and shown again
 //
-// Intent: the architect, 2026-11-05 - "hiding would be for repos, not registered": a repository on GitHub that will never be worked on is kept out of the list, and nothing changes on GitHub
+// Intent: hiding is for repositories that are not registered: a repository on GitHub that will never be worked on is kept out of the list, and nothing changes on GitHub
 // Source: acceptance/app/app-acceptance.md
 type AppRepos003 struct {
 	// Given a root whose owner has a repository on GitHub that is not here
@@ -1118,7 +1118,7 @@ func (s AppRepos003) Scenario() Scenario {
 		Feature: "Repositories",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"hiding would be for repos, not registered\": a repository on GitHub that will never be worked on is kept out of the list, and nothing changes on GitHub",
+		Intent:  "hiding is for repositories that are not registered: a repository on GitHub that will never be worked on is kept out of the list, and nothing changes on GitHub",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {root.lower} whose owner has a repository on GitHub that is not here", Display: "Given a root whose owner has a repository on GitHub that is not here", Fn: s.GivenARootWhoseOwnerHasARepositoryOnGitHubThatIsNotHere},
@@ -1131,7 +1131,7 @@ func (s AppRepos003) Scenario() Scenario {
 
 // AppStart001 is APP-START-001: Starting in Zellij runs Claude Code in a session and opens a terminal joined to it
 //
-// Intent: the architect, 2026-11-05 - "start session with Zellij, just with remote or with both ... it would always run Zellij for Claude, so that anything run can be connected to from the air"
+// Intent: a session can be started to join in a terminal, with Remote Control only, or both; Claude always runs inside Zellij, so anything started can be joined from another machine (D-008)
 // Source: acceptance/app/app-acceptance.md
 type AppStart001 struct {
 	// Given a project with no session
@@ -1152,7 +1152,7 @@ func (s AppStart001) Scenario() Scenario {
 		Feature: "Starting a session",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"start session with Zellij, just with remote or with both ... it would always run Zellij for Claude, so that anything run can be connected to from the air\"",
+		Intent:  "a session can be started to join in a terminal, with Remote Control only, or both; Claude always runs inside Zellij, so anything started can be joined from another machine (D-008)",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} with no {session.lower}", Display: "Given a project with no session", Fn: s.GivenAProjectWithNoSession},
@@ -1233,7 +1233,7 @@ func (s AppStart003) Scenario() Scenario {
 
 // AppTask001 is APP-TASK-001: A task named in a project's settings runs in a worktree from the app
 //
-// Intent: the architect, 2026-11-07 - "We may want to add custom scripts to run from hub ... Could be a registered script" (for example, copying a database for testing)
+// Intent: a project names its own scripts as tasks the app can run (for example, copying a database for testing)
 // Source: acceptance/app/app-acceptance.md
 type AppTask001 struct {
 	// Given a project whose settings name a task
@@ -1254,7 +1254,7 @@ func (s AppTask001) Scenario() Scenario {
 		Feature: "A project's own tasks",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - \"We may want to add custom scripts to run from hub ... Could be a registered script\" (for example, copying a database for testing)",
+		Intent:  "a project names its own scripts as tasks the app can run (for example, copying a database for testing)",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} whose settings name a task", Display: "Given a project whose settings name a task", Fn: s.GivenAProjectWhoseSettingsNameATask},
@@ -1267,7 +1267,7 @@ func (s AppTask001) Scenario() Scenario {
 
 // AppTerm001 is APP-TERM-001: The terminal is chosen from the ones installed, Ghostty by default, and remembered
 //
-// Intent: the architect, 2026-11-05 - "the user would select what terminal app they want ... based on what's installed, but my personal default would be ghosty"
+// Intent: the developer chooses the terminal from those installed on this machine, with Ghostty the default (D-008)
 // Source: acceptance/app/app-acceptance.md
 type AppTerm001 struct {
 	// Given Ghostty and Terminal are the terminals installed on this Mac
@@ -1288,7 +1288,7 @@ func (s AppTerm001) Scenario() Scenario {
 		Feature: "The terminal sessions are joined in",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"the user would select what terminal app they want ... based on what's installed, but my personal default would be ghosty\"",
+		Intent:  "the developer chooses the terminal from those installed on this machine, with Ghostty the default (D-008)",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given Ghostty and Terminal are the terminals installed on this Mac", Display: "Given Ghostty and Terminal are the terminals installed on this Mac", Fn: s.GivenGhosttyAndTerminalAreTheTerminalsInstalledOnThisMac},
@@ -1301,7 +1301,7 @@ func (s AppTerm001) Scenario() Scenario {
 
 // AppUpgrade001 is APP-UPGRADE-001: Upgrading this machine opens a Claude session that knows how
 //
-// Intent: the architect, 2026-11-09 - "a button on engine room menu that is upgrade which launches a claude session locally on which ever machine which pulls and reinstalls and upgrades the app"; "running the upgrade through claude means it can diagnose and correct". The session is told the steps, the clone the running build was made from, and what it may fix by itself and what it must ask about first
+// Intent: an Upgrade button starts a Claude session on this machine that pulls, reinstalls and reopens the app; running the upgrade through Claude means a failure can be diagnosed and corrected where it happens. The session is told the steps, the clone the running build was made from, and what it may fix by itself and what it must ask about first
 // Source: acceptance/app/app-acceptance.md
 type AppUpgrade001 struct {
 	// Given this machine runs engineroom with its app
@@ -1324,7 +1324,7 @@ func (s AppUpgrade001) Scenario() Scenario {
 		Feature: "Upgrading engineroom",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"a button on engine room menu that is upgrade which launches a claude session locally on which ever machine which pulls and reinstalls and upgrades the app\"; \"running the upgrade through claude means it can diagnose and correct\". The session is told the steps, the clone the running build was made from, and what it may fix by itself and what it must ask about first",
+		Intent:  "an Upgrade button starts a Claude session on this machine that pulls, reinstalls and reopens the app; running the upgrade through Claude means a failure can be diagnosed and corrected where it happens. The session is told the steps, the clone the running build was made from, and what it may fix by itself and what it must ask about first",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given this machine runs engineroom with its app", Display: "Given this machine runs engineroom with its app", Fn: s.GivenThisMachineRunsEngineroomWithItsApp},
@@ -1372,7 +1372,7 @@ func (s AppUpgrade002) Scenario() Scenario {
 
 // AppUpgrade003 is APP-UPGRADE-003: Upgrading again starts a new upgrade session
 //
-// Intent: the architect, 2026-11-09 - "i upgraded... and then after upgrafing i tried again..": pressing Upgrade joined the upgrade {session.lower} left from before, idle, so nothing happened. Each press is a new upgrade, from the build now installed
+// Intent: pressing Upgrade must never join an upgrade {session.lower} left from an earlier press, where nothing would happen. Each press is a new upgrade, from the build now installed
 // Source: acceptance/app/app-acceptance.md
 type AppUpgrade003 struct {
 	// Given an upgrade session from an earlier upgrade is still on this machine
@@ -1393,7 +1393,7 @@ func (s AppUpgrade003) Scenario() Scenario {
 		Feature: "Upgrading engineroom",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"i upgraded... and then after upgrafing i tried again..\": pressing Upgrade joined the upgrade {session.lower} left from before, idle, so nothing happened. Each press is a new upgrade, from the build now installed",
+		Intent:  "pressing Upgrade must never join an upgrade {session.lower} left from an earlier press, where nothing would happen. Each press is a new upgrade, from the build now installed",
 		Source:  "acceptance/app/app-acceptance.md",
 		Steps: []Step{
 			{Text: "Given an upgrade {session.lower} from an earlier upgrade is still on this machine", Display: "Given an upgrade session from an earlier upgrade is still on this machine", Fn: s.GivenAnUpgradeSessionFromAnEarlierUpgradeIsStillOnThisMachine},
@@ -1406,7 +1406,7 @@ func (s AppUpgrade003) Scenario() Scenario {
 
 // ConnDown001 is CONN-DOWN-001: An unreachable engine is a question, not a fallback
 //
-// Intent: the architect, 2026-11-01 - when the engine cannot be reached the developer is asked before anything falls back, because the connection may be fixable and a silent switch hides which machine is in use
+// Intent: when the engine cannot be reached the developer is asked before anything falls back, because the connection may be fixable and a silent switch hides which machine is in use
 // Source: acceptance/connection/connection-acceptance.md
 type ConnDown001 struct {
 	// Given this machine is a client
@@ -1429,7 +1429,7 @@ func (s ConnDown001) Scenario() Scenario {
 		Feature: "When the engine does not answer",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-01 - when the engine cannot be reached the developer is asked before anything falls back, because the connection may be fixable and a silent switch hides which machine is in use",
+		Intent:  "when the engine cannot be reached the developer is asked before anything falls back, because the connection may be fixable and a silent switch hides which machine is in use",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given this machine is a {client.lower}", Display: "Given this machine is a client", Fn: s.GivenThisMachineIsAClient},
@@ -1508,7 +1508,7 @@ func (s ConnDown003) Scenario() Scenario {
 
 // ConnDown004 is CONN-DOWN-004: Retry asks again while the engine is still down
 //
-// Intent: as CONN-DOWN-001 - a retry that silently fell back would be the switch the architect ruled out
+// Intent: as CONN-DOWN-001 - a retry that silently fell back would be the silent switch that scenario rules out
 // Source: acceptance/connection/connection-acceptance.md
 type ConnDown004 struct {
 	// Given the developer was asked what to do because the engine did not answer
@@ -1531,7 +1531,7 @@ func (s ConnDown004) Scenario() Scenario {
 		Feature: "When the engine does not answer",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "as CONN-DOWN-001 - a retry that silently fell back would be the switch the architect ruled out",
+		Intent:  "as CONN-DOWN-001 - a retry that silently fell back would be the silent switch that scenario rules out",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer was asked what to do because the {engine.lower} did not answer", Display: "Given the developer was asked what to do because the engine did not answer", Fn: s.GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer},
@@ -1545,7 +1545,7 @@ func (s ConnDown004) Scenario() Scenario {
 
 // ConnHandoff001 is CONN-HANDOFF-001: Going back online shows the work the client holds that the engine does not
 //
-// Intent: the architect, 2026-11-05 - "Going back online needs a handoff". Work done offline lives only in the {client.lower}'s own {checkout.lowerPlural}; the two machines share nothing but GitHub. So switching shows what one machine holds that the other does not, and the commands that carry it across through GitHub, and runs them only when asked: the program never hides what it does, and changes nothing unasked.
+// Intent: going back online needs a handover. Work done offline lives only in the {client.lower}'s own {checkout.lowerPlural}; the two machines share nothing but GitHub. So switching shows what one machine holds that the other does not, and the commands that carry it across through GitHub, and runs them only when asked: the program never hides what it does, and changes nothing unasked.
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff001 struct {
 	// Given the client is offline
@@ -1570,7 +1570,7 @@ func (s ConnHandoff001) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"Going back online needs a handoff\". Work done offline lives only in the {client.lower}'s own {checkout.lowerPlural}; the two machines share nothing but GitHub. So switching shows what one machine holds that the other does not, and the commands that carry it across through GitHub, and runs them only when asked: the program never hides what it does, and changes nothing unasked.",
+		Intent:  "going back online needs a handover. Work done offline lives only in the {client.lower}'s own {checkout.lowerPlural}; the two machines share nothing but GitHub. So switching shows what one machine holds that the other does not, and the commands that carry it across through GitHub, and runs them only when asked: the program never hides what it does, and changes nothing unasked.",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {client.lower} is offline", Display: "Given the client is offline", Fn: s.GivenTheClientIsOffline},
@@ -1619,7 +1619,7 @@ func (s ConnHandoff002) Scenario() Scenario {
 
 // ConnHandoff003 is CONN-HANDOFF-003: An engine worktree with uncommitted changes sets them aside and takes the client's state
 //
-// Intent: the architect, 2026-11-09 - "local work could be stashed using the branch name and a stash, and then it should switch to the same branch as the other machine and unstash. we want identical state. that is what handover means". The receiving {checkout.lower}'s own uncommitted work is never lost: it is set aside in its stash list, labelled with its branch, before the {checkout.lower} takes the giving machine's state
+// Intent: a handover means identical state: the receiving {checkout.lower} ends on the giving machine's branch and commit (D-017). The receiving {checkout.lower}'s own uncommitted work is never lost: it is set aside in its stash list, labelled with its branch, before the {checkout.lower} takes the giving machine's state
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff003 struct {
 	// Given the client has a commit to hand over
@@ -1642,7 +1642,7 @@ func (s ConnHandoff003) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"local work could be stashed using the branch name and a stash, and then it should switch to the same branch as the other machine and unstash. we want identical state. that is what handover means\". The receiving {checkout.lower}'s own uncommitted work is never lost: it is set aside in its stash list, labelled with its branch, before the {checkout.lower} takes the giving machine's state",
+		Intent:  "a handover means identical state: the receiving {checkout.lower} ends on the giving machine's branch and commit (D-017). The receiving {checkout.lower}'s own uncommitted work is never lost: it is set aside in its stash list, labelled with its branch, before the {checkout.lower} takes the giving machine's state",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {client.lower} has a commit to hand over", Display: "Given the client has a commit to hand over", Fn: s.GivenTheClientHasACommitToHandOver},
@@ -1727,7 +1727,7 @@ func (s ConnHandoff005) Scenario() Scenario {
 
 // ConnHandoff006 is CONN-HANDOFF-006: Back online, sessions still running on the client are listed as on this machine
 //
-// Intent: the architect, 2026-11-05 ("Do 1 2 3"), item 3 - a {session.lower} started offline keeps running (CONN-OFFLINE-003), so once back online it is listed rather than out of sight, marked as on this machine, and acted on where it is
+// Intent: a {session.lower} started offline keeps running (CONN-OFFLINE-003), so once back online it is listed rather than out of sight, marked as on this machine, and acted on where it is
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff006 struct {
 	// Given a session started on the client while it was offline is still running
@@ -1750,7 +1750,7 @@ func (s ConnHandoff006) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 (\"Do 1 2 3\"), item 3 - a {session.lower} started offline keeps running (CONN-OFFLINE-003), so once back online it is listed rather than out of sight, marked as on this machine, and acted on where it is",
+		Intent:  "a {session.lower} started offline keeps running (CONN-OFFLINE-003), so once back online it is listed rather than out of sight, marked as on this machine, and acted on where it is",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {session.lower} started on the {client.lower} while it was offline is still running", Display: "Given a session started on the client while it was offline is still running", Fn: s.GivenASessionStartedOnTheClientWhileItWasOfflineIsStillRunning},
@@ -1764,7 +1764,7 @@ func (s ConnHandoff006) Scenario() Scenario {
 
 // ConnHandoff007 is CONN-HANDOFF-007: Working local pushes the work checked out, and only names other branches
 //
-// Intent: the architect, 2026-11-09 - pushing every branch put backups, experiments and another session's branches on GitHub, and a release branch whose push starts a deployment: "it will only push things registered ... prob registered jobs is safer". The work in hand is what the registered projects have checked out (D-017, amended); any other branch with commits GitHub lacks is named with the command to push it, never pushed by a handover
+// Intent: pushing every branch would put backups and experiments on GitHub, and a release branch whose push starts a deployment. The work in hand is what the registered projects have checked out (D-017); any other branch with commits GitHub lacks is named with the command to push it, never pushed by a handover
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff007 struct {
 	// Given a branch in no worktree on the engine has a commit that GitHub does not
@@ -1789,7 +1789,7 @@ func (s ConnHandoff007) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - pushing every branch put backups, experiments and another session's branches on GitHub, and a release branch whose push starts a deployment: \"it will only push things registered ... prob registered jobs is safer\". The work in hand is what the registered projects have checked out (D-017, amended); any other branch with commits GitHub lacks is named with the command to push it, never pushed by a handover",
+		Intent:  "pushing every branch would put backups and experiments on GitHub, and a release branch whose push starts a deployment. The work in hand is what the registered projects have checked out (D-017); any other branch with commits GitHub lacks is named with the command to push it, never pushed by a handover",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a branch in no {checkout.lower} on the {engine.lower} has a commit that GitHub does not", Display: "Given a branch in no worktree on the engine has a commit that GitHub does not", Fn: s.GivenABranchInNoCheckoutOnTheEngineHasACommitThatGitHubDoesNot},
@@ -1804,7 +1804,7 @@ func (s ConnHandoff007) Scenario() Scenario {
 
 // ConnHandoff008 is CONN-HANDOFF-008: Uncommitted work on the engine moves to the client with the handover
 //
-// Intent: the architect, 2026-11-09 - "any work should be stashed so the other system can pull, branch to correct branch and unstash"; "when i created a local file in offline mode. handing back did not do anything with that file either". Uncommitted work and new files travel with the handover as a stash, straight between the two machines, never through GitHub; ignored files do not ("anything that needs to travel should be in the secrets repo")
+// Intent: work that is not committed must reach the other machine too. Uncommitted work and new files travel with the handover as a stash, straight between the two machines, never through GitHub; ignored files do not, since anything that must be on both machines belongs in the settings' secrets (D-017)
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff008 struct {
 	// Given the Engine's worktree of a project has a changed file and a new file, neither committed
@@ -1827,7 +1827,7 @@ func (s ConnHandoff008) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"any work should be stashed so the other system can pull, branch to correct branch and unstash\"; \"when i created a local file in offline mode. handing back did not do anything with that file either\". Uncommitted work and new files travel with the handover as a stash, straight between the two machines, never through GitHub; ignored files do not (\"anything that needs to travel should be in the secrets repo\")",
+		Intent:  "work that is not committed must reach the other machine too. Uncommitted work and new files travel with the handover as a stash, straight between the two machines, never through GitHub; ignored files do not, since anything that must be on both machines belongs in the settings' secrets (D-017)",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.possessive} {checkout.lower} of a {project.lower} has a changed file and a new file, neither committed", Display: "Given the Engine's worktree of a project has a changed file and a new file, neither committed", Fn: s.GivenTheEnginesCheckoutOfAProjectHasAChangedFileAndANewFileNeitherCommitted},
@@ -1841,7 +1841,7 @@ func (s ConnHandoff008) Scenario() Scenario {
 
 // ConnHandoff009 is CONN-HANDOFF-009: A project the client lacks is mirrored to the same place under its home
 //
-// Intent: the architect, 2026-11-05 - "Where does a missing project go on the Air ... like my project folder run a mirror model"
+// Intent: a project the receiving machine lacks is put in the same place under its home folder, so both machines' project folders mirror each other (D-017)
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff009 struct {
 	// Given the engine has a project the client does not
@@ -1862,7 +1862,7 @@ func (s ConnHandoff009) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"Where does a missing project go on the Air ... like my project folder run a mirror model\"",
+		Intent:  "a project the receiving machine lacks is put in the same place under its home folder, so both machines' project folders mirror each other (D-017)",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.lower} has a {project.lower} the {client.lower} does not", Display: "Given the engine has a project the client does not", Fn: s.GivenTheEngineHasAProjectTheClientDoesNot},
@@ -1875,7 +1875,7 @@ func (s ConnHandoff009) Scenario() Scenario {
 
 // ConnHandoff010 is CONN-HANDOFF-010: Releasing the engine pushes the work checked out and is shown as information
 //
-// Intent: the architect, 2026-11-05 - on the server, release: "push all branches"; "its just an informative position"; 2026-11-09 - only the work checked out is pushed, as by every handover (CONN-HANDOFF-007)
+// Intent: on the {engine.lower}, release pushes the work so a {client.lower} can take it, and says what is not committed; only the work checked out is pushed, as by every handover (CONN-HANDOFF-007)
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff010 struct {
 	// Given the Engine's main clone has a commit on its own branch that GitHub does not
@@ -1896,7 +1896,7 @@ func (s ConnHandoff010) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - on the server, release: \"push all branches\"; \"its just an informative position\"; 2026-11-09 - only the work checked out is pushed, as by every handover (CONN-HANDOFF-007)",
+		Intent:  "on the {engine.lower}, release pushes the work so a {client.lower} can take it, and says what is not committed; only the work checked out is pushed, as by every handover (CONN-HANDOFF-007)",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.possessive} main clone has a commit on its own branch that GitHub does not", Display: "Given the Engine's main clone has a commit on its own branch that GitHub does not", Fn: s.GivenTheEnginesMainCloneHasACommitOnItsOwnBranchThatGitHubDoesNot},
@@ -1909,7 +1909,7 @@ func (s ConnHandoff010) Scenario() Scenario {
 
 // ConnHandoff011 is CONN-HANDOFF-011: Keeping the client ready copies what it lacks and moves nothing
 //
-// Intent: the architect, 2026-11-05 - "it shuold be a regular potentially background operation to ensure offline state can be managed"
+// Intent: a {client.lower} keeps itself ready to work local as a regular background step, so going offline never starts with a long catch-up (D-017)
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff011 struct {
 	// Given the engine has a project the client does not
@@ -1932,7 +1932,7 @@ func (s ConnHandoff011) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"it shuold be a regular potentially background operation to ensure offline state can be managed\"",
+		Intent:  "a {client.lower} keeps itself ready to work local as a regular background step, so going offline never starts with a long catch-up (D-017)",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.lower} has a {project.lower} the {client.lower} does not", Display: "Given the engine has a project the client does not", Fn: s.GivenTheEngineHasAProjectTheClientDoesNot},
@@ -1946,7 +1946,7 @@ func (s ConnHandoff011) Scenario() Scenario {
 
 // ConnHandoff012 is CONN-HANDOFF-012: A release branch is never pushed by a handover
 //
-// Intent: the architect, 2026-11-09 - pushing a release branch is how many repositories start a release (a pipeline triggered by release/<version>), so a handover, which pushes to keep work safe, never pushes one, even checked out
+// Intent: pushing a release branch is how many repositories start a release (a pipeline triggered by release/<version>), so a handover, which pushes to keep work safe, never pushes one, even checked out
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff012 struct {
 	// Given the Engine's main clone has a release branch checked out with a commit that GitHub does not
@@ -1967,7 +1967,7 @@ func (s ConnHandoff012) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - pushing a release branch is how many repositories start a release (a pipeline triggered by release/<version>), so a handover, which pushes to keep work safe, never pushes one, even checked out",
+		Intent:  "pushing a release branch is how many repositories start a release (a pipeline triggered by release/<version>), so a handover, which pushes to keep work safe, never pushes one, even checked out",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.possessive} main clone has a release branch checked out with a commit that GitHub does not", Display: "Given the Engine's main clone has a release branch checked out with a commit that GitHub does not", Fn: s.GivenTheEnginesMainCloneHasAReleaseBranchCheckedOutWithACommitThatGitHubDoesNot},
@@ -1980,7 +1980,7 @@ func (s ConnHandoff012) Scenario() Scenario {
 
 // ConnHandoff013 is CONN-HANDOFF-013: Working out a handover says how far each machine's reading has got
 //
-// Intent: the architect, 2026-11-09 - the screen waiting for a handover's plan showed "..." for over a minute: "that is a poor ui. it should be animated and progress meter or something". A handover reads every project on both machines against GitHub before it can say anything, so each machine says how far its reading has got, project by project, with the command doing it, and the projects are read several at a time so the wait is short
+// Intent: a screen that shows nothing while a handover is planned reads as stuck. A handover reads every project on both machines against GitHub before it can say anything, so each machine says how far its reading has got, project by project, with the command doing it, and the projects are read several at a time so the wait is short
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff013 struct {
 	// Given the engine has two projects registered
@@ -2003,7 +2003,7 @@ func (s ConnHandoff013) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - the screen waiting for a handover's plan showed \"...\" for over a minute: \"that is a poor ui. it should be animated and progress meter or something\". A handover reads every project on both machines against GitHub before it can say anything, so each machine says how far its reading has got, project by project, with the command doing it, and the projects are read several at a time so the wait is short",
+		Intent:  "a screen that shows nothing while a handover is planned reads as stuck. A handover reads every project on both machines against GitHub before it can say anything, so each machine says how far its reading has got, project by project, with the command doing it, and the projects are read several at a time so the wait is short",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.lower} has two {project.lowerPlural} registered", Display: "Given the engine has two projects registered", Fn: s.GivenTheEngineHasTwoProjectsRegistered},
@@ -2051,7 +2051,7 @@ func (s ConnHandoff014) Scenario() Scenario {
 
 // ConnHandoff015 is CONN-HANDOFF-015: A handover that cannot be done in full changes nothing
 //
-// Intent: the architect, 2026-11-09 - "the handover should do a pre-run first that verifies everything can be done, and only do the real handover if it can". One {checkout.lower} that cannot be put in the giving machine's state blocks the whole handover, and the switch with it
+// Intent: a handover first checks that everything can be done, and runs only if it can (D-017). One {checkout.lower} that cannot be put in the giving machine's state blocks the whole handover, and the switch with it
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff015 struct {
 	// Given the Engine's worktree of a project has uncommitted changes
@@ -2076,7 +2076,7 @@ func (s ConnHandoff015) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"the handover should do a pre-run first that verifies everything can be done, and only do the real handover if it can\". One {checkout.lower} that cannot be put in the giving machine's state blocks the whole handover, and the switch with it",
+		Intent:  "a handover first checks that everything can be done, and runs only if it can (D-017). One {checkout.lower} that cannot be put in the giving machine's state blocks the whole handover, and the switch with it",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.possessive} {checkout.lower} of a {project.lower} has uncommitted changes", Display: "Given the Engine's worktree of a project has uncommitted changes", Fn: s.GivenTheEnginesCheckoutOfAProjectHasUncommittedChanges},
@@ -2199,7 +2199,7 @@ func (s ConnHandoff018) Scenario() Scenario {
 
 // ConnHandoff019 is CONN-HANDOFF-019: A handover says what it does in one line per worktree
 //
-// Intent: the architect, 2026-11-09 - "that handoff was unreadable". What a handover does is said one line per {checkout.lower}, and what it leaves alone is folded into a line
+// Intent: a handover's plan has to be readable at a glance. What a handover does is said one line per {checkout.lower}, and what it leaves alone is folded into a line
 // Source: acceptance/connection/connection-acceptance.md
 type ConnHandoff019 struct {
 	// Given the Engine's worktree of a project has a commit GitHub does not and an uncommitted change
@@ -2222,7 +2222,7 @@ func (s ConnHandoff019) Scenario() Scenario {
 		Feature: "Handing work over between the {client.lower} and the {engine.lower}",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"that handoff was unreadable\". What a handover does is said one line per {checkout.lower}, and what it leaves alone is folded into a line",
+		Intent:  "a handover's plan has to be readable at a glance. What a handover does is said one line per {checkout.lower}, and what it leaves alone is folded into a line",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.possessive} {checkout.lower} of a {project.lower} has a commit GitHub does not and an uncommitted change", Display: "Given the Engine's worktree of a project has a commit GitHub does not and an uncommitted change", Fn: s.GivenTheEnginesCheckoutOfAProjectHasACommitGitHubDoesNotAndAnUncommittedChange},
@@ -2338,7 +2338,7 @@ func (s ConnLocal003) Scenario() Scenario {
 
 // ConnOffline001 is CONN-OFFLINE-001: A client switched offline works on itself as though it were the engine
 //
-// Intent: the architect, 2026-11-05 - "the entire Hub tool also needs the option of saying run offline ... or I actually choose to just say offline with a button, then now everything we do is working on [the client] as though [the client] was the server"
+// Intent: the whole program can be told to work offline, by itself when the {engine.lower} does not answer or by a button, and everything then works on the {client.lower} as though it were the {engine.lower}
 // Source: acceptance/connection/connection-acceptance.md
 type ConnOffline001 struct {
 	// Given a client whose engine answers
@@ -2363,7 +2363,7 @@ func (s ConnOffline001) Scenario() Scenario {
 		Feature: "Working offline by choice",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"the entire Hub tool also needs the option of saying run offline ... or I actually choose to just say offline with a button, then now everything we do is working on [the client] as though [the client] was the server\"",
+		Intent:  "the whole program can be told to work offline, by itself when the {engine.lower} does not answer or by a button, and everything then works on the {client.lower} as though it were the {engine.lower}",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {client.lower} whose {engine.lower} answers", Display: "Given a client whose engine answers", Fn: s.GivenAClientWhoseEngineAnswers},
@@ -2443,7 +2443,7 @@ func (s ConnOffline003) Scenario() Scenario {
 
 // ConnOffline004 is CONN-OFFLINE-004: The switch to work local happens only when its handover is run
 //
-// Intent: the independent review, 2026-11-07: the app switched to working local before the handover had been seen, so leaving the handover without running it left the {client.lower} working local with nothing handed over
+// Intent: a switch made before the handover has been seen would leave the {client.lower} working local with nothing handed over when the handover is left without running it
 // Source: acceptance/connection/connection-acceptance.md
 type ConnOffline004 struct {
 	// Given a client working on the engine
@@ -2464,7 +2464,7 @@ func (s ConnOffline004) Scenario() Scenario {
 		Feature: "Working offline by choice",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the independent review, 2026-11-07: the app switched to working local before the handover had been seen, so leaving the handover without running it left the {client.lower} working local with nothing handed over",
+		Intent:  "a switch made before the handover has been seen would leave the {client.lower} working local with nothing handed over when the handover is left without running it",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {client.lower} working on the {engine.lower}", Display: "Given a client working on the engine", Fn: s.GivenAClientWorkingOnTheEngine},
@@ -2477,7 +2477,7 @@ func (s ConnOffline004) Scenario() Scenario {
 
 // ConnRejoin001 is CONN-REJOIN-001: A join whose connection drops joins the same session again
 //
-// Intent: the architect, 2026-11-08 - "when im putting the ir to sleep, its sessions seem to disconnect"; "the laptop maybe opened and closed frequently saving power moving etc with the point to retain easy access". A {client.lower}'s connection to the {engine.lower} ends when it sleeps or changes network, while its {session.lower} keeps running on the {engine.lower}; the window joined to it comes back to the {session.lower} on its own
+// Intent: a laptop is opened and closed many times a day, and its sessions must stay within easy reach. A {client.lower}'s connection to the {engine.lower} ends when it sleeps or changes network, while its {session.lower} keeps running on the {engine.lower}; the window joined to it comes back to the {session.lower} on its own (D-021)
 // Source: acceptance/connection/connection-acceptance.md
 type ConnRejoin001 struct {
 	// Given the developer has joined a session from a client
@@ -2498,7 +2498,7 @@ func (s ConnRejoin001) Scenario() Scenario {
 		Feature: "Keeping a joined {session.lower} through sleep and moving",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-08 - \"when im putting the ir to sleep, its sessions seem to disconnect\"; \"the laptop maybe opened and closed frequently saving power moving etc with the point to retain easy access\". A {client.lower}'s connection to the {engine.lower} ends when it sleeps or changes network, while its {session.lower} keeps running on the {engine.lower}; the window joined to it comes back to the {session.lower} on its own",
+		Intent:  "a laptop is opened and closed many times a day, and its sessions must stay within easy reach. A {client.lower}'s connection to the {engine.lower} ends when it sleeps or changes network, while its {session.lower} keeps running on the {engine.lower}; the window joined to it comes back to the {session.lower} on its own (D-021)",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer has joined a {session.lower} from a {client.lower}", Display: "Given the developer has joined a session from a client", Fn: s.GivenTheDeveloperHasJoinedASessionFromAClient},
@@ -2610,7 +2610,7 @@ func (s ConnRejoin004) Scenario() Scenario {
 
 // ConnRole001 is CONN-ROLE-001: On a client, opening a project opens it on the engine
 //
-// Intent: the architect, 2026-11-04 - a tool "configured to be either server mode. or client mode", where a session can be reached from either machine; docs/decisions.md D-002 "a per-machine setting says which it is"
+// Intent: one tool configured on each machine as the engine or a client, where a session can be reached from either machine (docs/decisions.md D-002)
 // Source: acceptance/connection/connection-acceptance.md
 type ConnRole001 struct {
 	// Given this machine is set up as a client
@@ -2633,7 +2633,7 @@ func (s ConnRole001) Scenario() Scenario {
 		Feature: "Which machine does the work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - a tool \"configured to be either server mode. or client mode\", where a session can be reached from either machine; docs/decisions.md D-002 \"a per-machine setting says which it is\"",
+		Intent:  "one tool configured on each machine as the engine or a client, where a session can be reached from either machine (docs/decisions.md D-002)",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given this machine is set up as a {client.lower}", Display: "Given this machine is set up as a client", Fn: s.GivenThisMachineIsSetUpAsAClient},
@@ -2681,7 +2681,7 @@ func (s ConnRole002) Scenario() Scenario {
 
 // ConnRole003 is CONN-ROLE-003: A client names its engine by the machine's own name
 //
-// Intent: the architect, 2026-11-09 - "id rather see machine name than the ssh name": a {client.lower} reaches the {engine.lower} by whatever SSH name its configuration gives (an alias such as "hub" in the architect's case), which says nothing about which machine answers; the {engine.lower} names itself, read in the version check the app already makes
+// Intent: the app names the {engine.lower} by its machine name, not by its SSH name: a {client.lower} reaches the {engine.lower} by whatever SSH name its configuration gives (an alias such as "engine"), which says nothing about which machine answers; the {engine.lower} names itself, read in the version check the app already makes
 // Source: acceptance/connection/connection-acceptance.md
 type ConnRole003 struct {
 	// Given this machine is a client that reaches the engine by an SSH name of its own
@@ -2702,7 +2702,7 @@ func (s ConnRole003) Scenario() Scenario {
 		Feature: "Which machine does the work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"id rather see machine name than the ssh name\": a {client.lower} reaches the {engine.lower} by whatever SSH name its configuration gives (an alias such as \"hub\" in the architect's case), which says nothing about which machine answers; the {engine.lower} names itself, read in the version check the app already makes",
+		Intent:  "the app names the {engine.lower} by its machine name, not by its SSH name: a {client.lower} reaches the {engine.lower} by whatever SSH name its configuration gives (an alias such as \"engine\"), which says nothing about which machine answers; the {engine.lower} names itself, read in the version check the app already makes",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given this machine is a {client.lower} that reaches the {engine.lower} by an SSH name of its own", Display: "Given this machine is a client that reaches the engine by an SSH name of its own", Fn: s.GivenThisMachineIsAClientThatReachesTheEngineByAnSSHNameOfItsOwn},
@@ -2715,7 +2715,7 @@ func (s ConnRole003) Scenario() Scenario {
 
 // ConnSetup001 is CONN-SETUP-001: A machine with no role says what is missing
 //
-// Intent: the architect, 2026-11-04 - "help me do these things easily without remembering all the tooling"; a machine with no role cannot know where to act, and guessing would act on the wrong machine
+// Intent: the tool is there so the tooling need not be remembered; a machine with no role cannot know where to act, and guessing would act on the wrong machine
 // Source: acceptance/connection/connection-acceptance.md
 type ConnSetup001 struct {
 	// Given this machine has not been set up as the engine or as a client
@@ -2738,7 +2738,7 @@ func (s ConnSetup001) Scenario() Scenario {
 		Feature: "Which machine does the work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"help me do these things easily without remembering all the tooling\"; a machine with no role cannot know where to act, and guessing would act on the wrong machine",
+		Intent:  "the tool is there so the tooling need not be remembered; a machine with no role cannot know where to act, and guessing would act on the wrong machine",
 		Source:  "acceptance/connection/connection-acceptance.md",
 		Steps: []Step{
 			{Text: "Given this machine has not been set up as the {engine.lower} or as a {client.lower}", Display: "Given this machine has not been set up as the engine or as a client", Fn: s.GivenThisMachineHasNotBeenSetUpAsTheEngineOrAsAClient},
@@ -2752,7 +2752,7 @@ func (s ConnSetup001) Scenario() Scenario {
 
 // EditOpen001 is EDIT-OPEN-001: On the engine, VS Code opens the session's worktree
 //
-// Intent: issue #11 - "On the hub, VS Code opens the worktree directly. The command it runs is shown, like every other action."
+// Intent: on the {engine.lower}, VS Code opens the worktree directly, and the command it runs is shown, like every other action
 // Source: acceptance/editor/editor-acceptance.md
 type EditOpen001 struct {
 	// Given a session is running in a worktree on the engine
@@ -2773,7 +2773,7 @@ func (s EditOpen001) Scenario() Scenario {
 		Feature: "Opening a session's worktree in the editor",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #11 - \"On the hub, VS Code opens the worktree directly. The command it runs is shown, like every other action.\"",
+		Intent:  "on the {engine.lower}, VS Code opens the worktree directly, and the command it runs is shown, like every other action",
 		Source:  "acceptance/editor/editor-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {session.lower} is running in a {checkout.lower} on the {engine.lower}", Display: "Given a session is running in a worktree on the engine", Fn: s.GivenASessionIsRunningInACheckoutOnTheEngine},
@@ -2786,7 +2786,7 @@ func (s EditOpen001) Scenario() Scenario {
 
 // EditOpen002 is EDIT-OPEN-002: On a client, VS Code opens the engine's worktree over SSH
 //
-// Intent: issue #11 - "On a client, it opens the same worktree on the hub over Remote-SSH, so I read and debug the hub's files with the hub's toolchain."
+// Intent: on a {client.lower}, VS Code opens the same worktree on the {engine.lower} over Remote - SSH, so its files are read and debugged with the {engine.lower}'s toolchain
 // Source: acceptance/editor/editor-acceptance.md
 type EditOpen002 struct {
 	// Given the developer is on a client
@@ -2809,7 +2809,7 @@ func (s EditOpen002) Scenario() Scenario {
 		Feature: "Opening a session's worktree in the editor",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #11 - \"On a client, it opens the same worktree on the hub over Remote-SSH, so I read and debug the hub's files with the hub's toolchain.\"",
+		Intent:  "on a {client.lower}, VS Code opens the same worktree on the {engine.lower} over Remote - SSH, so its files are read and debugged with the {engine.lower}'s toolchain",
 		Source:  "acceptance/editor/editor-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer is on a {client.lower}", Display: "Given the developer is on a client", Fn: s.GivenTheDeveloperIsOnAClient},
@@ -2959,7 +2959,7 @@ func (s EditOpen006) Scenario() Scenario {
 
 // LearnCopy001 is LEARN-COPY-001: One command of an action can be copied
 //
-// Intent: the architect, 2026-11-04 - "commands i want to learn can have a copy line, or copy batch button or click": one command or a whole action goes to the clipboard of the terminal the developer is looking at, which works over SSH and through Zellij
+// Intent: a command worth learning can be copied, one line or a whole action: it goes to the clipboard of the terminal the developer is looking at, which works over SSH and through Zellij
 // Source: acceptance/learning/learning-acceptance.md
 type LearnCopy001 struct {
 	// Given the commands of an action are shown
@@ -2980,7 +2980,7 @@ func (s LearnCopy001) Scenario() Scenario {
 		Feature: "Copying commands to learn them",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"commands i want to learn can have a copy line, or copy batch button or click\": one command or a whole action goes to the clipboard of the terminal the developer is looking at, which works over SSH and through Zellij",
+		Intent:  "a command worth learning can be copied, one line or a whole action: it goes to the clipboard of the terminal the developer is looking at, which works over SSH and through Zellij",
 		Source:  "acceptance/learning/learning-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the commands of an action are shown", Display: "Given the commands of an action are shown", Fn: s.GivenTheCommandsOfAnActionAreShown},
@@ -2993,7 +2993,7 @@ func (s LearnCopy001) Scenario() Scenario {
 
 // LearnCopy002 is LEARN-COPY-002: All of an action's commands can be copied as one that stops at the first failure
 //
-// Intent: as LEARN-COPY-001, and the architect, 2026-11-05, approving "copy all joins the commands with &&": a pasted action stops at its first failure, as the program does
+// Intent: as LEARN-COPY-001; copy all joins the commands with &&, so a pasted action stops at its first failure, as the program does
 // Source: acceptance/learning/learning-acceptance.md
 type LearnCopy002 struct {
 	// Given the commands of an action are shown
@@ -3014,7 +3014,7 @@ func (s LearnCopy002) Scenario() Scenario {
 		Feature: "Copying commands to learn them",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "as LEARN-COPY-001, and the architect, 2026-11-05, approving \"copy all joins the commands with &&\": a pasted action stops at its first failure, as the program does",
+		Intent:  "as LEARN-COPY-001; copy all joins the commands with &&, so a pasted action stops at its first failure, as the program does",
 		Source:  "acceptance/learning/learning-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the commands of an action are shown", Display: "Given the commands of an action are shown", Fn: s.GivenTheCommandsOfAnActionAreShown},
@@ -3089,7 +3089,7 @@ func (s LearnHist002) Scenario() Scenario {
 
 // LearnHist003 is LEARN-HIST-003: A join that fails is kept in the history as failed
 //
-// Intent: the history is only worth reading if it is true: a join that could not attach was kept as done (found 2026-11-07)
+// Intent: the history is only worth reading if it is true: a join that could not attach is never kept as done
 // Source: acceptance/learning/learning-acceptance.md
 type LearnHist003 struct {
 	// Given the developer joins a session and Zellij cannot attach to it
@@ -3108,7 +3108,7 @@ func (s LearnHist003) Scenario() Scenario {
 		Feature: "Finding it again",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the history is only worth reading if it is true: a join that could not attach was kept as done (found 2026-11-07)",
+		Intent:  "the history is only worth reading if it is true: a join that could not attach is never kept as done",
 		Source:  "acceptance/learning/learning-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer joins a {session.lower} and Zellij cannot attach to it", Display: "Given the developer joins a session and Zellij cannot attach to it", Fn: s.GivenTheDeveloperJoinsASessionAndZellijCannotAttachToIt},
@@ -3120,7 +3120,7 @@ func (s LearnHist003) Scenario() Scenario {
 
 // LearnShow001 is LEARN-SHOW-001: The commands of an action can be seen before it runs
 //
-// Intent: the architect, 2026-11-04 - "when it does them. show me what was done so i learn over time"
+// Intent: the program shows what it did, so the developer learns the commands over time
 // Source: acceptance/learning/learning-acceptance.md
 type LearnShow001 struct {
 	// Given the developer has chosen an action
@@ -3141,7 +3141,7 @@ func (s LearnShow001) Scenario() Scenario {
 		Feature: "Seeing what an action does",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"when it does them. show me what was done so i learn over time\"",
+		Intent:  "the program shows what it did, so the developer learns the commands over time",
 		Source:  "acceptance/learning/learning-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer has chosen an action", Display: "Given the developer has chosen an action", Fn: s.GivenTheDeveloperHasChosenAnAction},
@@ -3225,7 +3225,7 @@ func (s LearnShow003) Scenario() Scenario {
 
 // PortFwd001 is PORT-FWD-001: A running session's ports are reached on the client
 //
-// Intent: the architect, 2026-11-05 - "if the ports exist while there is a session then that is good"; "sometimes I'm just using remote control" - forwarding follows running sessions, not joining
+// Intent: a session is often used through Remote Control with no terminal joined, so forwarding follows running sessions, not joining
 // Source: acceptance/ports/ports-acceptance.md
 type PortFwd001 struct {
 	// Given a session is running on the engine with a server on its slot's port
@@ -3246,7 +3246,7 @@ func (s PortFwd001) Scenario() Scenario {
 		Feature: "Reaching the engine's ports from a client",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - \"if the ports exist while there is a session then that is good\"; \"sometimes I'm just using remote control\" - forwarding follows running sessions, not joining",
+		Intent:  "a session is often used through Remote Control with no terminal joined, so forwarding follows running sessions, not joining",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {session.lower} is running on the {engine.lower} with a server on its slot's port", Display: "Given a session is running on the engine with a server on its slot's port", Fn: s.GivenASessionIsRunningOnTheEngineWithAServerOnItsSlotsPort},
@@ -3290,7 +3290,7 @@ func (s PortFwd002) Scenario() Scenario {
 
 // PortFwd003 is PORT-FWD-003: A port already in use on the client is named and left alone
 //
-// Intent: the architect, 2026-11-05 - a port the client already uses is named, never failed silently
+// Intent: a port the client already uses is named, never failed silently
 // Source: acceptance/ports/ports-acceptance.md
 type PortFwd003 struct {
 	// Given a program on the client already listens on a running session's port
@@ -3311,7 +3311,7 @@ func (s PortFwd003) Scenario() Scenario {
 		Feature: "Reaching the engine's ports from a client",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-05 - a port the client already uses is named, never failed silently",
+		Intent:  "a port the client already uses is named, never failed silently",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a program on the {client.lower} already listens on a running {session.lower}'s port", Display: "Given a program on the client already listens on a running session's port", Fn: s.GivenAProgramOnTheClientAlreadyListensOnARunningSessionSPort},
@@ -3324,7 +3324,7 @@ func (s PortFwd003) Scenario() Scenario {
 
 // PortFwd004 is PORT-FWD-004: Working local closes the Engine's forwards
 //
-// Intent: the independent review, 2026-11-07, confirmed in code: working local, this machine runs its own stacks on the same port numbers, so a forward left open would answer for them with the engine's servers
+// Intent: working local, this machine runs its own stacks on the same port numbers, so a forward left open would answer for them with the engine's servers
 // Source: acceptance/ports/ports-acceptance.md
 type PortFwd004 struct {
 	// Given the client forwards a running session's port
@@ -3345,7 +3345,7 @@ func (s PortFwd004) Scenario() Scenario {
 		Feature: "Reaching the engine's ports from a client",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the independent review, 2026-11-07, confirmed in code: working local, this machine runs its own stacks on the same port numbers, so a forward left open would answer for them with the engine's servers",
+		Intent:  "working local, this machine runs its own stacks on the same port numbers, so a forward left open would answer for them with the engine's servers",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {client.lower} forwards a running {session.lower}'s port", Display: "Given the client forwards a running session's port", Fn: s.GivenTheClientForwardsARunningSessionSPort},
@@ -3358,7 +3358,7 @@ func (s PortFwd004) Scenario() Scenario {
 
 // PortFwd005 is PORT-FWD-005: A session started on the engine is forwarded while the forwarder watches
 //
-// Intent: the architect, 2026-11-07 - on a client, a running session is forwarded; not by checking every minute, and nothing costly while nobody looks - the forwarder follows the engine's sessions over the connection the forwards are on, and opens no connection of its own
+// Intent: on a client, a running session is forwarded; not by checking every minute, and nothing costly while nobody looks - the forwarder follows the engine's sessions over the connection the forwards are on, and opens no connection of its own
 // Source: acceptance/ports/ports-acceptance.md
 type PortFwd005 struct {
 	// Given the client forwards a running session's port and its forwarder is watching
@@ -3379,7 +3379,7 @@ func (s PortFwd005) Scenario() Scenario {
 		Feature: "Reaching the engine's ports from a client",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - on a client, a running session is forwarded; not by checking every minute, and nothing costly while nobody looks - the forwarder follows the engine's sessions over the connection the forwards are on, and opens no connection of its own",
+		Intent:  "on a client, a running session is forwarded; not by checking every minute, and nothing costly while nobody looks - the forwarder follows the engine's sessions over the connection the forwards are on, and opens no connection of its own",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {client.lower} forwards a running {session.lower}'s port and its forwarder is watching", Display: "Given the client forwards a running session's port and its forwarder is watching", Fn: s.GivenTheClientForwardsARunningSessionSPortAndItsForwarderIsWatching},
@@ -3429,7 +3429,7 @@ func (s PortFwd006) Scenario() Scenario {
 
 // PortFwd007 is PORT-FWD-007: One session's switch forwards only that session
 //
-// Intent: the architect, 2026-11-07 - "I manually enable forwarding on a worktree when I need it. Or by clicking the hyperlink you enable on demand"; "a switch per worktree session on or off"; minimal and battery mindful - one session's switch forwards only that session, and with nothing chosen the connection is closed
+// Intent: forwarding is turned on for a worktree when it is needed, by its switch or by opening one of its links, and costs nothing otherwise - one session's switch forwards only that session, and with nothing chosen the connection is closed
 // Source: acceptance/ports/ports-acceptance.md
 type PortFwd007 struct {
 	// Given forwarding every session is off, and two sessions run on the engine, each with a server on its port
@@ -3452,7 +3452,7 @@ func (s PortFwd007) Scenario() Scenario {
 		Feature: "Reaching the engine's ports from a client",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - \"I manually enable forwarding on a worktree when I need it. Or by clicking the hyperlink you enable on demand\"; \"a switch per worktree session on or off\"; minimal and battery mindful - one session's switch forwards only that session, and with nothing chosen the connection is closed",
+		Intent:  "forwarding is turned on for a worktree when it is needed, by its switch or by opening one of its links, and costs nothing otherwise - one session's switch forwards only that session, and with nothing chosen the connection is closed",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given forwarding every {session.lower} is off, and two {session.lower}s run on the {engine.lower}, each with a server on its port", Display: "Given forwarding every session is off, and two sessions run on the engine, each with a server on its port", Fn: s.GivenForwardingEverySessionIsOffAndTwoSessionSRunOnTheEngineEachWithAServerOnItsPort},
@@ -3466,7 +3466,7 @@ func (s PortFwd007) Scenario() Scenario {
 
 // PortRes001 is PORT-RES-001: Two projects on one port are reported with both named
 //
-// Intent: the architect, 2026-11-06 - "the hubs project should reserve ranges per repo that can then be delegated to worktrees. this protects all projects on conflict"
+// Intent: engineroom reserves a range of ports for each project and lends it to that project's worktrees, which protects every project from a clash
 // Source: acceptance/ports/ports-acceptance.md
 type PortRes001 struct {
 	// Given two projects whose settings both use one port
@@ -3487,7 +3487,7 @@ func (s PortRes001) Scenario() Scenario {
 		Feature: "Reservations",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-06 - \"the hubs project should reserve ranges per repo that can then be delegated to worktrees. this protects all projects on conflict\"",
+		Intent:  "engineroom reserves a range of ports for each project and lends it to that project's worktrees, which protects every project from a clash",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given two {project.lowerPlural} whose settings both use one port", Display: "Given two projects whose settings both use one port", Fn: s.GivenTwoProjectsWhoseSettingsBothUseOnePort},
@@ -3500,7 +3500,7 @@ func (s PortRes001) Scenario() Scenario {
 
 // PortRes002 is PORT-RES-002: Reserving gives a project a free block and keeps its own numbers
 //
-// Intent: the architect, 2026-11-06 - "10 slots is plenty. port suggestion is fine" (a block of 100 from 20000-29999); the main clone keeps its numbers
+// Intent: a new project is offered a block of 100 ports from 20000-29999, ten slots of ten; the main clone keeps its numbers (D-013)
 // Source: acceptance/ports/ports-acceptance.md
 type PortRes002 struct {
 	// Given another project already reserves the first block
@@ -3523,7 +3523,7 @@ func (s PortRes002) Scenario() Scenario {
 		Feature: "Reservations",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-06 - \"10 slots is plenty. port suggestion is fine\" (a block of 100 from 20000-29999); the main clone keeps its numbers",
+		Intent:  "a new project is offered a block of 100 ports from 20000-29999, ten slots of ten; the main clone keeps its numbers (D-013)",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given another {project.lower} already reserves the first block", Display: "Given another project already reserves the first block", Fn: s.GivenAnotherProjectAlreadyReservesTheFirstBlock},
@@ -3537,7 +3537,7 @@ func (s PortRes002) Scenario() Scenario {
 
 // PortSet001 is PORT-SET-001: The developer's settings win over the repository's recommendation
 //
-// Intent: the architect, 2026-11-06 - "a hubs file in the repo can set recommendations, but our custom one in a private repo is the controller"; 2026-11-05 - "We can't have a hub file committed to a repo I don't own"
+// Intent: a project file committed to a repository recommends, and the developer's own settings, kept in a private repository, decide; a repository the developer does not own cannot be made to carry a project file
 // Source: acceptance/ports/ports-acceptance.md
 type PortSet001 struct {
 	// Given the repository recommends one set of ports and the developer's settings give another
@@ -3556,7 +3556,7 @@ func (s PortSet001) Scenario() Scenario {
 		Feature: "Your settings decide",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-06 - \"a hubs file in the repo can set recommendations, but our custom one in a private repo is the controller\"; 2026-11-05 - \"We can't have a hub file committed to a repo I don't own\"",
+		Intent:  "a project file committed to a repository recommends, and the developer's own settings, kept in a private repository, decide; a repository the developer does not own cannot be made to carry a project file",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the repository recommends one set of ports and the developer's settings give another", Display: "Given the repository recommends one set of ports and the developer's settings give another", Fn: s.GivenTheRepositoryRecommendsOneSetOfPortsAndTheDevelopersSettingsGiveAnother},
@@ -3568,7 +3568,7 @@ func (s PortSet001) Scenario() Scenario {
 
 // PortSet002 is PORT-SET-002: A key that would overwrite another is refused, naming it
 //
-// Intent: the architect, 2026-11-09 - "some other sort of prefix to prevent any overlap, i.e. adding the word port"; "make this happen" (D-028). Every key of a slot is one value in its record and one variable for the scripts, so a port named project silently replaced the project's name. A key that would overwrite another is refused when the settings are read, naming the file and both keys, before anything is created.
+// Intent: a slot's keys are named by kind so they cannot overlap (D-028). Every key of a slot is one value in its record and one variable for the scripts, so a port named project would silently replace the project's name. A key that would overwrite another is refused when the settings are read, naming the file and both keys, before anything is created.
 // Source: acceptance/ports/ports-acceptance.md
 type PortSet002 struct {
 	// Given the developer's settings for a project name a port "slot", the program's own key
@@ -3589,7 +3589,7 @@ func (s PortSet002) Scenario() Scenario {
 		Feature: "Your settings decide",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"some other sort of prefix to prevent any overlap, i.e. adding the word port\"; \"make this happen\" (D-028). Every key of a slot is one value in its record and one variable for the scripts, so a port named project silently replaced the project's name. A key that would overwrite another is refused when the settings are read, naming the file and both keys, before anything is created.",
+		Intent:  "a slot's keys are named by kind so they cannot overlap (D-028). Every key of a slot is one value in its record and one variable for the scripts, so a port named project would silently replace the project's name. A key that would overwrite another is refused when the settings are read, naming the file and both keys, before anything is created.",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer's settings for a {project.lower} name a port \"slot\", the program's own key", Display: "Given the developer's settings for a project name a port \"slot\", the program's own key", Fn: s.GivenTheDevelopersSettingsForAProjectNameAPortSlotTheProgramsOwnKey},
@@ -3602,7 +3602,7 @@ func (s PortSet002) Scenario() Scenario {
 
 // PortSlot001 is PORT-SLOT-001: New work gets its own slot
 //
-// Intent: the architect, 2026-11-06 - "the ports are per worktree"; "10 slots is plenty"
+// Intent: ports are per worktree, and ten slots per project is plenty (D-013)
 // Source: acceptance/ports/ports-acceptance.md
 type PortSlot001 struct {
 	// Given a project whose settings give it three slots
@@ -3623,7 +3623,7 @@ func (s PortSlot001) Scenario() Scenario {
 		Feature: "Slots",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-06 - \"the ports are per worktree\"; \"10 slots is plenty\"",
+		Intent:  "ports are per worktree, and ten slots per project is plenty (D-013)",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} whose settings give it three slots", Display: "Given a project whose settings give it three slots", Fn: s.GivenAProjectWhoseSettingsGiveItThreeSlots},
@@ -3670,7 +3670,7 @@ func (s PortSlot002) Scenario() Scenario {
 
 // PortSlot003 is PORT-SLOT-003: A worktree's scripts and tasks are given the slot it holds
 //
-// Intent: the architect, 2026-11-07 - "the worktree setup needs to clone db and allocate storage as it does now but via hubs". A worktree's scripts and tasks must run on the slot it holds, whatever file name the project gives its record; a script that silently gets slot 1's values reports success while starting nothing of its own.
+// Intent: setting up a worktree creates its own database and storage through engineroom. A worktree's scripts and tasks must run on the slot it holds, whatever file name the project gives its record; a script that silently gets slot 1's values reports success while starting nothing of its own.
 // Source: acceptance/ports/ports-acceptance.md
 type PortSlot003 struct {
 	// Given a project whose settings name their own slot record
@@ -3693,7 +3693,7 @@ func (s PortSlot003) Scenario() Scenario {
 		Feature: "Slots",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - \"the worktree setup needs to clone db and allocate storage as it does now but via hubs\". A worktree's scripts and tasks must run on the slot it holds, whatever file name the project gives its record; a script that silently gets slot 1's values reports success while starting nothing of its own.",
+		Intent:  "setting up a worktree creates its own database and storage through engineroom. A worktree's scripts and tasks must run on the slot it holds, whatever file name the project gives its record; a script that silently gets slot 1's values reports success while starting nothing of its own.",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} whose settings name their own slot record", Display: "Given a project whose settings name their own slot record", Fn: s.GivenAProjectWhoseSettingsNameTheirOwnSlotRecord},
@@ -3741,7 +3741,7 @@ func (s PortSlot004) Scenario() Scenario {
 
 // PortSlot005 is PORT-SLOT-005: The developer has the slot's files ignored with one command
 //
-// Intent: found 2026-11-07 across five repositories: every claim warned that the slot's files were not ignored, and nothing offered the fix, so none was made. The fix changes a file of the repository, so it is done when the developer asks, and asking again changes nothing
+// Intent: a warning that the slot's files are not ignored, with no fix on offer, is a warning nobody acts on. The fix changes a file of the repository, so it is done when the developer asks, and asking again changes nothing
 // Source: acceptance/ports/ports-acceptance.md
 type PortSlot005 struct {
 	// Given new work holds a slot, and the repository's .gitignore names none of the slot's files
@@ -3762,7 +3762,7 @@ func (s PortSlot005) Scenario() Scenario {
 		Feature: "Slots",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "found 2026-11-07 across five repositories: every claim warned that the slot's files were not ignored, and nothing offered the fix, so none was made. The fix changes a file of the repository, so it is done when the developer asks, and asking again changes nothing",
+		Intent:  "a warning that the slot's files are not ignored, with no fix on offer, is a warning nobody acts on. The fix changes a file of the repository, so it is done when the developer asks, and asking again changes nothing",
 		Source:  "acceptance/ports/ports-acceptance.md",
 		Steps: []Step{
 			{Text: "Given new work holds a slot, and the repository's .gitignore names none of the slot's files", Display: "Given new work holds a slot, and the repository's .gitignore names none of the slot's files", Fn: s.GivenNewWorkHoldsASlotAndTheRepositorysGitignoreNamesNoneOfTheSlotsFiles},
@@ -3775,7 +3775,7 @@ func (s PortSlot005) Scenario() Scenario {
 
 // ProjAdd001 is PROJ-ADD-001: Registering a repository makes it a project named after its folder
 //
-// Intent: the architect, 2026-11-04 - "we should be able to declare what are the master repos"; "skills ... to help register git repos into the system"
+// Intent: the developer declares which repositories are their projects, and registering one is a single step
 // Source: acceptance/projects/projects-acceptance.md
 type ProjAdd001 struct {
 	// Given a git repository on this machine that is not registered
@@ -3796,7 +3796,7 @@ func (s ProjAdd001) Scenario() Scenario {
 		Feature: "Registering a repository",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"we should be able to declare what are the master repos\"; \"skills ... to help register git repos into the system\"",
+		Intent:  "the developer declares which repositories are their projects, and registering one is a single step",
 		Source:  "acceptance/projects/projects-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a git repository on this machine that is not registered", Display: "Given a git repository on this machine that is not registered", Fn: s.GivenAGitRepositoryOnThisMachineThatIsNotRegistered},
@@ -3939,7 +3939,7 @@ func (s ProjAdd005) Scenario() Scenario {
 
 // ProjBrowse001 is PROJ-BROWSE-001: A root's repositories are listed, with the ones already here marked
 //
-// Intent: the architect, 2026-11-04 - "listing github repos and adding to the hub": the developer sees what the owner has and what is already here, without leaving the program. The architect, 2026-11-05 - "the repository lists from Git should be in alphabetical order. Case insensitive"
+// Intent: the developer sees what the owner has on GitHub and what is already here, and adds a repository to engineroom without leaving the program. The list is in alphabetical order, ignoring case
 // Source: acceptance/projects/projects-acceptance.md
 type ProjBrowse001 struct {
 	// Given a root whose owner has three repositories on GitHub
@@ -3964,7 +3964,7 @@ func (s ProjBrowse001) Scenario() Scenario {
 		Feature: "Browsing a root's repositories",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"listing github repos and adding to the hub\": the developer sees what the owner has and what is already here, without leaving the program. The architect, 2026-11-05 - \"the repository lists from Git should be in alphabetical order. Case insensitive\"",
+		Intent:  "the developer sees what the owner has on GitHub and what is already here, and adds a repository to engineroom without leaving the program. The list is in alphabetical order, ignoring case",
 		Source:  "acceptance/projects/projects-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {root.lower} whose owner has three repositories on GitHub", Display: "Given a root whose owner has three repositories on GitHub", Fn: s.GivenARootWhoseOwnerHasThreeRepositoriesOnGitHub},
@@ -4013,7 +4013,7 @@ func (s ProjBrowse002) Scenario() Scenario {
 
 // ProjCat001 is PROJ-CAT-001: The projects are listed under their categories
 //
-// Intent: the architect, 2026-11-04 - "my projects list would be better with some organization"; "a category would be in hubs": a {category.lower} is a label kept in the program's own configuration, so it is set when registering and never moves a folder. The architect, 2026-11-05 - "the repository lists from Git should be in alphabetical order. Case insensitive"
+// Intent: the project list is organised by category: a {category.lower} is a label kept in the program's own configuration, so it is set when registering and never moves a folder. Lists of repositories are in alphabetical order, ignoring case
 // Source: acceptance/projects/projects-acceptance.md
 type ProjCat001 struct {
 	// Given a project registered in the category "tools", two in the category "web", and one with no category
@@ -4036,7 +4036,7 @@ func (s ProjCat001) Scenario() Scenario {
 		Feature: "Grouping projects by category",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"my projects list would be better with some organization\"; \"a category would be in hubs\": a {category.lower} is a label kept in the program's own configuration, so it is set when registering and never moves a folder. The architect, 2026-11-05 - \"the repository lists from Git should be in alphabetical order. Case insensitive\"",
+		Intent:  "the project list is organised by category: a {category.lower} is a label kept in the program's own configuration, so it is set when registering and never moves a folder. Lists of repositories are in alphabetical order, ignoring case",
 		Source:  "acceptance/projects/projects-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} registered in the {category.lower} \"tools\", two in the {category.lower} \"web\", and one with no {category.lower}", Display: "Given a project registered in the category \"tools\", two in the category \"web\", and one with no category", Fn: s.GivenAProjectRegisteredInTheCategoryToolsTwoInTheCategoryWebAndOneWithNoCategory},
@@ -4081,7 +4081,7 @@ func (s ProjCat002) Scenario() Scenario {
 
 // ProjClone001 is PROJ-CLONE-001: Adding a listed repository clones it into the root and registers it
 //
-// Intent: the architect, 2026-11-04 - "adding to the hub and clone to a location, add a category etc. then i can work on it"
+// Intent: a repository is added to engineroom by cloning it to a place and giving it a category, and is then ready to work on
 // Source: acceptance/projects/projects-acceptance.md
 type ProjClone001 struct {
 	// Given a root whose owner has a repository called "widget" that is not on the engine
@@ -4102,7 +4102,7 @@ func (s ProjClone001) Scenario() Scenario {
 		Feature: "Adding a repository from GitHub",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"adding to the hub and clone to a location, add a category etc. then i can work on it\"",
+		Intent:  "a repository is added to engineroom by cloning it to a place and giving it a category, and is then ready to work on",
 		Source:  "acceptance/projects/projects-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {root.lower} whose owner has a repository called \"widget\" that is not on the {engine.lower}", Display: "Given a root whose owner has a repository called \"widget\" that is not on the engine", Fn: s.GivenARootWhoseOwnerHasARepositoryCalledWidgetThatIsNotOnTheEngine},
@@ -4149,7 +4149,7 @@ func (s ProjClone002) Scenario() Scenario {
 
 // ProjCreate001 is PROJ-CREATE-001: A new repository is made in the root, created on GitHub, pushed and registered
 //
-// Intent: the architect, 2026-11-04 - "maybe even create new github repo from the hub and push it in. these become a flexible workhorse tool"
+// Intent: a new GitHub repository can be created from engineroom and a local folder pushed into it
 // Source: acceptance/projects/projects-acceptance.md
 type ProjCreate001 struct {
 	// Given the owner of the root has no repository called "gadget"
@@ -4172,7 +4172,7 @@ func (s ProjCreate001) Scenario() Scenario {
 		Feature: "Creating a repository",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"maybe even create new github repo from the hub and push it in. these become a flexible workhorse tool\"",
+		Intent:  "a new GitHub repository can be created from engineroom and a local folder pushed into it",
 		Source:  "acceptance/projects/projects-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the owner of the {root.lower} has no repository called \"gadget\"", Display: "Given the owner of the root has no repository called \"gadget\"", Fn: s.GivenTheOwnerOfTheRootHasNoRepositoryCalledGadget},
@@ -4220,7 +4220,7 @@ func (s ProjCreate002) Scenario() Scenario {
 
 // ProjHere001 is PROJ-HERE-001: A folder in a project's worktree is known as that project's, and any other folder is not
 //
-// Intent: the architect's Claude configuration guards running an app by hand in a repository registered with engineroom, from a hook that runs on every command, so it asks engineroom cheaply and by exit code rather than reading engineroom's config file itself (2026-11-08)
+// Intent: a script or a hook that runs on every command can ask whether a folder belongs to a registered project cheaply and by exit code, without reading engineroom's configuration file itself
 // Source: acceptance/projects/projects-acceptance.md
 type ProjHere001 struct {
 	// Given a registered project with a second worktree, and a folder that is in no project
@@ -4241,7 +4241,7 @@ func (s ProjHere001) Scenario() Scenario {
 		Feature: "Asking whether a folder is a project's",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect's Claude configuration guards running an app by hand in a repository registered with engineroom, from a hook that runs on every command, so it asks engineroom cheaply and by exit code rather than reading engineroom's config file itself (2026-11-08)",
+		Intent:  "a script or a hook that runs on every command can ask whether a folder belongs to a registered project cheaply and by exit code, without reading engineroom's configuration file itself",
 		Source:  "acceptance/projects/projects-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a registered {project.lower} with a second {checkout.lower}, and a folder that is in no {project.lower}", Display: "Given a registered project with a second worktree, and a folder that is in no project", Fn: s.GivenARegisteredProjectWithASecondCheckoutAndAFolderThatIsInNoProject},
@@ -4285,7 +4285,7 @@ func (s ProjList001) Scenario() Scenario {
 
 // ProjRemove001 is PROJ-REMOVE-001: Removing a project forgets it and leaves its files alone
 //
-// Intent: the architect's standing rule that nothing is deleted without a clear ask; removing a project from the tool is a change to the tool's own state only
+// Intent: nothing is deleted without a clear ask; removing a project from the tool is a change to the tool's own state only
 // Source: acceptance/projects/projects-acceptance.md
 type ProjRemove001 struct {
 	// Given a project is registered
@@ -4306,7 +4306,7 @@ func (s ProjRemove001) Scenario() Scenario {
 		Feature: "Listing and removing projects",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect's standing rule that nothing is deleted without a clear ask; removing a project from the tool is a change to the tool's own state only",
+		Intent:  "nothing is deleted without a clear ask; removing a project from the tool is a change to the tool's own state only",
 		Source:  "acceptance/projects/projects-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} is registered", Display: "Given a project is registered", Fn: s.GivenAProjectIsRegistered},
@@ -4319,7 +4319,7 @@ func (s ProjRemove001) Scenario() Scenario {
 
 // ProjRoot001 is PROJ-ROOT-001: Registering a root ties a folder to a GitHub owner and account
 //
-// Intent: the architect, 2026-11-04 - "list github repos for an account by registering root project folders in the hub"; one folder per GitHub account or organisation, "they form roots for specific github accounts": one folder per GitHub owner, with the account that can list it
+// Intent: GitHub repositories are listed for an account by registering root folders: one folder per GitHub owner, with the account that can list it
 // Source: acceptance/projects/projects-acceptance.md
 type ProjRoot001 struct {
 	// Given a folder on the engine meant for one GitHub owner's repositories
@@ -4338,7 +4338,7 @@ func (s ProjRoot001) Scenario() Scenario {
 		Feature: "Roots",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"list github repos for an account by registering root project folders in the hub\"; one folder per GitHub account or organisation, \"they form roots for specific github accounts\": one folder per GitHub owner, with the account that can list it",
+		Intent:  "GitHub repositories are listed for an account by registering root folders: one folder per GitHub owner, with the account that can list it",
 		Source:  "acceptance/projects/projects-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a folder on the {engine.lower} meant for one GitHub owner's repositories", Display: "Given a folder on the engine meant for one GitHub owner's repositories", Fn: s.GivenAFolderOnTheEngineMeantForOneGitHubOwnersRepositories},
@@ -4384,7 +4384,7 @@ func (s ProjRoot002) Scenario() Scenario {
 
 // SessBack001 is SESS-BACK-001: Starting a session that ended starts it fresh from the current layout
 //
-// Intent: the architect, 2026-11-07 - "why would we bring it back"; a session is running or it is not there, so one that ended (the engine restarted, or it was quit from inside Zellij) starts fresh from the current layout, never as Zellij's old snapshot (D-015)
+// Intent: a session is running or it is not there, so one that ended (the engine restarted, or it was quit from inside Zellij) starts fresh from the current layout, never as Zellij's old snapshot (D-015)
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessBack001 struct {
 	// Given a session with a layout of its own ended because the engine restarted
@@ -4405,7 +4405,7 @@ func (s SessBack001) Scenario() Scenario {
 		Feature: "Starting a session again",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - \"why would we bring it back\"; a session is running or it is not there, so one that ended (the engine restarted, or it was quit from inside Zellij) starts fresh from the current layout, never as Zellij's old snapshot (D-015)",
+		Intent:  "a session is running or it is not there, so one that ended (the engine restarted, or it was quit from inside Zellij) starts fresh from the current layout, never as Zellij's old snapshot (D-015)",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {session.lower} with a layout of its own ended because the {engine.lower} restarted", Display: "Given a session with a layout of its own ended because the engine restarted", Fn: s.GivenASessionWithALayoutOfItsOwnEndedBecauseTheEngineRestarted},
@@ -4452,7 +4452,7 @@ func (s SessBack002) Scenario() Scenario {
 
 // SessBack003 is SESS-BACK-003: Restarting a running session puts it on the current layout
 //
-// Intent: the architect, 2026-11-07 - "restart is good": a running session on an old layout is put on the current one from the app, with no terminal command
+// Intent: a running session on an old layout is put on the current one from the app, with no terminal command (D-015)
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessBack003 struct {
 	// Given a session with a layout of its own is running
@@ -4473,7 +4473,7 @@ func (s SessBack003) Scenario() Scenario {
 		Feature: "Starting a session again",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - \"restart is good\": a running session on an old layout is put on the current one from the app, with no terminal command",
+		Intent:  "a running session on an old layout is put on the current one from the app, with no terminal command (D-015)",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {session.lower} with a layout of its own is running", Display: "Given a session with a layout of its own is running", Fn: s.GivenASessionWithALayoutOfItsOwnIsRunning},
@@ -4486,7 +4486,7 @@ func (s SessBack003) Scenario() Scenario {
 
 // SessBack004 is SESS-BACK-004: Restarting a session joined from a client ends the join in its window
 //
-// Intent: the architect, 2026-11-07 - "the current running session exits back to hub console or something and then it cant resume": a window joined to a session from a client is left on the session list when the session is restarted, and the next join brings that window forward
+// Intent: a restarted session must stay within reach: a window joined to a session from a client is left on the session list when the session is restarted, and the next join brings that window forward
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessBack004 struct {
 	// Given the developer has joined a session from a client, in a window opened only to join it
@@ -4507,7 +4507,7 @@ func (s SessBack004) Scenario() Scenario {
 		Feature: "Starting a session again",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - \"the current running session exits back to hub console or something and then it cant resume\": a window joined to a session from a client is left on the session list when the session is restarted, and the next join brings that window forward",
+		Intent:  "a restarted session must stay within reach: a window joined to a session from a client is left on the session list when the session is restarted, and the next join brings that window forward",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer has joined a {session.lower} from a {client.lower}, in a window opened only to join it", Display: "Given the developer has joined a session from a client, in a window opened only to join it", Fn: s.GivenTheDeveloperHasJoinedASessionFromAClientInAWindowOpenedOnlyToJoinIt},
@@ -4520,7 +4520,7 @@ func (s SessBack004) Scenario() Scenario {
 
 // SessJoin001 is SESS-JOIN-001: Joining from a client shows the Engine's session
 //
-// Intent: the architect, 2026-11-04 - "always use zellij so that i can switch autonomously between server or client on the same session"
+// Intent: Claude always runs inside Zellij, so the same session can be reached from the engine or from a client
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessJoin001 struct {
 	// Given a session is running on the engine
@@ -4539,7 +4539,7 @@ func (s SessJoin001) Scenario() Scenario {
 		Feature: "Joining a session",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"always use zellij so that i can switch autonomously between server or client on the same session\"",
+		Intent:  "Claude always runs inside Zellij, so the same session can be reached from the engine or from a client",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {session.lower} is running on the {engine.lower}", Display: "Given a session is running on the engine", Fn: s.GivenASessionIsRunningOnTheEngine},
@@ -4585,7 +4585,7 @@ func (s SessJoin002) Scenario() Scenario {
 
 // SessList001 is SESS-LIST-001: Every session on the engine is listed
 //
-// Intent: the architect, 2026-11-04 - a tool that "knows about all this stuff and what i do"; the approved concept mockups list every session with its project, worktree and state
+// Intent: the tool knows every session and where it belongs: the list shows each one with its project, worktree and state
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessList001 struct {
 	// Given the engine has sessions for two projects
@@ -4604,7 +4604,7 @@ func (s SessList001) Scenario() Scenario {
 		Feature: "Seeing sessions",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - a tool that \"knows about all this stuff and what i do\"; the approved concept mockups list every session with its project, worktree and state",
+		Intent:  "the tool knows every session and where it belongs: the list shows each one with its project, worktree and state",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.lower} has {session.lowerPlural} for two {project.lowerPlural}", Display: "Given the engine has sessions for two projects", Fn: s.GivenTheEngineHasSessionsForTwoProjects},
@@ -4616,7 +4616,7 @@ func (s SessList001) Scenario() Scenario {
 
 // SessList002 is SESS-LIST-002: A session waiting for the developer keeps its place, marked with Claude's mark
 //
-// Intent: the approved concept mockups, 2026-11-04 - a session waiting for an answer is shown with its question; the architect, 2026-11-08 - "i want my list in fixed order. if something is waiting on claude i dont need it in a different order. that can just be an icon or something like a claude icon showing"
+// Intent: a session waiting for an answer is shown with its question, as a mark on its own line; the list keeps its fixed order and a waiting session is never moved (D-022)
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessList002 struct {
 	// Given one session has stopped to ask the developer a question
@@ -4639,7 +4639,7 @@ func (s SessList002) Scenario() Scenario {
 		Feature: "Seeing sessions",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the approved concept mockups, 2026-11-04 - a session waiting for an answer is shown with its question; the architect, 2026-11-08 - \"i want my list in fixed order. if something is waiting on claude i dont need it in a different order. that can just be an icon or something like a claude icon showing\"",
+		Intent:  "a session waiting for an answer is shown with its question, as a mark on its own line; the list keeps its fixed order and a waiting session is never moved (D-022)",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given one {session.lower} has stopped to ask the developer a question", Display: "Given one session has stopped to ask the developer a question", Fn: s.GivenOneSessionHasStoppedToAskTheDeveloperAQuestion},
@@ -4687,7 +4687,7 @@ func (s SessList003) Scenario() Scenario {
 
 // SessList004 is SESS-LIST-004: With no sessions, the list offers to open a project
 //
-// Intent: the architect, 2026-11-04 - "help me do these things easily"; an empty list has to lead somewhere
+// Intent: an empty list has to lead somewhere
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessList004 struct {
 	// Given the engine has no sessions
@@ -4708,7 +4708,7 @@ func (s SessList004) Scenario() Scenario {
 		Feature: "Seeing sessions",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"help me do these things easily\"; an empty list has to lead somewhere",
+		Intent:  "an empty list has to lead somewhere",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {engine.lower} has no {session.lowerPlural}", Display: "Given the engine has no sessions", Fn: s.GivenTheEngineHasNoSessions},
@@ -4721,7 +4721,7 @@ func (s SessList004) Scenario() Scenario {
 
 // SessList005 is SESS-LIST-005: The pinned projects' sessions are listed first, then the rest by name
 //
-// Intent: the architect, 2026-11-08 - "i think pinned ones are always there. always at the top, and always maintain a consistent order so its not random"; "i want my list in fixed order"
+// Intent: pinned projects are always there and always first, and the order is fixed, so nothing moves between two looks (D-022)
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessList005 struct {
 	// Given running sessions for alpha, beta and gamma, with gamma pinned
@@ -4742,7 +4742,7 @@ func (s SessList005) Scenario() Scenario {
 		Feature: "Seeing sessions",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-08 - \"i think pinned ones are always there. always at the top, and always maintain a consistent order so its not random\"; \"i want my list in fixed order\"",
+		Intent:  "pinned projects are always there and always first, and the order is fixed, so nothing moves between two looks (D-022)",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given running {session.lowerPlural} for alpha, beta and gamma, with gamma pinned", Display: "Given running sessions for alpha, beta and gamma, with gamma pinned", Fn: s.GivenRunningSessionsForAlphaBetaAndGammaWithGammaPinned},
@@ -4755,7 +4755,7 @@ func (s SessList005) Scenario() Scenario {
 
 // SessMouse001 is SESS-MOUSE-001: Clicking a row selects it, and clicking the selected row acts on it
 //
-// Intent: the architect, 2026-11-04 - "the hub appication is not mouse interactive yet": a row is chosen by clicking it, and acted on by clicking it again, as enter does
+// Intent: the terminal interface answers the mouse: a row is chosen by clicking it, and acted on by clicking it again, as enter does
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessMouse001 struct {
 	// Given two sessions are running
@@ -4776,7 +4776,7 @@ func (s SessMouse001) Scenario() Scenario {
 		Feature: "Using the mouse",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"the hub appication is not mouse interactive yet\": a row is chosen by clicking it, and acted on by clicking it again, as enter does",
+		Intent:  "the terminal interface answers the mouse: a row is chosen by clicking it, and acted on by clicking it again, as enter does",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given two {session.lowerPlural} are running", Display: "Given two sessions are running", Fn: s.GivenTwoSessionsAreRunning},
@@ -4823,7 +4823,7 @@ func (s SessMouse002) Scenario() Scenario {
 
 // SessNew001 is SESS-NEW-001: A project with no session gets one with the standard layout
 //
-// Intent: the architect, 2026-11-04 - "i should never launch claude direct from ghosstty anymore. i should always use zellij"; amended the same day for a small screen: Claude Code gets the whole tab, and "get rid of the exta terminals", since Zellij opens a tab whenever one is needed and the repository's own scripts start its stack (issue #32)
+// Intent: Claude Code is always started inside Zellij, never directly in a terminal. On a small screen it gets the whole tab, with no extra terminal panes, since Zellij opens a tab whenever one is needed and the repository's own scripts start its stack
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessNew001 struct {
 	// Given a project has no session on the engine
@@ -4844,7 +4844,7 @@ func (s SessNew001) Scenario() Scenario {
 		Feature: "Opening a project",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"i should never launch claude direct from ghosstty anymore. i should always use zellij\"; amended the same day for a small screen: Claude Code gets the whole tab, and \"get rid of the exta terminals\", since Zellij opens a tab whenever one is needed and the repository's own scripts start its stack (issue #32)",
+		Intent:  "Claude Code is always started inside Zellij, never directly in a terminal. On a small screen it gets the whole tab, with no extra terminal panes, since Zellij opens a tab whenever one is needed and the repository's own scripts start its stack",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} has no {session.lower} on the {engine.lower}", Display: "Given a project has no session on the engine", Fn: s.GivenAProjectHasNoSessionOnTheEngine},
@@ -4891,7 +4891,7 @@ func (s SessNew002) Scenario() Scenario {
 
 // SessNew003 is SESS-NEW-003: Opening a project that is not registered names the ones that are
 //
-// Intent: the architect, 2026-11-04 - "without remembering all the tooling, names"; a name the tool does not know is answered with the names it does
+// Intent: names need not be remembered; a name the tool does not know is answered with the names it does
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessNew003 struct {
 	// Given no project called "acme-site" is registered
@@ -4914,7 +4914,7 @@ func (s SessNew003) Scenario() Scenario {
 		Feature: "Opening a project",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"without remembering all the tooling, names\"; a name the tool does not know is answered with the names it does",
+		Intent:  "names need not be remembered; a name the tool does not know is answered with the names it does",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given no {project.lower} called \"acme-site\" is registered", Display: "Given no project called \"acme-site\" is registered", Fn: s.GivenNoProjectCalledAcmeSiteIsRegistered},
@@ -4928,7 +4928,7 @@ func (s SessNew003) Scenario() Scenario {
 
 // SessNew004 is SESS-NEW-004: A project can be started without joining its session
 //
-// Intent: the architect, 2026-11-04 - "i also might want to laucnh without even having zellij open. because remote control will be used after the session started. so moving off the hub woudl be optional"
+// Intent: a session can be started without a Zellij window open at all, because Remote Control is used once the session runs; joining it in a terminal is optional
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessNew004 struct {
 	// Given a project has no session on the engine
@@ -4949,7 +4949,7 @@ func (s SessNew004) Scenario() Scenario {
 		Feature: "Opening a project",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"i also might want to laucnh without even having zellij open. because remote control will be used after the session started. so moving off the hub woudl be optional\"",
+		Intent:  "a session can be started without a Zellij window open at all, because Remote Control is used once the session runs; joining it in a terminal is optional",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} has no {session.lower} on the {engine.lower}", Display: "Given a project has no session on the engine", Fn: s.GivenAProjectHasNoSessionOnTheEngine},
@@ -4962,7 +4962,7 @@ func (s SessNew004) Scenario() Scenario {
 
 // SessNew005 is SESS-NEW-005: A session started by a running Claude Code agent has an agent of its own
 //
-// Intent: the architect, 2026-11-08 - "transcript saving off? i dont recall this being something i did": a {session.lower} started by engineroom from inside a Claude Code session (Claude running engineroom, or the app opened from one) gave its agent that session's markers, and the agent saved no transcript. A {session.lower}'s agent is the developer's own, whatever started it
+// Intent: a {session.lower} started by engineroom from inside a Claude Code session (Claude running engineroom, or the app opened from one) must not be given that session's markers, with which its agent would save no transcript. A {session.lower}'s agent is the developer's own, whatever started it
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessNew005 struct {
 	// Given the program is run by a Claude Code agent, with that agent's markers in its environment
@@ -4981,7 +4981,7 @@ func (s SessNew005) Scenario() Scenario {
 		Feature: "Opening a project",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-08 - \"transcript saving off? i dont recall this being something i did\": a {session.lower} started by engineroom from inside a Claude Code session (Claude running engineroom, or the app opened from one) gave its agent that session's markers, and the agent saved no transcript. A {session.lower}'s agent is the developer's own, whatever started it",
+		Intent:  "a {session.lower} started by engineroom from inside a Claude Code session (Claude running engineroom, or the app opened from one) must not be given that session's markers, with which its agent would save no transcript. A {session.lower}'s agent is the developer's own, whatever started it",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the program is run by a Claude Code agent, with that agent's markers in its environment", Display: "Given the program is run by a Claude Code agent, with that agent's markers in its environment", Fn: s.GivenTheProgramIsRunByAClaudeCodeAgentWithThatAgentsMarkersInItsEnvironment},
@@ -4993,7 +4993,7 @@ func (s SessNew005) Scenario() Scenario {
 
 // SessNew006 is SESS-NEW-006: A session started from outside the Engine's desktop login runs inside it
 //
-// Intent: the architect, 2026-11-10 - "start it in an appropriate session with the same rights and permissions as if i was coded directly on the machine": a {session.lower} started from another machine, over SSH, stayed in that SSH login, where the login keychain is locked. The developer leaves the {engine.lower} logged in at its screen; with no one logged in there, a {session.lower} starts as before
+// Intent: a {session.lower} has the rights it would have if the developer had started it at the machine itself: one started from another machine, over SSH, would stay in that SSH login, where the login keychain is locked (D-031). The developer leaves the {engine.lower} logged in at its screen; with no one logged in there, a {session.lower} starts as before
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessNew006 struct {
 	// Given the developer is logged in at the Engine's screen
@@ -5016,7 +5016,7 @@ func (s SessNew006) Scenario() Scenario {
 		Feature: "Opening a project",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-10 - \"start it in an appropriate session with the same rights and permissions as if i was coded directly on the machine\": a {session.lower} started from another machine, over SSH, stayed in that SSH login, where the login keychain is locked. The developer leaves the {engine.lower} logged in at its screen; with no one logged in there, a {session.lower} starts as before",
+		Intent:  "a {session.lower} has the rights it would have if the developer had started it at the machine itself: one started from another machine, over SSH, would stay in that SSH login, where the login keychain is locked (D-031). The developer leaves the {engine.lower} logged in at its screen; with no one logged in there, a {session.lower} starts as before",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer is logged in at the {engine.possessive} screen", Display: "Given the developer is logged in at the Engine's screen", Fn: s.GivenTheDeveloperIsLoggedInAtTheEnginesScreen},
@@ -5030,7 +5030,7 @@ func (s SessNew006) Scenario() Scenario {
 
 // SessRemote001 is SESS-REMOTE-001: The Remote Control choice is shown before opening and remembered
 //
-// Intent: the architect, 2026-11-04 - "remote control enabled as a switch before opening a session.. and remember it"; Remote Control is where pasting images works, so the choice is made once and kept
+// Intent: Remote Control is a switch set before a session is opened, and remembered; it is where pasting images works, so the choice is made once and kept
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessRemote001 struct {
 	// Given the developer is choosing a project to open
@@ -5051,7 +5051,7 @@ func (s SessRemote001) Scenario() Scenario {
 		Feature: "Remote Control",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"remote control enabled as a switch before opening a session.. and remember it\"; Remote Control is where pasting images works, so the choice is made once and kept",
+		Intent:  "Remote Control is a switch set before a session is opened, and remembered; it is where pasting images works, so the choice is made once and kept",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer is choosing a {project.lower} to open", Display: "Given the developer is choosing a project to open", Fn: s.GivenTheDeveloperIsChoosingAProjectToOpen},
@@ -5064,7 +5064,7 @@ func (s SessRemote001) Scenario() Scenario {
 
 // SessRemote002 is SESS-REMOTE-002: A session created with Remote Control on is reachable under its own name
 //
-// Intent: the architect, 2026-11-04 - "can the hub automatically start the claude session inside the zellij with a same name and remote control"
+// Intent: engineroom starts the Claude session inside Zellij under the same name, with Remote Control
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessRemote002 struct {
 	// Given Remote Control is on
@@ -5087,7 +5087,7 @@ func (s SessRemote002) Scenario() Scenario {
 		Feature: "Remote Control",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"can the hub automatically start the claude session inside the zellij with a same name and remote control\"",
+		Intent:  "engineroom starts the Claude session inside Zellij under the same name, with Remote Control",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given Remote Control is on", Display: "Given Remote Control is on", Fn: s.GivenRemoteControlIsOn},
@@ -5169,7 +5169,7 @@ func (s SessRemote004) Scenario() Scenario {
 
 // SessStop001 is SESS-STOP-001: Stopping a session asks first
 //
-// Intent: the architect, 2026-11-04 - "I should be able to stop any session that's running right? That's the point of the tool"; and the standing rule that nothing is stopped without a clear ask
+// Intent: any running session can be stopped from the tool, and nothing is stopped without a clear ask
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessStop001 struct {
 	// Given a session is running
@@ -5188,7 +5188,7 @@ func (s SessStop001) Scenario() Scenario {
 		Feature: "Stopping a session",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"I should be able to stop any session that's running right? That's the point of the tool\"; and the standing rule that nothing is stopped without a clear ask",
+		Intent:  "any running session can be stopped from the tool, and nothing is stopped without a clear ask",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {session.lower} is running", Display: "Given a session is running", Fn: s.GivenASessionIsRunning},
@@ -5265,7 +5265,7 @@ func (s SessStop003) Scenario() Scenario {
 
 // SessSwitch001 is SESS-SWITCH-001: From inside a session, the developer moves to another
 //
-// Intent: the architect, 2026-11-04 - "or the session itself needs to be able to swtich"
+// Intent: a session can be left for another from inside it, without going back to a shell
 // Source: acceptance/sessions/sessions-acceptance.md
 type SessSwitch001 struct {
 	// Given the developer is in one session
@@ -5286,7 +5286,7 @@ func (s SessSwitch001) Scenario() Scenario {
 		Feature: "Switching sessions",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"or the session itself needs to be able to swtich\"",
+		Intent:  "a session can be left for another from inside it, without going back to a shell",
 		Source:  "acceptance/sessions/sessions-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the developer is in one {session.lower}", Display: "Given the developer is in one session", Fn: s.GivenTheDeveloperIsInOneSession},
@@ -5299,7 +5299,7 @@ func (s SessSwitch001) Scenario() Scenario {
 
 // WorkClean001 is WORK-CLEAN-001: Cleaning up finished work removes its worktree after asking
 //
-// Intent: the architect, 2026-11-04 - "clean up work tree option ... which can execute the commands and scripts to dispose of that"; issue #8
+// Intent: cleaning up a worktree is one action that runs the commands and scripts to dispose of it
 // Source: acceptance/work/work-acceptance.md
 type WorkClean001 struct {
 	// Given new work whose changes are all committed and pushed has a running session
@@ -5320,7 +5320,7 @@ func (s WorkClean001) Scenario() Scenario {
 		Feature: "Cleaning up finished work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"clean up work tree option ... which can execute the commands and scripts to dispose of that\"; issue #8",
+		Intent:  "cleaning up a worktree is one action that runs the commands and scripts to dispose of it",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given new work whose changes are all committed and pushed has a running {session.lower}", Display: "Given new work whose changes are all committed and pushed has a running session", Fn: s.GivenNewWorkWhoseChangesAreAllCommittedAndPushedHasARunningSession},
@@ -5333,7 +5333,7 @@ func (s WorkClean001) Scenario() Scenario {
 
 // WorkClean002 is WORK-CLEAN-002: Work with uncommitted changes is not cleaned up
 //
-// Intent: issue #8 - "It refuses, and says why, when the worktree has uncommitted changes"
+// Intent: clean up refuses, and says why, when the worktree has uncommitted changes
 // Source: acceptance/work/work-acceptance.md
 type WorkClean002 struct {
 	// Given new work has a file changed but not committed
@@ -5354,7 +5354,7 @@ func (s WorkClean002) Scenario() Scenario {
 		Feature: "Cleaning up finished work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #8 - \"It refuses, and says why, when the worktree has uncommitted changes\"",
+		Intent:  "clean up refuses, and says why, when the worktree has uncommitted changes",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given new work has a file changed but not committed", Display: "Given new work has a file changed but not committed", Fn: s.GivenNewWorkHasAFileChangedButNotCommitted},
@@ -5367,7 +5367,7 @@ func (s WorkClean002) Scenario() Scenario {
 
 // WorkClean003 is WORK-CLEAN-003: Work with commits that were never pushed is not cleaned up
 //
-// Intent: issue #8 - "or commits that were never pushed"
+// Intent: clean up refuses, and says why, when the worktree has commits that were never pushed
 // Source: acceptance/work/work-acceptance.md
 type WorkClean003 struct {
 	// Given new work has a commit that is not on the remote
@@ -5388,7 +5388,7 @@ func (s WorkClean003) Scenario() Scenario {
 		Feature: "Cleaning up finished work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #8 - \"or commits that were never pushed\"",
+		Intent:  "clean up refuses, and says why, when the worktree has commits that were never pushed",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given new work has a commit that is not on the remote", Display: "Given new work has a commit that is not on the remote", Fn: s.GivenNewWorkHasACommitThatIsNotOnTheRemote},
@@ -5401,7 +5401,7 @@ func (s WorkClean003) Scenario() Scenario {
 
 // WorkClean004 is WORK-CLEAN-004: A merged branch is deleted with its worktree
 //
-// Intent: issue #8 - delete the branch "only when the branch has been merged into main"
+// Intent: clean up deletes the branch only when it has been merged into main
 // Source: acceptance/work/work-acceptance.md
 type WorkClean004 struct {
 	// Given new work whose branch has been merged into main
@@ -5420,7 +5420,7 @@ func (s WorkClean004) Scenario() Scenario {
 		Feature: "Cleaning up finished work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #8 - delete the branch \"only when the branch has been merged into main\"",
+		Intent:  "clean up deletes the branch only when it has been merged into main",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given new work whose branch has been merged into main", Display: "Given new work whose branch has been merged into main", Fn: s.GivenNewWorkWhoseBranchHasBeenMergedIntoMain},
@@ -5466,7 +5466,7 @@ func (s WorkClean005) Scenario() Scenario {
 
 // WorkClean006 is WORK-CLEAN-006: The main worktree of a project cannot be cleaned up
 //
-// Intent: issue #8 - "It never touches the main clone"
+// Intent: clean up never touches the main clone
 // Source: acceptance/work/work-acceptance.md
 type WorkClean006 struct {
 	// Given a project is registered
@@ -5487,7 +5487,7 @@ func (s WorkClean006) Scenario() Scenario {
 		Feature: "Cleaning up finished work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #8 - \"It never touches the main clone\"",
+		Intent:  "clean up never touches the main clone",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} is registered", Display: "Given a project is registered", Fn: s.GivenAProjectIsRegistered},
@@ -5531,7 +5531,7 @@ func (s WorkClean007) Scenario() Scenario {
 
 // WorkClean008 is WORK-CLEAN-008: Cleaning up work with uncommitted changes offers to save them or put them aside
 //
-// Intent: the architect, 2026-11-09 - "Close worktree should have some kind of verify script that no code would get lost. Ie rollback or commit to a branch"; a put-aside change is a stash of the repository, which outlives the worktree (D-024)
+// Intent: closing a worktree checks first that no work would be lost, and offers to save it to the branch or put it aside; a put-aside change is a stash of the repository, which outlives the worktree (D-024)
 // Source: acceptance/work/work-acceptance.md
 type WorkClean008 struct {
 	// Given new work has a file changed but not committed
@@ -5552,7 +5552,7 @@ func (s WorkClean008) Scenario() Scenario {
 		Feature: "Cleaning up finished work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"Close worktree should have some kind of verify script that no code would get lost. Ie rollback or commit to a branch\"; a put-aside change is a stash of the repository, which outlives the worktree (D-024)",
+		Intent:  "closing a worktree checks first that no work would be lost, and offers to save it to the branch or put it aside; a put-aside change is a stash of the repository, which outlives the worktree (D-024)",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given new work has a file changed but not committed", Display: "Given new work has a file changed but not committed", Fn: s.GivenNewWorkHasAFileChangedButNotCommitted},
@@ -5667,7 +5667,7 @@ func (s WorkClean011) Scenario() Scenario {
 
 // WorkNew001 is WORK-NEW-001: New work gets its own worktree beside the main one, with a session open in it
 //
-// Intent: the architect, 2026-11-04 - "build a new worktree for an issue on a repo and then open a session there"; worktrees are siblings named <repo>-<branch>
+// Intent: new work is one step: a worktree for a branch of a project, and a session opened in it; worktrees are siblings named <repo>-<branch>
 // Source: acceptance/work/work-acceptance.md
 type WorkNew001 struct {
 	// Given a project is registered
@@ -5688,7 +5688,7 @@ func (s WorkNew001) Scenario() Scenario {
 		Feature: "Starting new work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"build a new worktree for an issue on a repo and then open a session there\"; worktrees are siblings named <repo>-<branch>",
+		Intent:  "new work is one step: a worktree for a branch of a project, and a session opened in it; worktrees are siblings named <repo>-<branch>",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} is registered", Display: "Given a project is registered", Fn: s.GivenAProjectIsRegistered},
@@ -5701,7 +5701,7 @@ func (s WorkNew001) Scenario() Scenario {
 
 // WorkNew002 is WORK-NEW-002: New work starts from the remote's current main
 //
-// Intent: issue #7 - "Fetch the project's remote, so the worktree starts from the current main"
+// Intent: new work fetches the project's remote, so the worktree starts from the current main
 // Source: acceptance/work/work-acceptance.md
 type WorkNew002 struct {
 	// Given the remote's main has a commit this machine has not fetched
@@ -5720,7 +5720,7 @@ func (s WorkNew002) Scenario() Scenario {
 		Feature: "Starting new work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #7 - \"Fetch the project's remote, so the worktree starts from the current main\"",
+		Intent:  "new work fetches the project's remote, so the worktree starts from the current main",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the remote's main has a commit this machine has not fetched", Display: "Given the remote's main has a commit this machine has not fetched", Fn: s.GivenTheRemotesMainHasACommitThisMachineHasNotFetched},
@@ -5732,7 +5732,7 @@ func (s WorkNew002) Scenario() Scenario {
 
 // WorkNew003 is WORK-NEW-003: A name that cannot be a plain branch name is refused
 //
-// Intent: the architect's rule that branch names carry no slashes, so a branch, its folder and its session share one name
+// Intent: branch names carry no slashes, so a branch, its folder and its session share one name
 // Source: acceptance/work/work-acceptance.md
 type WorkNew003 struct {
 	// Given a project is registered
@@ -5753,7 +5753,7 @@ func (s WorkNew003) Scenario() Scenario {
 		Feature: "Starting new work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect's rule that branch names carry no slashes, so a branch, its folder and its session share one name",
+		Intent:  "branch names carry no slashes, so a branch, its folder and its session share one name",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} is registered", Display: "Given a project is registered", Fn: s.GivenAProjectIsRegistered},
@@ -5868,7 +5868,7 @@ func (s WorkNew006) Scenario() Scenario {
 
 // WorkNew007 is WORK-NEW-007: New work runs the create script of the commit it starts from, not the main worktree's branch
 //
-// Intent: docs/decisions.md D-006 - "a repository's script is read from the checkout, so a branch that changes it runs its own version"; new work starts from the remote's main, so the script it runs is main's, not whatever branch the main clone has checked out (found 2026-11-07: a create script on an unmerged branch made every new worktree fail)
+// Intent: docs/decisions.md D-006 - a repository's script is read from the checkout, so a branch that changes it runs its own version; new work starts from the remote's main, so the script it runs is main's, not whatever branch the main clone has checked out, where a create script on an unmerged branch would make every new worktree fail
 // Source: acceptance/work/work-acceptance.md
 type WorkNew007 struct {
 	// Given the main worktree is on a branch that adds a create script the remote's main does not have
@@ -5889,7 +5889,7 @@ func (s WorkNew007) Scenario() Scenario {
 		Feature: "Starting new work",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "docs/decisions.md D-006 - \"a repository's script is read from the checkout, so a branch that changes it runs its own version\"; new work starts from the remote's main, so the script it runs is main's, not whatever branch the main clone has checked out (found 2026-11-07: a create script on an unmerged branch made every new worktree fail)",
+		Intent:  "docs/decisions.md D-006 - a repository's script is read from the checkout, so a branch that changes it runs its own version; new work starts from the remote's main, so the script it runs is main's, not whatever branch the main clone has checked out, where a create script on an unmerged branch would make every new worktree fail",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the main {checkout.lower} is on a branch that adds a create script the remote's main does not have", Display: "Given the main worktree is on a branch that adds a create script the remote's main does not have", Fn: s.GivenTheMainCheckoutIsOnABranchThatAddsACreateScriptTheRemotesMainDoesNotHave},
@@ -5902,7 +5902,7 @@ func (s WorkNew007) Scenario() Scenario {
 
 // WorkRole001 is WORK-ROLE-001: A worktree made for a role is named for the role and holds the branch given
 //
-// Intent: the architect, 2026-11-09 - "When I add a worktree I would prefer to be pick role or branch specific. Meaning I will delete after it's branch is done"; "Role. Worktrees. Either branch or role. Based and recorded so the rule can value both"; a role worktree keeps its folder, session and ports while branches come and go in it (D-024)
+// Intent: a worktree is made for a branch, and deleted when the branch is done, or for a role; a role worktree keeps its folder, session and ports while branches come and go in it (D-024)
 // Source: acceptance/work/work-acceptance.md
 type WorkRole001 struct {
 	// Given a project is registered
@@ -5925,7 +5925,7 @@ func (s WorkRole001) Scenario() Scenario {
 		Feature: "Worktrees kept for a role",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - \"When I add a worktree I would prefer to be pick role or branch specific. Meaning I will delete after it's branch is done\"; \"Role. Worktrees. Either branch or role. Based and recorded so the rule can value both\"; a role worktree keeps its folder, session and ports while branches come and go in it (D-024)",
+		Intent:  "a worktree is made for a branch, and deleted when the branch is done, or for a role; a role worktree keeps its folder, session and ports while branches come and go in it (D-024)",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {project.lower} is registered", Display: "Given a project is registered", Fn: s.GivenAProjectIsRegistered},
@@ -6075,7 +6075,7 @@ func (s WorkRole005) Scenario() Scenario {
 
 // WorkStack001 is WORK-STACK-001: Starting the stack runs the repository's up script in the worktree
 //
-// Intent: the architect, 2026-11-04 - "proper startup and tear down scripts per repo to run or shut down that work in each worktree. im relying on claude knowing how rather than a standard"; docs/decisions.md D-006 as amended: the stack starts on request, through the repository's up script
+// Intent: each repository has its own scripts to start and stop what a worktree needs, so starting a stack is the same step everywhere (docs/decisions.md D-006): the stack starts on request, through the repository's up script
 // Source: acceptance/work/work-acceptance.md
 type WorkStack001 struct {
 	// Given the project declares an up script and has a session in a worktree
@@ -6096,7 +6096,7 @@ func (s WorkStack001) Scenario() Scenario {
 		Feature: "Starting and stopping the app stack",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-04 - \"proper startup and tear down scripts per repo to run or shut down that work in each worktree. im relying on claude knowing how rather than a standard\"; docs/decisions.md D-006 as amended: the stack starts on request, through the repository's up script",
+		Intent:  "each repository has its own scripts to start and stop what a worktree needs, so starting a stack is the same step everywhere (docs/decisions.md D-006): the stack starts on request, through the repository's up script",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {project.lower} declares an up script and has a {session.lower} in a {checkout.lower}", Display: "Given the project declares an up script and has a session in a worktree", Fn: s.GivenTheProjectDeclaresAnUpScriptAndHasASessionInACheckout},
@@ -6140,7 +6140,7 @@ func (s WorkStack002) Scenario() Scenario {
 
 // WorkStack003 is WORK-STACK-003: Cleaning up stops the stack before tearing the worktree down
 //
-// Intent: issue #32 - "Clean up runs the stop script before teardown", so nothing the stack started is left running against a worktree that is gone
+// Intent: clean up runs the stop script before teardown, so nothing the stack started is left running against a worktree that is gone
 // Source: acceptance/work/work-acceptance.md
 type WorkStack003 struct {
 	// Given the project declares a down script and a teardown script
@@ -6161,7 +6161,7 @@ func (s WorkStack003) Scenario() Scenario {
 		Feature: "Starting and stopping the app stack",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "issue #32 - \"Clean up runs the stop script before teardown\", so nothing the stack started is left running against a worktree that is gone",
+		Intent:  "clean up runs the stop script before teardown, so nothing the stack started is left running against a worktree that is gone",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {project.lower} declares a down script and a teardown script", Display: "Given the project declares a down script and a teardown script", Fn: s.GivenTheProjectDeclaresADownScriptAndATeardownScript},
@@ -6208,7 +6208,7 @@ func (s WorkStack004) Scenario() Scenario {
 
 // WorkStack005 is WORK-STACK-005: Starting the stack of a worktree with no session starts its session first
 //
-// Intent: the architect, 2026-11-07 - a stack started with no session ran on the engine but could not be reached from the client, which forwards running sessions' ports only: "the session must exist ... the run button should start a session if needed"
+// Intent: a stack started with no session would run on the engine and not be reachable from a client, which forwards running sessions' ports only; so Run starts the session if it is needed (D-013)
 // Source: acceptance/work/work-acceptance.md
 type WorkStack005 struct {
 	// Given the project declares an up script and its worktree has no running session
@@ -6229,7 +6229,7 @@ func (s WorkStack005) Scenario() Scenario {
 		Feature: "Starting and stopping the app stack",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - a stack started with no session ran on the engine but could not be reached from the client, which forwards running sessions' ports only: \"the session must exist ... the run button should start a session if needed\"",
+		Intent:  "a stack started with no session would run on the engine and not be reachable from a client, which forwards running sessions' ports only; so Run starts the session if it is needed (D-013)",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given the {project.lower} declares an up script and its {checkout.lower} has no running {session.lower}", Display: "Given the project declares an up script and its worktree has no running session", Fn: s.GivenTheProjectDeclaresAnUpScriptAndItsCheckoutHasNoRunningSession},
@@ -6242,7 +6242,7 @@ func (s WorkStack005) Scenario() Scenario {
 
 // WorkStack006 is WORK-STACK-006: Stopping a session stops what was started for it, and nothing else
 //
-// Intent: the architect, 2026-11-07 - "anything run for the session like starting the app stack, should be tied to the session. shutting down the session totally vs disconnecting should shut down everything related"; "the point was only within the lifetime of the session"; docs/decisions.md D-020
+// Intent: anything run for a session, such as its app stack, lives only as long as the session: ending the session fully, as against leaving it, ends everything started for it (docs/decisions.md D-020)
 // Source: acceptance/work/work-acceptance.md
 type WorkStack006 struct {
 	// Given a worktree's session is running with its stack started
@@ -6269,7 +6269,7 @@ func (s WorkStack006) Scenario() Scenario {
 		Feature: "What runs for a session lives as long as the session",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - \"anything run for the session like starting the app stack, should be tied to the session. shutting down the session totally vs disconnecting should shut down everything related\"; \"the point was only within the lifetime of the session\"; docs/decisions.md D-020",
+		Intent:  "anything run for a session, such as its app stack, lives only as long as the session: ending the session fully, as against leaving it, ends everything started for it (docs/decisions.md D-020)",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {checkout.lower}'s {session.lower} is running with its stack started", Display: "Given a worktree's session is running with its stack started", Fn: s.GivenACheckoutSSessionIsRunningWithItsStackStarted},
@@ -6390,7 +6390,7 @@ func (s WorkStack009) Scenario() Scenario {
 
 // WorkStack010 is WORK-STACK-010: Restarting a session keeps its stack running
 //
-// Intent: the architect, 2026-11-07 - restart brings the same session back on the current layout, so it is not an end of the session's life
+// Intent: restart brings the same session back on the current layout, so it is not an end of the session's life
 // Source: acceptance/work/work-acceptance.md
 type WorkStack010 struct {
 	// Given a session is running with its stack started
@@ -6409,7 +6409,7 @@ func (s WorkStack010) Scenario() Scenario {
 		Feature: "What runs for a session lives as long as the session",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-07 - restart brings the same session back on the current layout, so it is not an end of the session's life",
+		Intent:  "restart brings the same session back on the current layout, so it is not an end of the session's life",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {session.lower} is running with its stack started", Display: "Given a session is running with its stack started", Fn: s.GivenASessionIsRunningWithItsStackStarted},
@@ -6489,7 +6489,7 @@ func (s WorkStack012) Scenario() Scenario {
 
 // WorkStack013 is WORK-STACK-013: An app opened from inside a session stays open when the session is stopped
 //
-// Intent: as WORK-STACK-006 - found 2026-11-07: an editor opened from inside a session carries the session's name too; it is the developer's to close, and only what serves on a port (with what started it and what it started) is stopped for a session
+// Intent: as WORK-STACK-006 - an editor opened from inside a session carries the session's name too; it is the developer's to close, and only what serves on a port (with what started it and what it started) is stopped for a session
 // Source: acceptance/work/work-acceptance.md
 type WorkStack013 struct {
 	// Given a worktree's session is running
@@ -6510,7 +6510,7 @@ func (s WorkStack013) Scenario() Scenario {
 		Feature: "What runs for a session lives as long as the session",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "as WORK-STACK-006 - found 2026-11-07: an editor opened from inside a session carries the session's name too; it is the developer's to close, and only what serves on a port (with what started it and what it started) is stopped for a session",
+		Intent:  "as WORK-STACK-006 - an editor opened from inside a session carries the session's name too; it is the developer's to close, and only what serves on a port (with what started it and what it started) is stopped for a session",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {checkout.lower}'s {session.lower} is running", Display: "Given a worktree's session is running", Fn: s.GivenACheckoutSSessionIsRunning},
@@ -6523,7 +6523,7 @@ func (s WorkStack013) Scenario() Scenario {
 
 // WorkStack014 is WORK-STACK-014: The sweep runs with what started it and ends with it
 //
-// Intent: the architect, 2026-11-08: "this should be enabled in the server hub when it starts. and on local only enabled when needed when running local. and not a seperate thing that runs all the time" - the sweep lives with the app that starts it, never as a job of its own
+// Intent: the sweep is started on the engine when the app starts, and on a client only while it works local: it lives with the app that starts it, never as a job of its own
 // Source: acceptance/work/work-acceptance.md
 type WorkStack014 struct {
 	// Given a session of a worktree has ended, leaving what Zellij keeps of it
@@ -6544,7 +6544,7 @@ func (s WorkStack014) Scenario() Scenario {
 		Feature: "What runs for a session lives as long as the session",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-08: \"this should be enabled in the server hub when it starts. and on local only enabled when needed when running local. and not a seperate thing that runs all the time\" - the sweep lives with the app that starts it, never as a job of its own",
+		Intent:  "the sweep is started on the engine when the app starts, and on a client only while it works local: it lives with the app that starts it, never as a job of its own",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {session.lower} of a {checkout.lower} has ended, leaving what Zellij keeps of it", Display: "Given a session of a worktree has ended, leaving what Zellij keeps of it", Fn: s.GivenASessionOfACheckoutHasEndedLeavingWhatZellijKeepsOfIt},
@@ -6557,7 +6557,7 @@ func (s WorkStack014) Scenario() Scenario {
 
 // WorkStack015 is WORK-STACK-015: Opening a link whose app is not running starts the app first
 //
-// Intent: the architect, 2026-11-09 - clicking one of a {checkout.lower}'s links "did not check and run the up.. get to dead browser". Opening a link first asks the machine its stack runs on whether anything answers on the link's port, and starts the app when nothing does
+// Intent: a link to a stack that is not running opens a dead page. Opening a link first asks the machine its stack runs on whether anything answers on the link's port, and starts the app when nothing does
 // Source: acceptance/work/work-acceptance.md
 type WorkStack015 struct {
 	// Given a worktree of a project with an up script has a session, and nothing answers on its port
@@ -6578,7 +6578,7 @@ func (s WorkStack015) Scenario() Scenario {
 		Feature: "What runs for a session lives as long as the session",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "the architect, 2026-11-09 - clicking one of a {checkout.lower}'s links \"did not check and run the up.. get to dead browser\". Opening a link first asks the machine its stack runs on whether anything answers on the link's port, and starts the app when nothing does",
+		Intent:  "a link to a stack that is not running opens a dead page. Opening a link first asks the machine its stack runs on whether anything answers on the link's port, and starts the app when nothing does",
 		Source:  "acceptance/work/work-acceptance.md",
 		Steps: []Step{
 			{Text: "Given a {checkout.lower} of a {project.lower} with an up script has a {session.lower}, and nothing answers on its port", Display: "Given a worktree of a project with an up script has a session, and nothing answers on its port", Fn: s.GivenACheckoutOfAProjectWithAnUpScriptHasASessionAndNothingAnswersOnItsPort},

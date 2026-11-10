@@ -165,10 +165,10 @@ engineroom role set engine
 | What | Why | Check | Fix |
 |---|---|---|---|
 | Remote Login on | clients reach the engine over SSH | from a client: `ssh -o BatchMode=yes engine.example true` | System Settings, General, Sharing, Remote Login |
-| Logged in at the screen | a session started from a client runs in your desktop login, with your login keychain and permissions, as one started at the screen does (D-031); with no one logged in there it runs in the SSH login, where the keychain is locked | over SSH: `launchctl print gui/$(id -u) >/dev/null && echo logged in` | log in at the engine's screen after each restart (locking the screen keeps the login), or turn on System Settings, Users & Groups, Automatically log in as (not offered while FileVault is on) |
+| Logged in at the screen | a session started from a client runs in your desktop login, with your login keychain and permissions, as one started at the screen does; with no one logged in there it runs in the SSH login, where the keychain is locked | over SSH: `launchctl print gui/$(id -u) >/dev/null && echo logged in` | log in at the engine's screen after each restart (locking the screen keeps the login), or turn on System Settings, Users & Groups, Automatically log in as (not offered while FileVault is on) |
 | Does not sleep on power | an asleep engine does not answer | `pmset -g custom` shows `sleep 0` under AC Power | System Settings, Battery (or Energy), Options: prevent automatic sleeping when the display is off; or `sudo pmset -c sleep 0` |
 | Client keys allowed | each client logs in with its own key file | the client's public key is in `~/.ssh/authorized_keys` | append the client's `.pub` file to it |
-| The menu bar app runs | it runs the sweep, so a session that ends without engineroom (quit from inside Zellij) has its servers stopped and ended sessions are forgotten (D-020); there is no job to install | `pgrep -f "engineroom sweep --watch"` shows one while the app runs | open the app, and in its Settings let it open at login; remove a sweep job an earlier build installed with `engineroom sweep --uninstall` |
+| The menu bar app runs | it runs the sweep, so a session that ends without engineroom (quit from inside Zellij) has its servers stopped and ended sessions are forgotten; there is no job to install | `pgrep -f "engineroom sweep --watch"` shows one while the app runs | open the app, and in its Settings let it open at login |
 
 ## A client
 
@@ -185,7 +185,7 @@ engineroom role set client --engine engine.example
 
 Opening a session in VS Code does the right thing for where the session is: a session on the
 engine opens the engine's folder over SSH, and a session you are running locally opens this
-machine's own folder (docs/decisions.md D-007).
+machine's own folder.
 
 ## Recommended, not required
 

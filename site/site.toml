@@ -6,7 +6,7 @@
 
 product = "engineroom"
 # The command people type, and the program's own folder under ~/.config and ~/.local/state, as the
-# program has them (docs/decisions.md D-026).
+# program has them.
 command = "engineroom"
 folder = "engineroom"
 tagline = "Run all your Claude Code sessions on one Mac that keeps them in order, and work on them there or from any other Mac as if they were local."
@@ -43,19 +43,6 @@ slug = "guide"
 nav = "Guide"
 about = "The full guide: sessions, new work and clean up, settings and secrets, ports, forwarding, working local and the menu bar app."
 split = 3
-
-[[doc]]
-source = "docs/decisions.md"
-slug = "decisions"
-nav = "Decisions"
-about = "Every design decision, with the problem it solved and the options weighed."
-split = 2
-# Written as field records (Context, Options, Decision, Status); tools/site/records.go reads them.
-format = "record"
-# A decision's page is named by its id (decisions/d-013.html), and the docs name decisions in
-# running text the same way, so every "D-013" in any doc links to its page.
-page_name = '^(D-\d{3})\b'
-mentions = '\bD-\d{3}\b'
 
 # The stack: each job the product hands to another tool, and the tool that does it today, from
 # what you touch at the top to the network at the bottom. Kept as data, so swapping one tool

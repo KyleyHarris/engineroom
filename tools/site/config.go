@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -39,23 +38,11 @@ type Config struct {
 // DocConfig says how one doc becomes pages. Every heading at a level from 2 to Split starts a
 // page of its own; what comes before the first of them is the doc's own index page.
 type DocConfig struct {
-	Source   string `toml:"source"`    // repository path of the Markdown file
-	Slug     string `toml:"slug"`      // the folder its pages are written to
-	Nav      string `toml:"nav"`       // its name in the site's navigation
-	About    string `toml:"about"`     // one sentence on what it holds, for the front page
-	Split    int    `toml:"split"`     // deepest heading level that starts a page
-	PageName string `toml:"page_name"` // optional: a pattern whose first group names a page's file
-
-	// Format is "markdown" (the default) or "record", for a doc written as field records like
-	// docs/decisions.md; see records.go.
-	Format string `toml:"format"`
-
-	// Mentions, when set, is a pattern for how the other docs name this doc's pages in running
-	// text (a decision, D-013). Each mention becomes a link to the page it names.
-	Mentions string `toml:"mentions"`
-
-	pageName *regexp.Regexp
-	mentions *regexp.Regexp
+	Source string `toml:"source"` // repository path of the Markdown file
+	Slug   string `toml:"slug"`   // the folder its pages are written to
+	Nav    string `toml:"nav"`    // its name in the site's navigation
+	About  string `toml:"about"`  // one sentence on what it holds, for the front page
+	Split  int    `toml:"split"`  // deepest heading level that starts a page
 }
 
 // Layer is one tool in the stack the product sits on: the job it does and the tool that does it
@@ -104,28 +91,6 @@ func loadConfig(path string) (*Config, error) {
 			return nil, fmt.Errorf("%s: two docs use the folder %q", path, d.Slug)
 		}
 		slugs[d.Slug] = true
-		if d.PageName != "" {
-			re, err := regexp.Compile(d.PageName)
-			if err != nil {
-				return nil, fmt.Errorf("%s: doc %s: page_name: %w", path, d.Source, err)
-			}
-			if re.NumSubexp() < 1 {
-				return nil, fmt.Errorf("%s: doc %s: page_name needs a group naming the page", path, d.Source)
-			}
-			d.pageName = re
-		}
-		switch d.Format {
-		case "", "markdown", "record":
-		default:
-			return nil, fmt.Errorf("%s: doc %s: format must be markdown or record", path, d.Source)
-		}
-		if d.Mentions != "" {
-			re, err := regexp.Compile(d.Mentions)
-			if err != nil {
-				return nil, fmt.Errorf("%s: doc %s: mentions: %w", path, d.Source, err)
-			}
-			d.mentions = re
-		}
 	}
 	return &c, nil
 }

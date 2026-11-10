@@ -50,7 +50,7 @@ The website is built from `docs/` and the pages in `site/` by `go run ./tools/si
 on <http://localhost:20800/> (`-port` for another), builds it again on every save and reloads open
 pages; with engineroom, `engineroom up` does the same on the checkout's own slot port
 (`.engineroom/up`, `.engineroom/down`). The gate builds and checks it
-too, so a doc edit that breaks a link or names a decision that does not exist fails there. The
+too, so a doc edit that breaks a link or an anchor fails there. The
 product's name, its command and its folders live only in `site/site.toml`; pages read them from
 there.
 

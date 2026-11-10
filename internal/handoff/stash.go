@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Uncommitted work travels between the two machines as a stash (D-017, amended 2026-11-09): the
+// Uncommitted work travels between the two machines as a stash (D-017): the
 // giving machine stashes a checkout's changes and new files (Pack), the stash is sent straight to
 // the receiving machine's repository over SSH under a ref of engineroom's own (HandoverRef), and the
 // receiving checkout, on the same branch at the same commit, applies it (Unpack). It never goes

@@ -119,9 +119,9 @@ func SessionName(folder string) string {
 // inside one of its sessions: which session, its messaging socket and token, its entry point. A
 // Zellij session's server keeps the environment of the command that started it and gives it to
 // every pane, so a session started by engineroom from inside a Claude Code session (Claude running engineroom,
-// or the app when it was opened from one) gave them to its own agent. That agent then took itself
-// for a child of the other session and saved no transcript ("Transcript saving is off - inherited
-// CLAUDE_CODE_CHILD_SESSION marker", found 2026-11-08). A session's agent is the developer's own,
+// or the app when it was opened from one) would give them to its own agent. That agent would then
+// take itself for a child of the other session and save no transcript ("Transcript saving is off -
+// inherited CLAUDE_CODE_CHILD_SESSION marker"). A session's agent is the developer's own,
 // never a child of whatever started it, so a session is started without them. Only these are
 // left out: any other CLAUDE_CODE_ setting is the developer's own choice and is kept.
 var AgentSessionVars = []string{

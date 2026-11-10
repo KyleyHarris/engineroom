@@ -25,6 +25,15 @@ All notable changes are recorded here. The format follows
   keychain and permissions you have at the screen (docs/decisions.md D-031). With no one logged in
   there, a session starts as before.
 
+- **The design decisions are rewritten and no longer part of the website.** `docs/decisions.md`
+  now states each decision as the program is today: the problem, what was decided, and what else
+  was considered. The website keeps to setting engineroom up and using it.
+
+### Removed
+
+- `engineroom sweep --uninstall`, and the one-time move of the program's folders at start. The
+  sweep runs with the menu bar app and installs nothing.
+
 ### Fixed
 
 - **An application the program starts is started as from the Dock.** A terminal opened to join

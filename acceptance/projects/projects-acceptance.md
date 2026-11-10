@@ -6,8 +6,8 @@ repositories in from GitHub through {root.lowerPlural}: browsing an owner's repo
 and registering one, and creating a new one. Out of scope: per-{project.lower} git identity and
 wiring Claude Code's hooks, which have their own issues.
 
-**Sourcing**: every scenario's intent was stated by the architect in conversation on 2026-11-04,
-or in the decisions it cites. Nothing here is inferred from software.
+**Sourcing**: every scenario's intent is stated in its own comment, or in the decisions it cites.
+Nothing here is inferred from software.
 
 **Status**: every scenario is `proposed`, written at planning before the software exists.
 `proposed` is a proposal to be confirmed, `derived` is written up from delivered software,
@@ -39,8 +39,8 @@ software should do.
 
 ### Feature: Registering a repository
 
-<!-- intent: the architect, 2026-11-04 - "we should be able to declare what are the master repos";
-     "skills ... to help register git repos into the system" -->
+<!-- intent: the developer declares which repositories are their projects, and registering one is a
+     single step -->
 
 ```gherkin
 @PROJ-ADD-001 @status:proposed @persona:Developer
@@ -107,8 +107,8 @@ Scenario: The registered {project.lowerPlural} are listed with where they are
   Then each is listed with its name and its folder
 ```
 
-<!-- intent: the architect's standing rule that nothing is deleted without a clear ask; removing a
-     project from the tool is a change to the tool's own state only -->
+<!-- intent: nothing is deleted without a clear ask; removing a project from the tool is a change to
+     the tool's own state only -->
 
 ```gherkin
 @PROJ-REMOVE-001 @status:proposed @persona:Developer
@@ -121,11 +121,9 @@ Scenario: Removing a {project.lower} forgets it and leaves its files alone
 
 ### Feature: Grouping projects by category
 
-<!-- intent: the architect, 2026-11-04 - "my projects list would be better with some organization";
-     "a category would be in hubs": a {category.lower} is a label kept in the program's own
-     configuration, so it is set when registering and never moves a folder. The architect,
-     2026-11-05 - "the repository lists from Git should be in alphabetical order. Case
-     insensitive" -->
+<!-- intent: the project list is organised by category: a {category.lower} is a label kept in
+     the program's own configuration, so it is set when registering and never moves a folder.
+     Lists of repositories are in alphabetical order, ignoring case -->
 
 ```gherkin
 @PROJ-CAT-001 @status:proposed @persona:Developer
@@ -150,9 +148,8 @@ Scenario: A {client.lower} still lists the {project.lowerPlural} of an {engine.l
 
 ### Feature: Roots
 
-<!-- intent: the architect, 2026-11-04 - "list github repos for an account by registering root
-     project folders in the hub"; one folder per GitHub account or organisation, "they form roots for
-     specific github accounts": one folder per GitHub owner, with the account that can list it -->
+<!-- intent: GitHub repositories are listed for an account by registering root folders: one folder
+     per GitHub owner, with the account that can list it -->
 
 ```gherkin
 @PROJ-ROOT-001 @status:proposed @persona:Developer
@@ -176,10 +173,9 @@ Scenario: A {root.lower} whose folder does not exist is refused
 
 ### Feature: Browsing a root's repositories
 
-<!-- intent: the architect, 2026-11-04 - "listing github repos and adding to the hub": the
-     developer sees what the owner has and what is already here, without leaving the program.
-     The architect, 2026-11-05 - "the repository lists from Git should be in alphabetical order.
-     Case insensitive" -->
+<!-- intent: the developer sees what the owner has on GitHub and what is already here, and
+     adds a repository to engineroom without leaving the program. The list is in alphabetical
+     order, ignoring case -->
 
 ```gherkin
 @PROJ-BROWSE-001 @status:proposed @persona:Developer
@@ -206,8 +202,8 @@ Scenario: When GitHub cannot be read, the reason and the fix are shown
 
 ### Feature: Adding a repository from GitHub
 
-<!-- intent: the architect, 2026-11-04 - "adding to the hub and clone to a location, add a
-     category etc. then i can work on it" -->
+<!-- intent: a repository is added to engineroom by cloning it to a place and giving it a category,
+     and is then ready to work on -->
 
 ```gherkin
 @PROJ-CLONE-001 @status:proposed @persona:Developer
@@ -232,8 +228,8 @@ Scenario: A folder already in the {root.lower} under the repository's name is ne
 
 ### Feature: Creating a repository
 
-<!-- intent: the architect, 2026-11-04 - "maybe even create new github repo from the hub and push
-     it in. these become a flexible workhorse tool" -->
+<!-- intent: a new GitHub repository can be created from engineroom and a local folder pushed into
+     it -->
 
 ```gherkin
 @PROJ-CREATE-001 @status:proposed @persona:Developer
@@ -259,9 +255,9 @@ Scenario: A name the owner already has on GitHub is refused before anything is c
 
 ### Feature: Asking whether a folder is a project's
 
-<!-- intent: the architect's Claude configuration guards running an app by hand in a repository
-     registered with engineroom, from a hook that runs on every command, so it asks engineroom cheaply and by
-     exit code rather than reading engineroom's config file itself (2026-11-08) -->
+<!-- intent: a script or a hook that runs on every command can ask whether a folder belongs to a
+     registered project cheaply and by exit code, without reading engineroom's configuration file
+     itself -->
 
 ```gherkin
 @PROJ-HERE-001 @status:proposed @persona:Developer

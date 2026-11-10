@@ -4,9 +4,8 @@
 working locally. Out of scope: setting up SSH or the private network between machines, and more
 than one {engine.lower}.
 
-**Sourcing**: every scenario's intent was stated by the architect in conversation on 2026-11-01
-and 2026-11-04, or in the decisions it cites. Nothing here is inferred from software; none exists
-yet.
+**Sourcing**: every scenario's intent is stated in its own comment, or in the decisions it cites.
+Nothing here is inferred from software.
 
 **Status**: every scenario is `proposed`, written at planning before the software exists.
 `proposed` is a proposal to be confirmed, `derived` is written up from delivered software,
@@ -45,9 +44,8 @@ software should do.
 
 ### Feature: Which machine does the work
 
-<!-- intent: the architect, 2026-11-04 - a tool "configured to be either server mode. or client
-     mode", where a session can be reached from either machine; docs/decisions.md D-002 "a
-     per-machine setting says which it is" -->
+<!-- intent: one tool configured on each machine as the engine or a client, where a session can be
+     reached from either machine (docs/decisions.md D-002) -->
 
 ```gherkin
 @CONN-ROLE-001 @status:proposed @persona:Developer
@@ -70,10 +68,10 @@ Scenario: On the {engine.lower}, opening a {project.lower} opens it directly
   And none of the commands shown connect to another machine
 ```
 
-<!-- intent: the architect, 2026-11-09 - "id rather see machine name than the ssh name": a
+<!-- intent: the app names the {engine.lower} by its machine name, not by its SSH name: a
      {client.lower} reaches the {engine.lower} by whatever SSH name its configuration gives (an
-     alias such as "hub" in the architect's case), which says nothing about which machine
-     answers; the {engine.lower} names itself, read in the version check the app already makes -->
+     alias such as "engine"), which says nothing about which machine answers; the {engine.lower}
+     names itself, read in the version check the app already makes -->
 
 ```gherkin
 @CONN-ROLE-003 @status:proposed @persona:Developer
@@ -84,9 +82,8 @@ Scenario: A {client.lower} names its {engine.lower} by the machine's own name
   Then it is told the {engine.possessive} own machine name, not the SSH name
 ```
 
-<!-- intent: the architect, 2026-11-04 - "help me do these things easily without remembering all
-     the tooling"; a machine with no role cannot know where to act, and guessing would act on
-     the wrong machine -->
+<!-- intent: the tool is there so the tooling need not be remembered; a machine with no role cannot
+     know where to act, and guessing would act on the wrong machine -->
 
 ```gherkin
 @CONN-SETUP-001 @status:proposed @persona:Developer
@@ -100,9 +97,8 @@ Scenario: A machine with no role says what is missing
 
 ### Feature: When the engine does not answer
 
-<!-- intent: the architect, 2026-11-01 - when the engine cannot be reached the developer is asked
-     before anything falls back, because the connection may be fixable and a silent switch hides
-     which machine is in use -->
+<!-- intent: when the engine cannot be reached the developer is asked before anything falls back,
+     because the connection may be fixable and a silent switch hides which machine is in use -->
 
 ```gherkin
 @CONN-DOWN-001 @status:proposed @persona:Developer
@@ -135,8 +131,8 @@ Scenario: Retry carries on once the {engine.lower} answers
   Then the {project.lower} they asked for is opened on the {engine.lower}
 ```
 
-<!-- intent: as CONN-DOWN-001 - a retry that silently fell back would be the switch the
-     architect ruled out -->
+<!-- intent: as CONN-DOWN-001 - a retry that silently fell back would be the silent switch that
+     scenario rules out -->
 
 ```gherkin
 @CONN-DOWN-004 @status:proposed @persona:Developer
@@ -188,9 +184,9 @@ Scenario: A {project.lower} with no copy here cannot be worked on locally
 
 ### Feature: Working offline by choice
 
-<!-- intent: the architect, 2026-11-05 - "the entire Hub tool also needs the option of saying run
-     offline ... or I actually choose to just say offline with a button, then now everything we do
-     is working on [the client] as though [the client] was the server" -->
+<!-- intent: the whole program can be told to work offline, by itself when the {engine.lower} does
+     not answer or by a button, and everything then works on the {client.lower} as though it were
+     the {engine.lower} -->
 
 ```gherkin
 @CONN-OFFLINE-001 @status:proposed @persona:Developer
@@ -226,9 +222,8 @@ Scenario: Going back online leaves the {client.lower}'s own {session.lowerPlural
   Then that {session.lower} is still running on the {client.lower}
 ```
 
-<!-- intent: the independent review, 2026-11-07: the app switched to working local before the
-     handover had been seen, so leaving the handover without running it left the {client.lower}
-     working local with nothing handed over -->
+<!-- intent: a switch made before the handover has been seen would leave the {client.lower}
+     working local with nothing handed over when the handover is left without running it -->
 
 ```gherkin
 @CONN-OFFLINE-004 @status:proposed @persona:Developer
@@ -241,11 +236,11 @@ Scenario: The switch to work local happens only when its handover is run
 
 ### Feature: Handing work over between the {client.lower} and the {engine.lower}
 
-<!-- intent: the architect, 2026-11-05 - "Going back online needs a handoff". Work done offline
-     lives only in the {client.lower}'s own {checkout.lowerPlural}; the two machines share
-     nothing but GitHub. So switching shows what one machine holds that the other does not, and
-     the commands that carry it across through GitHub, and runs them only when asked: the
-     program never hides what it does, and changes nothing unasked. -->
+<!-- intent: going back online needs a handover. Work done offline lives only in the
+     {client.lower}'s own {checkout.lowerPlural}; the two machines share nothing but GitHub. So
+     switching shows what one machine holds that the other does not, and the commands that carry it
+     across through GitHub, and runs them only when asked: the program never hides what it does, and
+     changes nothing unasked. -->
 
 ```gherkin
 @CONN-HANDOFF-001 @status:proposed @persona:Developer
@@ -270,11 +265,10 @@ Scenario: Running the handoff puts the {client.lower}'s work in the {engine.lowe
   And the {engine.lower}'s {checkout.lower} of the {project.lower} is at that commit
 ```
 
-<!-- intent: the architect, 2026-11-09 - "local work could be stashed using the branch name and a
-     stash, and then it should switch to the same branch as the other machine and unstash. we want
-     identical state. that is what handover means". The receiving {checkout.lower}'s own
-     uncommitted work is never lost: it is set aside in its stash list, labelled with its branch,
-     before the {checkout.lower} takes the giving machine's state -->
+<!-- intent: a handover means identical state: the receiving {checkout.lower} ends on the giving
+     machine's branch and commit (D-017). The receiving {checkout.lower}'s own uncommitted work is
+     never lost: it is set aside in its stash list, labelled with its branch, before the
+     {checkout.lower} takes the giving machine's state -->
 
 ```gherkin
 @CONN-HANDOFF-003 @status:proposed @persona:Developer
@@ -311,9 +305,8 @@ Scenario: Going offline while the {engine.lower} does not answer says what could
   And they are told the {engine.lower} could not be checked for work that is not on GitHub
 ```
 
-<!-- intent: the architect, 2026-11-05 ("Do 1 2 3"), item 3 - a {session.lower} started offline
-     keeps running (CONN-OFFLINE-003), so once back online it is listed rather than out of sight,
-     marked as on this machine, and acted on where it is -->
+<!-- intent: a {session.lower} started offline keeps running (CONN-OFFLINE-003), so once back online
+     it is listed rather than out of sight, marked as on this machine, and acted on where it is -->
 
 ```gherkin
 @CONN-HANDOFF-006 @status:proposed @persona:Developer
@@ -325,11 +318,10 @@ Scenario: Back online, {session.lowerPlural} still running on the {client.lower}
   And joining it joins it on the {client.lower}
 ```
 
-<!-- intent: the architect, 2026-11-09 - pushing every branch put backups, experiments and
-     another session's branches on GitHub, and a release branch whose push starts a deployment: "it
-     will only push things registered ... prob registered jobs is safer". The work in hand is what
-     the registered projects have checked out (D-017, amended); any other branch with commits
-     GitHub lacks is named with the command to push it, never pushed by a handover -->
+<!-- intent: pushing every branch would put backups and experiments on GitHub, and a release branch
+     whose push starts a deployment. The work in hand is what the registered projects have checked
+     out (D-017); any other branch with commits GitHub lacks is named with the command to push it,
+     never pushed by a handover -->
 
 ```gherkin
 @CONN-HANDOFF-007 @status:proposed @persona:Developer
@@ -342,9 +334,9 @@ Scenario: Working local pushes the work checked out, and only names other branch
   And they are told the command that would push it
 ```
 
-<!-- intent: the architect, 2026-11-09 - pushing a release branch is how many repositories start a
-     release (a pipeline triggered by release/<version>), so a handover, which pushes to keep work
-     safe, never pushes one, even checked out -->
+<!-- intent: pushing a release branch is how many repositories start a release (a pipeline triggered
+     by release/<version>), so a handover, which pushes to keep work safe, never pushes one, even
+     checked out -->
 
 ```gherkin
 @CONN-HANDOFF-012 @status:proposed @persona:Developer
@@ -355,11 +347,10 @@ Scenario: A release branch is never pushed by a handover
   And they are told a handover never pushes a release branch
 ```
 
-<!-- intent: the architect, 2026-11-09 - the screen waiting for a handover's plan showed "..." for
-     over a minute: "that is a poor ui. it should be animated and progress meter or something".
-     A handover reads every project on both machines against GitHub before it can say anything,
-     so each machine says how far its reading has got, project by project, with the command doing
-     it, and the projects are read several at a time so the wait is short -->
+<!-- intent: a screen that shows nothing while a handover is planned reads as stuck. A handover
+     reads every project on both machines against GitHub before it can say anything, so each machine
+     says how far its reading has got, project by project, with the command doing it, and the
+     projects are read several at a time so the wait is short -->
 
 ```gherkin
 @CONN-HANDOFF-013 @status:proposed @persona:Developer
@@ -371,11 +362,10 @@ Scenario: Working out a handover says how far each machine's reading has got
   And the handover's commands follow
 ```
 
-<!-- intent: the architect, 2026-11-09 - "any work should be stashed so the other system can pull,
-     branch to correct branch and unstash"; "when i created a local file in offline mode. handing
-     back did not do anything with that file either". Uncommitted work and new files travel with
-     the handover as a stash, straight between the two machines, never through GitHub; ignored
-     files do not ("anything that needs to travel should be in the secrets repo") -->
+<!-- intent: work that is not committed must reach the other machine too. Uncommitted work and new
+     files travel with the handover as a stash, straight between the two machines, never through
+     GitHub; ignored files do not, since anything that must be on both machines belongs in the
+     settings' secrets (D-017) -->
 
 ```gherkin
 @CONN-HANDOFF-008 @status:proposed @persona:Developer
@@ -399,9 +389,9 @@ Scenario: Uncommitted work on the {client.lower} moves back to the {engine.lower
   And the {client.lower}'s {checkout.lower} no longer has it
 ```
 
-<!-- intent: the architect, 2026-11-09 - "the handover should do a pre-run first that verifies
-     everything can be done, and only do the real handover if it can". One {checkout.lower} that
-     cannot be put in the giving machine's state blocks the whole handover, and the switch with it -->
+<!-- intent: a handover first checks that everything can be done, and runs only if it can (D-017).
+     One {checkout.lower} that cannot be put in the giving machine's state blocks the whole
+     handover, and the switch with it -->
 
 ```gherkin
 @CONN-HANDOFF-015 @status:proposed @persona:Developer
@@ -453,8 +443,8 @@ Scenario: A handover that would move the receiving machine back is blocked
   And the {engine.possessive} {checkout.lower} is still at its commit
 ```
 
-<!-- intent: the architect, 2026-11-09 - "that handoff was unreadable". What a handover does is
-     said one line per {checkout.lower}, and what it leaves alone is folded into a line -->
+<!-- intent: a handover's plan has to be readable at a glance. What a handover does is said one line
+     per {checkout.lower}, and what it leaves alone is folded into a line -->
 
 ```gherkin
 @CONN-HANDOFF-019 @status:proposed @persona:Developer
@@ -466,8 +456,8 @@ Scenario: A handover says what it does in one line per {checkout.lower}
   And the branch in no {checkout.lower} is named in one line of what is left as it is
 ```
 
-<!-- intent: the architect, 2026-11-05 - "Where does a missing project go on the Air ... like my
-     project folder run a mirror model" -->
+<!-- intent: a project the receiving machine lacks is put in the same place under its home folder,
+     so both machines' project folders mirror each other (D-017) -->
 
 ```gherkin
 @CONN-HANDOFF-009 @status:proposed @persona:Developer
@@ -478,9 +468,9 @@ Scenario: A {project.lower} the {client.lower} lacks is mirrored to the same pla
   And it is registered on the {client.lower} under the same name
 ```
 
-<!-- intent: the architect, 2026-11-05 - on the server, release: "push all branches"; "its just an
-     informative position"; 2026-11-09 - only the work checked out is pushed, as by every
-     handover (CONN-HANDOFF-007) -->
+<!-- intent: on the {engine.lower}, release pushes the work so a {client.lower} can take it, and
+     says what is not committed; only the work checked out is pushed, as by every handover
+     (CONN-HANDOFF-007) -->
 
 ```gherkin
 @CONN-HANDOFF-010 @status:proposed @persona:Developer
@@ -491,8 +481,8 @@ Scenario: Releasing the {engine.lower} pushes the work checked out and is shown 
   And the {engine.lower} shows when it was released
 ```
 
-<!-- intent: the architect, 2026-11-05 - "it shuold be a regular potentially background operation
-     to ensure offline state can be managed" -->
+<!-- intent: a {client.lower} keeps itself ready to work local as a regular background step, so
+     going offline never starts with a long catch-up (D-017) -->
 
 ```gherkin
 @CONN-HANDOFF-011 @status:proposed @persona:Developer
@@ -506,11 +496,10 @@ Scenario: Keeping the {client.lower} ready copies what it lacks and moves nothin
 
 ### Feature: Keeping a joined {session.lower} through sleep and moving
 
-<!-- intent: the architect, 2026-11-08 - "when im putting the ir to sleep, its sessions seem to
-     disconnect"; "the laptop maybe opened and closed frequently saving power moving etc with the
-     point to retain easy access". A {client.lower}'s connection to the {engine.lower} ends when it
-     sleeps or changes network, while its {session.lower} keeps running on the {engine.lower}; the
-     window joined to it comes back to the {session.lower} on its own -->
+<!-- intent: a laptop is opened and closed many times a day, and its sessions must stay within easy
+     reach. A {client.lower}'s connection to the {engine.lower} ends when it sleeps or changes
+     network, while its {session.lower} keeps running on the {engine.lower}; the window joined to it
+     comes back to the {session.lower} on its own (D-021) -->
 
 ```gherkin
 @CONN-REJOIN-001 @status:proposed @persona:Developer
