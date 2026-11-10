@@ -34,12 +34,17 @@ never overwritten.
 2. **Read the guide in full**, then ask which role this machine has, unless
    `engineroom role show` already answers it. For a client, ask for the engine's SSH destination (an
    alias from `~/.ssh/config`, or user@host).
-3. **Check every item for that role**, using the guide's Check column exactly, and report them
-   as one list: in place, missing, or could not be checked (and why). Run checks only; they
-   change nothing. A check that needs the network and fails because there is no network is
-   "could not be checked", not "missing".
+3. **Check every item for that role.** Once engineroom is installed and the role is set, run
+   `engineroom setup check --json`: it is the program's own list of what this role needs, each item
+   present or missing with how it was checked and its fix, and it changes nothing. Its items are
+   decided there, not here: report them as it gives them. Then check the guide's items the program
+   does not check (keys, the settings repository, logged in at the screen, sleep, the menu bar
+   app, Homebrew, Go, git-crypt) with the guide's Check column exactly. Report everything as one
+   list: in place, missing, or could not be checked (and why). A check that needs the network and
+   fails because there is no network is "could not be checked", not "missing".
 4. **Walk the gaps one at a time**, in the guide's order, for each: what it is for, the exact
-   fix, and a yes or no. Apply it only on a yes, then run its check again and report the result.
+   fix (for an item from the setup check, its `fix`), and a yes or no. Apply it only on a yes, then
+   run its check again and report the result.
    Fixes that need an administrator password (`sudo`) or a System Settings pane are given to
    the person to do, with the exact steps; do not try to get around a password prompt.
 5. **Keys are copied by the person, never invented.** If a project's remote or the engine refuses
@@ -48,7 +53,8 @@ never overwritten.
    (`ssh-keygen -lf <file>`) against the one they expect before using it. The same holds for the
    settings repository's git-crypt key. Never print a private key, a token, or any secret.
 6. **Offer the recommended items last**, clearly marked as optional.
-7. **Finish with the whole list again**, so the person sees the machine's state in one place,
+7. **Finish with the whole list again** (`engineroom setup check` once more, and the guide's other
+   checks), so the person sees the machine's state in one place,
    and name anything still missing. Then offer the next step: register the repositories they work
    on (`register-project`) and make each one run in its worktrees (`adopt-project`).
 
