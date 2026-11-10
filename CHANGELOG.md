@@ -6,6 +6,15 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **An application the program starts is started as from the Dock.** A terminal opened to join
+  a session, and the menu bar app reopened after an upgrade, now start with the developer's own
+  session environment, whatever ran the program: a shell, a Claude Code session, an SSH login.
+  Before, a Ghostty started by the program kept the starter's variables, and every tab it opened
+  afterwards inherited them (docs/decisions.md D-030). A Ghostty already running keeps what it
+  was started with until it is quit and opened again.
+
 ## [0.1.0] - 2026-11-10
 
 The first release.

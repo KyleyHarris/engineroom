@@ -15,6 +15,7 @@ import (
 	"github.com/KyleyHarris/engineroom/internal/action"
 	"github.com/KyleyHarris/engineroom/internal/assistant"
 	"github.com/KyleyHarris/engineroom/internal/config"
+	"github.com/KyleyHarris/engineroom/internal/launch"
 	"github.com/KyleyHarris/engineroom/internal/settings"
 	"github.com/KyleyHarris/engineroom/internal/upgrade"
 	"github.com/KyleyHarris/engineroom/internal/zj"
@@ -112,8 +113,9 @@ func upgradePlan(cfg *config.Config, remote bool) action.Plan {
 // runApp is `engineroom app relaunch`: quits the menu bar app and opens it again, so a build just
 // installed runs. The app may be the one that asked (its Upgrade), so the restart happens a moment
 // later, from a process of its own, after this command has returned and its answer has reached the
-// app. The app is opened without the markers of any Claude Code session (zj.AgentSessionVars), so
-// what it starts never thinks it runs inside one.
+// app. The app is opened with an empty environment (launch.Clean), so it gets the developer's own
+// session environment, as when opened from the Dock, rather than that of whatever ran this command
+// (an upgrade's Claude session, a shell, an SSH login), and so does everything it starts (D-030).
 func runApp(args []string, stdout, stderr io.Writer) int {
 	if len(args) < 1 || args[0] != "relaunch" || len(args) > 2 || (len(args) == 2 && args[1] != "--now") {
 		fmt.Fprintln(stderr, "usage: engineroom app relaunch")
@@ -140,7 +142,6 @@ func runApp(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	cmd := exec.Command(self, "app", "relaunch", "--now")
-	cmd.Env = withoutAgentMarkers(os.Environ())
 	// A session of its own, with nothing attached, so it outlives this command, the app that ran
 	// it, and an SSH connection that ran it on the engine.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
@@ -172,27 +173,9 @@ func relaunchNow() error {
 			return errors.New("the app did not quit within ten seconds; quit it from its Settings and open it again")
 		}
 	}
-	if out, err := exec.Command("open", "-b", upgrade.BundleID).CombinedOutput(); err != nil {
+	reopen := launch.Clean("open", "-b", upgrade.BundleID)
+	if out, err := exec.Command(reopen[0], reopen[1:]...).CombinedOutput(); err != nil {
 		return fmt.Errorf("opening the app: %v: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
-}
-
-// withoutAgentMarkers is env without Claude Code's session markers (zj.AgentSessionVars).
-func withoutAgentMarkers(env []string) []string {
-	out := env[:0:0]
-	for _, kv := range env {
-		name, _, _ := strings.Cut(kv, "=")
-		drop := false
-		for _, v := range zj.AgentSessionVars {
-			if name == v {
-				drop = true
-				break
-			}
-		}
-		if !drop {
-			out = append(out, kv)
-		}
-	}
-	return out
 }

@@ -59,9 +59,10 @@ func TestHarnessUnreachableAddressDoesNotAnswer(t *testing.T) {
 	}
 }
 
-// Fails if a journey that never chose its terminals can reach the real open or osascript: an
-// application started from a journey keeps the journey's home and configuration for as long as it
-// runs, and every window it opens afterwards inherits them. The PATH is checked before anything is
+// Fails if a journey that never chose its terminals can reach the real open or osascript, or if
+// the program asks for a window with its own environment: an application started that way keeps
+// the caller's home and configuration for as long as it runs, and every window it opens afterwards
+// inherits them. The PATH is checked before anything is
 // asked to open, so a broken harness fails here without putting a window on the screen.
 func TestHarnessNoJourneyOpensARealWindow(t *testing.T) {
 	m := journey.NewMachine(t)
@@ -75,5 +76,16 @@ func TestHarnessNoJourneyOpensARealWindow(t *testing.T) {
 	mustRun(t, m, "start", "project-a", "--mode", "zellij")
 	if w := m.Windows(); len(w) != 1 || !strings.Contains(w[0], `tell application "Ghostty"`) || !strings.Contains(w[0], " join project-a ") {
 		t.Fatalf("the join was not recorded by the stand-in as a Ghostty window: %q", w)
+	}
+	// Ghostty would have been asked with an empty environment, so one it started would have the
+	// developer's own session environment, not this machine's home and folders (D-030).
+	envs := m.WindowEnvs()
+	if len(envs) != 1 {
+		t.Fatalf("expected the variables of one call, got %q", envs)
+	}
+	for _, name := range envs[0] {
+		if name == "HOME" || strings.HasPrefix(name, "XDG_") || strings.HasPrefix(name, "ZELLIJ") || strings.HasPrefix(name, "FAKE_") {
+			t.Fatalf("osascript was run with %s from the program's environment: %q", name, envs[0])
+		}
 	}
 }

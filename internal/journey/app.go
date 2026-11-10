@@ -1,6 +1,7 @@
 package journey
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,9 +14,14 @@ import (
 // have run instead of running it, so no journey puts a window on the screen of the machine running
 // it, or starts an application there: an application started from a journey keeps the journey's
 // environment (its home, configuration and Zellij folders) for as long as it runs, and everything
-// it opens afterwards inherits them.
+// it opens afterwards inherits them. It also records the names of the variables it was run with,
+// one call per line, so a journey can see that an application would have been started with an
+// empty environment (D-030). Its logs are named outright (%[1]s is this machine's home), since
+// an empty environment has no HOME to find them by.
 const launcherStandIn = `#!/bin/sh
-echo "$(basename "$0") $*" >> "$HOME/windows.log"
+echo "$(basename "$0") $*" >> "%[1]s/windows.log"
+env | sed 's/=.*//' | sort | tr '\n' ' ' >> "%[1]s/windows-env.log"
+echo >> "%[1]s/windows-env.log"
 `
 
 // DefaultTerminals is what every machine has installed until a journey says otherwise: Ghostty, the
@@ -29,7 +35,7 @@ var DefaultTerminals = []string{"Ghostty.app"}
 func (m *Machine) standInLaunchers() {
 	m.t.Helper()
 	for _, name := range []string{"open", "osascript"} {
-		m.write(filepath.Join(m.Bin, name), launcherStandIn)
+		m.write(filepath.Join(m.Bin, name), fmt.Sprintf(launcherStandIn, m.Home))
 		if err := os.Chmod(filepath.Join(m.Bin, name), 0o755); err != nil {
 			m.t.Fatal(err)
 		}
@@ -60,6 +66,19 @@ func (m *Machine) FakeTerminals(bundles ...string) {
 		}
 	}
 	m.Extra = append(m.Extra, setting)
+}
+
+// WindowEnvs is, for each call Windows lists, the names of the variables it was run with.
+func (m *Machine) WindowEnvs() [][]string {
+	b, err := os.ReadFile(filepath.Join(m.Home, "windows-env.log"))
+	if err != nil {
+		return nil
+	}
+	var out [][]string
+	for _, l := range strings.Split(strings.TrimRight(string(b), "\n"), "\n") {
+		out = append(out, strings.Fields(l))
+	}
+	return out
 }
 
 // AppsDir is where FakeTerminals put the applications.

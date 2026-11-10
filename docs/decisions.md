@@ -1006,3 +1006,47 @@ Decision:   - The program's own keys are ENGINEROOM_SLOT, ENGINEROOM_WORKTREEROO
               merged, so a clash between the two is caught too. The same port in [ports] and in
               every [[slot]] row is one key. The error names the file and both keys.
 Status:     accepted
+
+## D-030  2026-11-10  An application the program starts is started as the developer would start it from the Dock
+
+Context:    macOS hands an application the whole environment of whatever asks for it: open,
+            osascript's tell or launch, and NSWorkspace all pass the caller's variables on, and
+            the application keeps them for as long as it runs, as does everything it opens. A
+            Ghostty started by the program from a shell, a Claude Code session, an SSH login or a
+            test kept that caller's home, configuration folders, Zellij variables and session
+            markers, so every tab it opened afterwards read the wrong configuration or took
+            itself for part of another session. Filtering out known variables (Zellij's, Claude
+            Code's markers) covered only the ones already met. The architect, 2026-11-10: "any
+            shell, or whatever run, no matter how it runs. it needs to work like if i opened it
+            myself in my own ui session".
+Options:    (a) Run every command that can start an application with an empty environment
+                (/usr/bin/env -i), so macOS gives the application the developer's own session
+                environment [CHOSEN]
+            (b) Remove a list of known variables - rejected: any variable not on the list still
+                reaches the application, and the list grows with every one found.
+            (c) Have launchd start it (launchctl submit) - rejected: the same environment as (a)
+                when measured, but a submitted job is kept alive and started again when it ends,
+                and the command is deprecated.
+            (d) Ask Finder to open it - rejected: a further permission to control Finder, for the
+                same result.
+Decision:   - Opening a terminal (every one the program knows), and reopening the menu bar app
+              after an upgrade, run `/usr/bin/env -i <command>`, shown with the plan like any
+              command. Measured on macOS: an application started so has the same environment as
+              one started by launchd for the developer's session (HOME, USER, LOGNAME, SHELL,
+              TMPDIR, the bare PATH, the SSH agent, and what `launchctl setenv` sets), and none
+              of the caller's.
+            - The command is looked up on the program's own PATH before the environment is
+              emptied, so the one found there is run.
+            - What runs inside a window the program opens is given the program's PATH, as the
+              app gives engineroom the login shell's (D-011): to Ghostty as the tab's own
+              variable, to the other terminals as `/usr/bin/env PATH=... engineroom join ...`.
+            - The app opens VS Code for the settings with an empty environment too.
+            - A Zellij session is not an application and keeps the environment of what started
+              it, without Claude Code's markers (zj.AgentSessionVars): its panes are the
+              program's own, and a test's sessions must stay in the test's folders.
+            - An application already running keeps the environment it was started with; quitting
+              and opening it again is the remedy.
+            - The journeys put stand-ins for open and osascript on every machine they make, so no
+              journey reaches the real ones, and check that a join asks for its window with an
+              empty environment.
+Status:     accepted

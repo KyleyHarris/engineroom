@@ -44,22 +44,42 @@ func TestChoose(t *testing.T) {
 	}
 }
 
-// The window runs exactly the command given, quoted so a name with spaces survives, for each
-// way of opening.
+// The window runs exactly the command given, quoted so a name with spaces survives, with this
+// program's PATH, for each way of opening; and every way is run with an empty environment, so a
+// terminal it starts gets the developer's own session environment (D-030). Fails if a terminal
+// could be started with this program's environment, or the command lost its PATH or its quoting.
 func TestOpenCommands(t *testing.T) {
 	argv := []string{"/x/engineroom", "open", "my project"}
-	var g action.Command
 	t.Setenv("PATH", "/tools-a:/usr/bin")
-	g = Open(Terminal{Name: "Ghostty", Path: "/A/Ghostty.app"}, "my project", argv)
+	g := Open(Terminal{Name: "Ghostty", Path: "/A/Ghostty.app"}, "my project", argv)
 	n := len(g.Argv)
 	// The command line is quoted for a shell, with no prefix: Ghostty's scripting runs it as
-	// given through the login shell, and a "shell:" prefix was taken as part of the path.
-	if g.Argv[0] != "osascript" || g.Argv[n-3] != "engineroom: my project" || g.Argv[n-2] != "/x/engineroom open 'my project'" || g.Argv[n-1] != "/tools-a:/usr/bin" {
+	// given through the login shell, and a "shell:" prefix was taken as part of the path. The
+	// PATH goes to the tab as a variable of its own.
+	if g.Argv[2] != "/usr/bin/osascript" || g.Argv[n-3] != "engineroom: my project" || g.Argv[n-2] != "/x/engineroom open 'my project'" || g.Argv[n-1] != "/tools-a:/usr/bin" {
 		t.Fatal(g.Argv)
 	}
+	withPath := "/usr/bin/env PATH=/tools-a:/usr/bin /x/engineroom open 'my project'"
 	tm := Open(Terminal{Name: "Terminal"}, "my project", argv)
-	if !strings.Contains(tm.Argv[2], `do script "/x/engineroom open 'my project'"`) {
+	if !strings.Contains(tm.Argv[4], `do script "`+withPath+`"`) {
 		t.Fatal(tm.Argv)
+	}
+	it := Open(Terminal{Name: "iTerm2"}, "my project", argv)
+	if !strings.Contains(it.Argv[4], `command "`+withPath+`"`) {
+		t.Fatal(it.Argv)
+	}
+	al := Open(Terminal{Name: "Alacritty", Path: "/A/Alacritty.app"}, "my project", argv)
+	if got := strings.Join(al.Argv[2:], " "); got != "/usr/bin/open -na /A/Alacritty.app --args -e /usr/bin/env PATH=/tools-a:/usr/bin /x/engineroom open my project" {
+		t.Fatal(al.Argv)
+	}
+	for _, c := range []action.Command{
+		g, tm, it, al,
+		Open(Terminal{Name: "WezTerm", Path: "/A/WezTerm.app"}, "my project", argv),
+		Open(Terminal{Name: "kitty", Path: "/A/kitty.app"}, "my project", argv),
+	} {
+		if c.Argv[0] != "/usr/bin/env" || c.Argv[1] != "-i" {
+			t.Fatalf("not started with an empty environment: %q", c.Argv)
+		}
 	}
 }
 
