@@ -187,3 +187,43 @@ func TestStartGoesThroughTheDesktopLoginWhenAsked(t *testing.T) {
 		t.Fatalf("the job's command is not shown: %q", got[0].Why)
 	}
 }
+
+// Sessions obligation, dependency down: Zellij missing, or older than MinVersion, is refused where
+// every action on sessions starts (the session list), saying which version is needed and how to
+// get it; one new enough is used. Missing is a PATH without zellij. An old one is a stand-in on
+// PATH that answers --version as that release does: older releases cannot be installed beside
+// the current one for a test, and the version answer is the only part of them the check reads.
+// Fails if a missing or old Zellij is listed from, or its refusal does not name what is needed.
+func TestAMissingOrOldZellijIsRefusedWithWhatIsNeeded(t *testing.T) {
+	need := "0.45.0 or later"
+	stand := func(t *testing.T, version string) {
+		t.Helper()
+		bin := t.TempDir()
+		script := "#!/bin/sh\ncase \"$1\" in --version) echo 'zellij " + version + "';; *) echo 'No active zellij sessions found.'; exit 1;; esac\n"
+		if err := os.WriteFile(filepath.Join(bin, "zellij"), []byte(script), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Setenv("PATH", bin+string(os.PathListSeparator)+"/usr/bin:/bin")
+		versionChecked.Store(false)
+	}
+	t.Cleanup(func() { versionChecked.Store(false) })
+
+	t.Setenv("PATH", t.TempDir())
+	versionChecked.Store(false)
+	if _, err := List(); err == nil || !strings.Contains(err.Error(), "not installed") || !strings.Contains(err.Error(), need) {
+		t.Fatalf("a missing Zellij: %v", err)
+	}
+
+	for _, old := range []string{"0.43.1", "0.44.3"} {
+		stand(t, old)
+		if _, err := List(); err == nil || !strings.Contains(err.Error(), old) || !strings.Contains(err.Error(), need) || !strings.Contains(err.Error(), "brew upgrade zellij") {
+			t.Fatalf("Zellij %s: %v", old, err)
+		}
+	}
+	for _, ok := range []string{"0.45.0", "0.45.1", "0.46.0", "1.0.0"} {
+		stand(t, ok)
+		if list, err := List(); err != nil || len(list) != 0 {
+			t.Fatalf("Zellij %s: %v %v", ok, list, err)
+		}
+	}
+}
