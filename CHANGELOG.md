@@ -6,6 +6,16 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Three more skills in the Claude Code plugin**, so Claude in any session works engineroom the
+  way the menu bar app does, with the same commands: `sessions` (what is running and what waits
+  for you; start, join, restart or stop a session; run a project's task; read the history),
+  `ports` (a worktree's slot and ports, clashes between projects, and forwarding a session's
+  ports to a client) and `work-local` (show a handover, a release or a mirror, say what blocks
+  it, and run it). Each shows an action's commands first and runs it only when you say; none
+  stops a session you did not name. Update the plugin with `/plugin update engineroom@engineroom`.
+
 ### Changed
 
 - **A session on the engine runs inside your desktop login, however it was started.** A session

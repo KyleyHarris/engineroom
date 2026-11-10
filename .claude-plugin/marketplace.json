@@ -6,7 +6,7 @@
     {
       "name": "engineroom",
       "source": "./plugin",
-      "description": "Set a machine up for engineroom, adopt a repository, register projects, make worktrees and run a worktree's app."
+      "description": "Set a machine up for engineroom, adopt a repository, register projects, make worktrees, run a worktree's app, work the sessions, read and forward ports, and hand the work between machines."
     }
   ]
 }
