@@ -191,6 +191,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runSession(args[1:], stdout, stderr)
 	case "role":
 		return runRole(args[1:], stdout, stderr)
+	case "setup":
+		return runSetup(args[1:], stdout, stderr)
 	case "version", "--version":
 		// --clone is the clone this build was made from (scripts/install.sh records it), where
 		// its docs and scripts are; empty for a build that recorded none.
@@ -315,6 +317,9 @@ func usage(w io.Writer) {
   engineroom role set engine                   this machine is the engine
   engineroom role set client --engine <dest>   this machine works on the engine at <dest> (an SSH destination)
   engineroom role show                         print this machine's role
+  engineroom setup check [--json]              what this machine needs for its role and lacks, how each
+                                         item was checked and how to fix it; changes nothing, and
+                                         ends with a failure when anything is missing
   engineroom signal waiting --message <text>   (for the agent's hooks) this session is waiting for the developer
   engineroom signal waiting --from-hook        the same, reading the hook's JSON from standard input
   engineroom signal clear                      (for the agent's hooks) the developer answered

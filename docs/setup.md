@@ -17,6 +17,25 @@ and changes nothing without showing you the change and asking first.
 
 Examples use invented names: the engine is reached as `engine.example`, and a project is `project-a`.
 
+## Checking a machine
+
+Once `engineroom` is installed, it checks this machine itself:
+
+```sh
+engineroom setup check          # every item for this machine's role, present or missing
+engineroom setup check --json   # the same items, for a program to read
+```
+
+Each item says how it was checked (the command run, or the file read), so you can check it again
+by hand, and a missing item comes with its fix. It changes nothing, and it ends with a failure
+when anything is missing. It checks the items below that a program can check without asking
+anything: the software every machine needs to run sessions (Zellij, git, OpenSSH, Claude Code and
+engineroom's plugin), `engineroom` found by an SSH command, a role, a valid configuration and a
+registered project; on the engine, the SSH server answering on port 22; on a client, the engine
+answering without a prompt and the three VS Code items. The rest of this guide (keys, your
+settings, sleep, the login at the screen, the menu bar app) is checked by hand, or by the
+`setup-machine` skill.
+
 ## Every machine
 
 ### Software

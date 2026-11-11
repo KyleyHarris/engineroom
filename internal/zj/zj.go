@@ -78,21 +78,35 @@ var versionChecked atomic.Bool
 var versionRule = regexp.MustCompile(`^zellij (\d+)\.(\d+)\.(\d+)`)
 
 // CheckVersion refuses a Zellij that is not installed or is older than MinVersion, saying which
-// version is needed and how to get it. A version it cannot read is not refused: the check stands
-// guard against an old Zellij, and an answer in an unknown form says nothing about its age.
+// version is needed and how to get it. Once a Zellij new enough is found, this process does not ask
+// again (versionChecked).
 func CheckVersion() error {
 	if versionChecked.Load() {
 		return nil
 	}
-	need := fmt.Sprintf("%d.%d.%d", MinVersion[0], MinVersion[1], MinVersion[2])
+	if _, err := Version(); err != nil {
+		return err
+	}
+	versionChecked.Store(true)
+	return nil
+}
+
+// Version asks Zellij for its version every time it is called, and refuses one that is not
+// installed or is older than MinVersion, as CheckVersion does; the setup check calls it directly,
+// so what it reports is what is installed now. A version it cannot read is not refused: the check
+// stands guard against an old Zellij, and an answer in an unknown form says nothing about its age.
+// It returns what Zellij printed.
+func Version() (string, error) {
+	need := NeedVersion()
 	out, err := exec.Command("zellij", "--version").Output()
 	if errors.Is(err, exec.ErrNotFound) {
-		return fmt.Errorf("zellij is not installed or not on PATH; engineroom needs Zellij %s or later (brew install zellij)", need)
+		return "", fmt.Errorf("zellij is not installed or not on PATH; engineroom needs Zellij %s or later (brew install zellij)", need)
 	}
 	if err != nil {
-		return fmt.Errorf("zellij --version: %v", err)
+		return "", fmt.Errorf("zellij --version: %v", err)
 	}
-	m := versionRule.FindStringSubmatch(strings.TrimSpace(string(out)))
+	said := strings.TrimSpace(string(out))
+	m := versionRule.FindStringSubmatch(said)
 	if m != nil {
 		var have [3]int
 		for i := range have {
@@ -101,14 +115,18 @@ func CheckVersion() error {
 		for i := range have {
 			if have[i] != MinVersion[i] {
 				if have[i] < MinVersion[i] {
-					return fmt.Errorf("the installed Zellij is %s.%s.%s; engineroom needs Zellij %s or later (brew upgrade zellij)", m[1], m[2], m[3], need)
+					return said, fmt.Errorf("the installed Zellij is %s.%s.%s; engineroom needs Zellij %s or later (brew upgrade zellij)", m[1], m[2], m[3], need)
 				}
 				break
 			}
 		}
 	}
-	versionChecked.Store(true)
-	return nil
+	return said, nil
+}
+
+// NeedVersion is MinVersion as text, "0.45.0".
+func NeedVersion() string {
+	return fmt.Sprintf("%d.%d.%d", MinVersion[0], MinVersion[1], MinVersion[2])
 }
 
 // lineRule matches "name [Created 3s ago] (EXITED - attach to resurrect)" and its variants.

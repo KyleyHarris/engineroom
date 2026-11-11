@@ -1051,3 +1051,40 @@ gone, which Zellij can then neither list nor end, and both starts still report s
   two commands, and the race is between the create and the session answering.
 - Detecting the half-made session afterwards and repairing it: the server with no socket can only
   be found by its process, and stopping processes found that way is what the program never does.
+
+## D-036 The program checks a machine's setup itself, and a client is checked as a mirror of the engine
+
+**Problem.** What a machine needs was listed only in `docs/setup.md`, and the `setup-machine`
+skill decided in each conversation how to check it. A machine missing something found out when an
+action failed, and someone without Claude Code had no check at all.
+
+**Decision.**
+
+- `engineroom setup check [--json]` reports every item for this machine's role, present or
+  missing, with the command or file it was checked with and the fix for a missing one
+  (acceptance/setup). It changes nothing, and ends with a failure when anything is missing. The
+  checks live in one package (`internal/setup`), which the skill and the health view read too.
+- A client mirrors the engine: it uses the engine, and works on its own when the engine does not
+  answer. So every item for running sessions (Zellij 0.45 or later, git, OpenSSH, Claude Code with
+  engineroom's plugin, a registered project) is checked on every machine. Only being reached
+  (`engineroom` found by an SSH command, the SSH server on) is the engine's, and only reaching
+  the engine and opening it in VS Code is a client's.
+- The program checks only what it can check without asking anything. The guide's other items
+  (keys, the settings repository, sleep, the login at the screen, the menu bar app) stay with the
+  guide and the skill.
+- The engine's SSH server is checked by connecting to port 22 on this machine and reading the
+  greeting an SSH server sends first. It proves an SSH server answers here, which is what a client
+  needs.
+- VS Code's knowledge of the engine is checked by reading the SSH configuration VS Code uses
+  (`remote.SSH.configFile`, or `~/.ssh/config`) with `ssh -G`, and comparing where it leads the
+  engine's name with where engineroom's own SSH configuration leads it.
+- An engine not reached is said with its cause, as every action says it (D-034).
+
+**Considered.**
+
+- `systemsetup -getremotelogin` for Remote Login: it needs an administrator, and the check runs
+  as the developer.
+- Checking that VS Code's file has a `Host` entry naming the engine: a name that resolves
+  without one (a full DNS name) is fine for VS Code, and an entry that leads elsewhere is not.
+- Every item in the guide: the rest need a person (a key copied in, a login at the screen) or
+  read another machine.

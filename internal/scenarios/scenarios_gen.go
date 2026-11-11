@@ -153,6 +153,17 @@ var Fields = map[string][]string{
 	"SessStop002":    {"GivenTwoSessionsAreRunning", "WhenTheDeveloperStopsOneOfThemAndConfirms", "ThenThatSessionIsGoneWithNothingOfItKeptToBringBack", "AndTheOtherIsStillRunning"},
 	"SessStop003":    {"GivenTheDeveloperHasBeenAskedToConfirmStoppingASession", "WhenTheyDecline", "ThenTheSessionIsStillRunning"},
 	"SessSwitch001":  {"GivenTheDeveloperIsInOneSession", "WhenTheyChooseAnotherSessionFromInsideIt", "ThenThisWindowShowsTheOtherSession", "AndTheOneTheyLeftIsStillRunning"},
+	"SetupCheck001":  {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenEveryItemEveryMachineNeedsAndEveryItemTheEngineNeedsIsListed", "AndEachIsMarkedPresentOrMissing", "AndNoItemAClientNeedsIsListed"},
+	"SetupCheck002":  {"GivenThisMachineIsAClient", "WhenTheDeveloperRunsTheSetupCheck", "ThenEveryItemEveryMachineNeedsAndEveryItemAClientNeedsIsListed", "AndNoItemOnlyTheEngineNeedsIsListed"},
+	"SetupCheck003":  {"GivenZellijIsNotInstalledOnThisMachine", "WhenTheDeveloperRunsTheSetupCheck", "ThenZellijIsMarkedMissingWithTheVersionNeededAndTheCommandThatInstallsIt", "AndNothingOnTheMachineHasChanged"},
+	"SetupCheck004":  {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom"},
+	"SetupCheck005":  {"GivenThisMachineHasNoRoleSet", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheRoleIsMarkedMissingWithTheCommandThatSetsEachRole", "AndEveryItemEveryMachineNeedsIsStillListedPresentOrMissing"},
+	"SetupCheck006":  {"GivenThisMachinesConfigurationNamesAnUnknownRole", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheConfigurationIsMarkedMissingNamingTheFileAndTheFieldThatIsWrong"},
+	"SetupCheck007":  {"GivenThisMachineIsTheEngine", "AndTheProgramsFolderIsOnThePATHOnlyForInteractiveShells", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheProgramIsMarkedMissingForSSHCommandsWithTheLineToAddToTheFileEveryShellReads"},
+	"SetupCheck008":  {"GivenThisMachineIsAClient", "AndTheEngineSHostKeyHasChanged", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineIsMarkedMissingSaidAsAChangedHostKeyWithWhatToDo"},
+	"SetupCheck009":  {"GivenThisMachineIsAClient", "AndTheSSHConfigurationEditorUsesHasNoEntryForTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineSNameIsMarkedMissingForEditorNamingTheFileEditorReads"},
+	"SetupRead001":   {"GivenEveryItemForThisMachinesRoleIsPresent", "WhenTheDeveloperRunsTheSetupCheck", "ThenItEndsWithSuccess", "AndWhenOneItemIsMissingItEndsWithAFailure"},
+	"SetupRead002":   {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheckAsJSON", "ThenEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix", "AndTheItemsAreTheSameAsTheReportOnScreen"},
 	"WorkClean001":   {"GivenNewWorkWhoseChangesAreAllCommittedAndPushedHasARunningSession", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsSessionIsStopped", "AndItsCheckoutIsRemoved"},
 	"WorkClean002":   {"GivenNewWorkHasAFileChangedButNotCommitted", "WhenTheDeveloperCleansItUp", "ThenTheyAreToldItHasUncommittedChangesNamingTheFile", "AndNothingIsStoppedOrRemoved"},
 	"WorkClean003":   {"GivenNewWorkHasACommitThatIsNotOnTheRemote", "WhenTheDeveloperCleansItUp", "ThenTheyAreToldItHasCommitsThatWereNeverPushed", "AndNothingIsStoppedOrRemoved"},
@@ -5293,6 +5304,377 @@ func (s SessSwitch001) Scenario() Scenario {
 			{Text: "When they choose another {session.lower} from inside it", Display: "When they choose another session from inside it", Fn: s.WhenTheyChooseAnotherSessionFromInsideIt},
 			{Text: "Then this window shows the other {session.lower}", Display: "Then this window shows the other session", Fn: s.ThenThisWindowShowsTheOtherSession},
 			{Text: "And the one they left is still running", Display: "And the one they left is still running", Fn: s.AndTheOneTheyLeftIsStillRunning},
+		},
+	}
+}
+
+// SetupCheck001 is SETUP-CHECK-001: Every item for this machine's role is reported as present or missing
+//
+// Intent: one report says what this machine lacks for its role; "nothing is left out silently" means every item is listed, the present ones as well
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck001 struct {
+	// Given this machine is the engine
+	GivenThisMachineIsTheEngine func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then every item every machine needs, and every item the engine needs, is listed
+	ThenEveryItemEveryMachineNeedsAndEveryItemTheEngineNeedsIsListed func()
+	// And each is marked present or missing
+	AndEachIsMarkedPresentOrMissing func()
+	// And no item a client needs is listed
+	AndNoItemAClientNeedsIsListed func()
+}
+
+// Scenario describes SETUP-CHECK-001 with the clause functions this journey supplied.
+func (s SetupCheck001) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-001",
+		Title:   "Every item for this machine's role is reported as present or missing",
+		Feature: "Checking a machine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "one report says what this machine lacks for its role; \"nothing is left out silently\" means every item is listed, the present ones as well",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine is the {engine.lower}", Display: "Given this machine is the engine", Fn: s.GivenThisMachineIsTheEngine},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then every item every machine needs, and every item the {engine.lower} needs, is listed", Display: "Then every item every machine needs, and every item the engine needs, is listed", Fn: s.ThenEveryItemEveryMachineNeedsAndEveryItemTheEngineNeedsIsListed},
+			{Text: "And each is marked present or missing", Display: "And each is marked present or missing", Fn: s.AndEachIsMarkedPresentOrMissing},
+			{Text: "And no item a {client.lower} needs is listed", Display: "And no item a client needs is listed", Fn: s.AndNoItemAClientNeedsIsListed},
+		},
+	}
+}
+
+// SetupCheck002 is SETUP-CHECK-002: A client is checked for what a client needs
+//
+// Intent: as SETUP-CHECK-001, for the other role
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck002 struct {
+	// Given this machine is a client
+	GivenThisMachineIsAClient func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then every item every machine needs, and every item a client needs, is listed
+	ThenEveryItemEveryMachineNeedsAndEveryItemAClientNeedsIsListed func()
+	// And no item only the engine needs is listed
+	AndNoItemOnlyTheEngineNeedsIsListed func()
+}
+
+// Scenario describes SETUP-CHECK-002 with the clause functions this journey supplied.
+func (s SetupCheck002) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-002",
+		Title:   "A client is checked for what a client needs",
+		Feature: "Checking a machine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "as SETUP-CHECK-001, for the other role",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine is a {client.lower}", Display: "Given this machine is a client", Fn: s.GivenThisMachineIsAClient},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then every item every machine needs, and every item a {client.lower} needs, is listed", Display: "Then every item every machine needs, and every item a client needs, is listed", Fn: s.ThenEveryItemEveryMachineNeedsAndEveryItemAClientNeedsIsListed},
+			{Text: "And no item only the {engine.lower} needs is listed", Display: "And no item only the engine needs is listed", Fn: s.AndNoItemOnlyTheEngineNeedsIsListed},
+		},
+	}
+}
+
+// SetupCheck003 is SETUP-CHECK-003: A missing item is shown with its fix, and nothing is changed
+//
+// Intent: CLAUDE.md "It may report a problem and show the fix; it applies a fix only on an explicit request" - the check is the report, never the fix
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck003 struct {
+	// Given Zellij is not installed on this machine
+	GivenZellijIsNotInstalledOnThisMachine func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then Zellij is marked missing, with the version needed and the command that installs it
+	ThenZellijIsMarkedMissingWithTheVersionNeededAndTheCommandThatInstallsIt func()
+	// And nothing on the machine has changed
+	AndNothingOnTheMachineHasChanged func()
+}
+
+// Scenario describes SETUP-CHECK-003 with the clause functions this journey supplied.
+func (s SetupCheck003) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-003",
+		Title:   "A missing item is shown with its fix, and nothing is changed",
+		Feature: "Checking a machine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "CLAUDE.md \"It may report a problem and show the fix; it applies a fix only on an explicit request\" - the check is the report, never the fix",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given Zellij is not installed on this machine", Display: "Given Zellij is not installed on this machine", Fn: s.GivenZellijIsNotInstalledOnThisMachine},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then Zellij is marked missing, with the version needed and the command that installs it", Display: "Then Zellij is marked missing, with the version needed and the command that installs it", Fn: s.ThenZellijIsMarkedMissingWithTheVersionNeededAndTheCommandThatInstallsIt},
+			{Text: "And nothing on the machine has changed", Display: "And nothing on the machine has changed", Fn: s.AndNothingOnTheMachineHasChanged},
+		},
+	}
+}
+
+// SetupCheck004 is SETUP-CHECK-004: Each item says how it was checked
+//
+// Intent: CLAUDE.md "The program never hides what it does" - the check runs commands too, and each item says how it was checked, so the developer can check it again by hand
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck004 struct {
+	// Given this machine is the engine
+	GivenThisMachineIsTheEngine func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then each item shows the command it was checked with, or the file it was read from
+	ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom func()
+}
+
+// Scenario describes SETUP-CHECK-004 with the clause functions this journey supplied.
+func (s SetupCheck004) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-004",
+		Title:   "Each item says how it was checked",
+		Feature: "Checking a machine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "CLAUDE.md \"The program never hides what it does\" - the check runs commands too, and each item says how it was checked, so the developer can check it again by hand",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine is the {engine.lower}", Display: "Given this machine is the engine", Fn: s.GivenThisMachineIsTheEngine},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then each item shows the command it was checked with, or the file it was read from", Display: "Then each item shows the command it was checked with, or the file it was read from", Fn: s.ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom},
+		},
+	}
+}
+
+// SetupCheck005 is SETUP-CHECK-005: A machine with no role is told how to set one
+//
+// Intent: CONN-SETUP-001 - a machine with no role is told how to set one, and what can be checked without a role is still checked
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck005 struct {
+	// Given this machine has no role set
+	GivenThisMachineHasNoRoleSet func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then the role is marked missing, with the command that sets each role
+	ThenTheRoleIsMarkedMissingWithTheCommandThatSetsEachRole func()
+	// And every item every machine needs is still listed, present or missing
+	AndEveryItemEveryMachineNeedsIsStillListedPresentOrMissing func()
+}
+
+// Scenario describes SETUP-CHECK-005 with the clause functions this journey supplied.
+func (s SetupCheck005) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-005",
+		Title:   "A machine with no role is told how to set one",
+		Feature: "Checking a machine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "CONN-SETUP-001 - a machine with no role is told how to set one, and what can be checked without a role is still checked",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine has no role set", Display: "Given this machine has no role set", Fn: s.GivenThisMachineHasNoRoleSet},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then the role is marked missing, with the command that sets each role", Display: "Then the role is marked missing, with the command that sets each role", Fn: s.ThenTheRoleIsMarkedMissingWithTheCommandThatSetsEachRole},
+			{Text: "And every item every machine needs is still listed, present or missing", Display: "And every item every machine needs is still listed, present or missing", Fn: s.AndEveryItemEveryMachineNeedsIsStillListedPresentOrMissing},
+		},
+	}
+}
+
+// SetupCheck006 is SETUP-CHECK-006: A configuration that is not valid is reported with its file and field
+//
+// Intent: connection obligation O7 - a configuration that cannot be read is named with its file and field, never guessed around
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck006 struct {
+	// Given this machine's configuration names an unknown role
+	GivenThisMachinesConfigurationNamesAnUnknownRole func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then the configuration is marked missing, naming the file and the field that is wrong
+	ThenTheConfigurationIsMarkedMissingNamingTheFileAndTheFieldThatIsWrong func()
+}
+
+// Scenario describes SETUP-CHECK-006 with the clause functions this journey supplied.
+func (s SetupCheck006) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-006",
+		Title:   "A configuration that is not valid is reported with its file and field",
+		Feature: "Checking a machine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "connection obligation O7 - a configuration that cannot be read is named with its file and field, never guessed around",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine's configuration names an unknown role", Display: "Given this machine's configuration names an unknown role", Fn: s.GivenThisMachinesConfigurationNamesAnUnknownRole},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then the configuration is marked missing, naming the file and the field that is wrong", Display: "Then the configuration is marked missing, naming the file and the field that is wrong", Fn: s.ThenTheConfigurationIsMarkedMissingNamingTheFileAndTheFieldThatIsWrong},
+		},
+	}
+}
+
+// SetupCheck007 is SETUP-CHECK-007: On the engine, the program not found by an SSH command is reported with the line that fixes it
+//
+// Intent: docs/setup.md "the most common first-install failure" - a client runs the program on the engine through a shell that reads neither ~/.zprofile nor ~/.zshrc
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck007 struct {
+	// Given this machine is the engine
+	GivenThisMachineIsTheEngine func()
+	// And the program's folder is on the PATH only for interactive shells
+	AndTheProgramsFolderIsOnThePATHOnlyForInteractiveShells func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then the program is marked missing for SSH commands, with the line to add to the file every shell reads
+	ThenTheProgramIsMarkedMissingForSSHCommandsWithTheLineToAddToTheFileEveryShellReads func()
+}
+
+// Scenario describes SETUP-CHECK-007 with the clause functions this journey supplied.
+func (s SetupCheck007) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-007",
+		Title:   "On the engine, the program not found by an SSH command is reported with the line that fixes it",
+		Feature: "Checking a machine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "docs/setup.md \"the most common first-install failure\" - a client runs the program on the engine through a shell that reads neither ~/.zprofile nor ~/.zshrc",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine is the {engine.lower}", Display: "Given this machine is the engine", Fn: s.GivenThisMachineIsTheEngine},
+			{Text: "And the program's folder is on the PATH only for interactive shells", Display: "And the program's folder is on the PATH only for interactive shells", Fn: s.AndTheProgramsFolderIsOnThePATHOnlyForInteractiveShells},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then the program is marked missing for SSH commands, with the line to add to the file every shell reads", Display: "Then the program is marked missing for SSH commands, with the line to add to the file every shell reads", Fn: s.ThenTheProgramIsMarkedMissingForSSHCommandsWithTheLineToAddToTheFileEveryShellReads},
+		},
+	}
+}
+
+// SetupCheck008 is SETUP-CHECK-008: On a client, an engine that is not reached is reported with its cause
+//
+// Intent: D-034 - the engine not reached is said with its cause, and the check says the same as every action would
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck008 struct {
+	// Given this machine is a client
+	GivenThisMachineIsAClient func()
+	// And the engine's host key has changed
+	AndTheEngineSHostKeyHasChanged func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then the engine is marked missing, said as a changed host key, with what to do
+	ThenTheEngineIsMarkedMissingSaidAsAChangedHostKeyWithWhatToDo func()
+}
+
+// Scenario describes SETUP-CHECK-008 with the clause functions this journey supplied.
+func (s SetupCheck008) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-008",
+		Title:   "On a client, an engine that is not reached is reported with its cause",
+		Feature: "Checking a machine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "D-034 - the engine not reached is said with its cause, and the check says the same as every action would",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine is a {client.lower}", Display: "Given this machine is a client", Fn: s.GivenThisMachineIsAClient},
+			{Text: "And the {engine.lower}'s host key has changed", Display: "And the engine's host key has changed", Fn: s.AndTheEngineSHostKeyHasChanged},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then the {engine.lower} is marked missing, said as a changed host key, with what to do", Display: "Then the engine is marked missing, said as a changed host key, with what to do", Fn: s.ThenTheEngineIsMarkedMissingSaidAsAChangedHostKeyWithWhatToDo},
+		},
+	}
+}
+
+// SetupCheck009 is SETUP-CHECK-009: On a client, an engine unknown to VS Code's SSH configuration is reported
+//
+// Intent: docs/setup.md "The engine's name known to VS Code" - the editor resolves the engine through its own SSH configuration, which may not be the one the program uses
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck009 struct {
+	// Given this machine is a client
+	GivenThisMachineIsAClient func()
+	// And the SSH configuration VS Code uses has no entry for the engine
+	AndTheSSHConfigurationEditorUsesHasNoEntryForTheEngine func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then the engine's name is marked missing for VS Code, naming the file VS Code reads
+	ThenTheEngineSNameIsMarkedMissingForEditorNamingTheFileEditorReads func()
+}
+
+// Scenario describes SETUP-CHECK-009 with the clause functions this journey supplied.
+func (s SetupCheck009) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-009",
+		Title:   "On a client, an engine unknown to VS Code's SSH configuration is reported",
+		Feature: "Checking a machine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "docs/setup.md \"The engine's name known to VS Code\" - the editor resolves the engine through its own SSH configuration, which may not be the one the program uses",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine is a {client.lower}", Display: "Given this machine is a client", Fn: s.GivenThisMachineIsAClient},
+			{Text: "And the SSH configuration {editor} uses has no entry for the {engine.lower}", Display: "And the SSH configuration VS Code uses has no entry for the engine", Fn: s.AndTheSSHConfigurationEditorUsesHasNoEntryForTheEngine},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then the {engine.lower}'s name is marked missing for {editor}, naming the file {editor} reads", Display: "Then the engine's name is marked missing for VS Code, naming the file VS Code reads", Fn: s.ThenTheEngineSNameIsMarkedMissingForEditorNamingTheFileEditorReads},
+		},
+	}
+}
+
+// SetupRead001 is SETUP-READ-001: The exit status says whether anything is missing
+//
+// Intent: the check is for scripts and the skill as well as people: whether anything is missing is the exit status, not words to parse
+// Source: acceptance/setup/setup-acceptance.md
+type SetupRead001 struct {
+	// Given every item for this machine's role is present
+	GivenEveryItemForThisMachinesRoleIsPresent func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then it ends with success
+	ThenItEndsWithSuccess func()
+	// And when one item is missing, it ends with a failure
+	AndWhenOneItemIsMissingItEndsWithAFailure func()
+}
+
+// Scenario describes SETUP-READ-001 with the clause functions this journey supplied.
+func (s SetupRead001) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-READ-001",
+		Title:   "The exit status says whether anything is missing",
+		Feature: "Reading the report",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "the check is for scripts and the skill as well as people: whether anything is missing is the exit status, not words to parse",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given every item for this machine's role is present", Display: "Given every item for this machine's role is present", Fn: s.GivenEveryItemForThisMachinesRoleIsPresent},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then it ends with success", Display: "Then it ends with success", Fn: s.ThenItEndsWithSuccess},
+			{Text: "And when one item is missing, it ends with a failure", Display: "And when one item is missing, it ends with a failure", Fn: s.AndWhenOneItemIsMissingItEndsWithAFailure},
+		},
+	}
+}
+
+// SetupRead002 is SETUP-READ-002: The report can be read as JSON with the same items
+//
+// Intent: the skill and the health view (#8) read the same report, so what counts as set up is decided once
+// Source: acceptance/setup/setup-acceptance.md
+type SetupRead002 struct {
+	// Given this machine is the engine
+	GivenThisMachineIsTheEngine func()
+	// When the developer runs the setup check as JSON
+	WhenTheDeveloperRunsTheSetupCheckAsJSON func()
+	// Then each item has its name, whether it is present, how it was checked and its fix
+	ThenEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix func()
+	// And the items are the same as the report on screen
+	AndTheItemsAreTheSameAsTheReportOnScreen func()
+}
+
+// Scenario describes SETUP-READ-002 with the clause functions this journey supplied.
+func (s SetupRead002) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-READ-002",
+		Title:   "The report can be read as JSON with the same items",
+		Feature: "Reading the report",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "the skill and the health view (#8) read the same report, so what counts as set up is decided once",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine is the {engine.lower}", Display: "Given this machine is the engine", Fn: s.GivenThisMachineIsTheEngine},
+			{Text: "When the developer runs the setup check as JSON", Display: "When the developer runs the setup check as JSON", Fn: s.WhenTheDeveloperRunsTheSetupCheckAsJSON},
+			{Text: "Then each item has its name, whether it is present, how it was checked and its fix", Display: "Then each item has its name, whether it is present, how it was checked and its fix", Fn: s.ThenEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix},
+			{Text: "And the items are the same as the report on screen", Display: "And the items are the same as the report on screen", Fn: s.AndTheItemsAreTheSameAsTheReportOnScreen},
 		},
 	}
 }
