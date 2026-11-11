@@ -696,4 +696,77 @@ final class EngineRoomKitTests: XCTestCase {
         XCTAssertNil(EngineVersion.advice(here: "aaa1111", engine: "aaa1111", behind: "none"))
         XCTAssertNil(EngineVersion.advice(here: "aaa1111", engine: "aaa1111", behind: nil))
     }
+
+    // MARK: health (HEALTH-PAGE-001, HEALTH-FIX-001, HEALTH-FIX-002)
+
+    /// A health report as `engineroom health --json` writes it with items missing: setup, staying
+    /// awake, and two sessions, one with an app the program can start.
+    private let healthMissing = """
+    {"machine":"engine.example","missing":2,"items":[
+     {"name":"zellij","for":"both","present":true,"checked":"zellij --version","found":"zellij 0.43.1","group":"setup"},
+     {"name":"stays awake on power","for":"engine","present":false,"checked":"pmset -g custom (sleep under AC Power)","found":"sleep 1 on power","fix":"sudo pmset -c sleep 0","group":"awake"},
+     {"name":"Remote Control in project-a","for":"engine","present":true,"checked":"sessions/<pid>.json","found":"on","group":"session","session":"project-a"},
+     {"name":"the app of project-a","for":"engine","present":false,"checked":".engineroom/status","found":"not running: api down","fix":"start the app: engineroom up project-a","group":"session","session":"project-a","action":["up","project-a"]},
+     {"name":"the app of project-b","for":"engine","present":true,"checked":"the project's scripts","found":"no app to run","group":"session","session":"project-b"}
+    ]}
+    """
+
+    // The check ends with a failure when anything is missing, and its report is still the answer:
+    // the page shows the items, not an error. Fails if a failing exit is read as a refusal, or if
+    // the items, their fixes or the action do not come through.
+    func testHealthWithMissingItemsIsReadAsTheReport() async throws {
+        let c = try fakeEngineroom(["health --json": (healthMissing, 1)])
+        let r = try await c.health()
+        XCTAssertEqual(r.machine, "engine.example")
+        XCTAssertEqual(r.missing, 2)
+        XCTAssertFalse(r.ready)
+        XCTAssertEqual(r.items.count, 5)
+        XCTAssertEqual(r.items[1].fix, "sudo pmset -c sleep 0")
+        XCTAssertNil(r.items[1].action)
+        XCTAssertEqual(r.items[3].action, ["up", "project-a"])
+    }
+
+    // Every item present: ready, as the command's success says.
+    func testHealthAllPresentIsReady() throws {
+        let r = try EngineRoomClient.decode(HealthReport.self, data: Data("""
+        {"machine":"this machine","missing":0,"items":[{"name":"git","for":"both","present":true,"checked":"git --version","found":"git 2.50","group":"setup"}]}
+        """.utf8), code: 0)
+        XCTAssertTrue(r.ready)
+        XCTAssertNil(r.items[0].fix)
+    }
+
+    // An engine not reached from a client: engineroom writes its items as null. The report still
+    // reads, with no item and not ready, and the cause is kept (HEALTH-CHECK-003). Fails if null
+    // items make the answer unreadable, which would show a decoding error in place of the cause.
+    func testHealthUnreachedReadsWithItsCause() async throws {
+        let c = try fakeEngineroom(["health --json": ("""
+        {"machine":"engine.example","unreached":"The engine did not answer. ssh: connect to host engine.example port 22: Operation timed out","items":null,"missing":0}
+        """, 1)])
+        let r = try await c.health()
+        XCTAssertTrue(r.items.isEmpty)
+        XCTAssertFalse(r.ready)
+        XCTAssertEqual(r.unreached?.hasSuffix("Operation timed out"), true)
+    }
+
+    // The page lays the items out under the command's headings, in its order, each session's under
+    // its own name. Fails if items are regrouped, reordered, or sessions run together.
+    func testHealthSectionsFollowTheReport() throws {
+        let r = try EngineRoomClient.decode(HealthReport.self, data: Data(healthMissing.utf8), code: 1)
+        let s = r.sections
+        XCTAssertEqual(s.map(\.title), ["Setup", "Staying awake", "project-a", "project-b"])
+        XCTAssertEqual(s.map(\.isSession), [false, false, true, true])
+        XCTAssertEqual(s[2].items.map(\.name), ["Remote Control in project-a", "the app of project-a"])
+    }
+
+    // Only a missing item whose fix the program can run is offered as an action (HEALTH-FIX-001);
+    // a fix to type is never runnable (HEALTH-FIX-002); and a client working local, whose actions
+    // run on this Mac, is offered none for the engine's report. Fails if any of the three is
+    // offered a button.
+    func testHealthOffersOnlyTheFixesTheProgramRunsWhereItWasChecked() throws {
+        let r = try EngineRoomClient.decode(HealthReport.self, data: Data(healthMissing.utf8), code: 1)
+        XCTAssertEqual(r.items[3].runnableFix(workingLocal: false), ["up", "project-a"])
+        XCTAssertNil(r.items[3].runnableFix(workingLocal: true))
+        XCTAssertNil(r.items[1].runnableFix(workingLocal: false))
+        XCTAssertNil(r.items[0].runnableFix(workingLocal: false))
+    }
 }

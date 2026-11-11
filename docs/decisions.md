@@ -1132,7 +1132,12 @@ project to project, as starting it does (D-006).
   as any action does. A fix that needs an administrator, or is typed inside a session, is shown and
   never run.
 - The check runs when asked: the command, or the page opening and its Check again button. Nothing
-  checks on a timer (D-023).
+  checks on a timer (D-023). The page reads `engineroom health --json`, as the command reads it, and
+  says when the items shown were checked; coming back to it from a fix started on it shows that
+  check, not a new one.
+- The page offers a fix the program can run as a button that shows the fix's commands first, as
+  every action does. On a client working local it offers none: its actions run on the client, while
+  the report is the engine's, so the fix would act on the wrong machine. The fix is shown as words.
 
 **Considered.**
 

@@ -248,6 +248,10 @@ sessions with Remote Control, or Claude Code's `remoteControlAtStartup`); the fi
 `/remote-control` inside the session, which is never restarted for it. A project that starts an
 app and has no `status` script is reported as not checked until it has one.
 
+The app's window has the same report on its Health page, checked when you open the page and when
+you press Check again, never on a timer. A fix the program can run, such as starting an app, has a
+Fix button that shows its commands before anything runs; every other fix is shown for you to run.
+
 ### Ports and slots
 
 Each project's ports are reserved for it, so no two projects can be given the same port, and

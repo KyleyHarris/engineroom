@@ -24,7 +24,7 @@ struct MenuBarIcon: View {
 
 /// engineroom in the menu bar (docs/decisions.md D-008), on the engine or a client: a panel from
 /// the menu bar with the sessions, what is done many times a day, and a window opened by its gear
-/// with the projects, repositories, history and settings (D-019). It runs nothing itself; every
+/// with the projects, repositories, history, settings and the engine's health (D-019, D-037). It runs nothing itself; every
 /// list and every action is a `engineroom api` command, and every action lands in the same history.
 @main
 struct EngineRoomApp: App {
@@ -178,7 +178,7 @@ struct Header: View {
                 if store.windowItem == nil { store.windowItem = store.registeredProjects.first.map { .project($0.name) } ?? .repositories }
                 store.showWindow?()
             } label: { Image(systemName: "gearshape") }.pointer()
-                .buttonStyle(.borderless).help("Projects, repositories, history and settings")
+                .buttonStyle(.borderless).help("Projects, repositories, history, settings and health")
                 .accessibilityLabel("Open the window")
             // Quit stands apart from refresh and the gear (D-032): it is the one icon here that
             // ends something, and a rule and a wider gap keep a click meant for the gear off it.

@@ -475,3 +475,82 @@ public struct EngineVersion: Decodable, Equatable {
         }
     }
 }
+
+/// The engine's health, as `engineroom health --json` reports it (acceptance/health, D-037): its
+/// setup items, staying awake, and each running session's Remote Control and app, each present or
+/// missing with how it was checked and, when missing, its fix. On a client it is the engine's
+/// report, asked of the engine; an engine not reached is said in `unreached`, with no items.
+public struct HealthReport: Decodable, Sendable {
+    /// Where the items were checked: "this machine", or the engine's SSH name from a client.
+    public let machine: String
+    /// The engine not reached from a client, with its cause; nothing was checked then.
+    public let unreached: String?
+    public let items: [HealthItem]
+    public let missing: Int
+
+    private enum CodingKeys: String, CodingKey { case machine, unreached, items, missing }
+
+    /// An engine not reached has no items, which engineroom writes as null rather than an empty list.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        machine = try c.decode(String.self, forKey: .machine)
+        unreached = try c.decodeIfPresent(String.self, forKey: .unreached)
+        items = try c.decodeIfPresent([HealthItem].self, forKey: .items) ?? []
+        missing = try c.decode(Int.self, forKey: .missing)
+    }
+
+    /// Whether nothing is missing and the engine was reached, as the command's exit status says.
+    public var ready: Bool { missing == 0 && (unreached ?? "").isEmpty }
+
+    /// The items under their headings, in the report's order: the setup items, staying awake, then
+    /// each running session's items under the session's name, as `engineroom health` prints them.
+    public var sections: [HealthSection] {
+        var out: [HealthSection] = []
+        for item in items {
+            let title: String
+            switch item.group {
+            case "setup": title = "Setup"
+            case "awake": title = "Staying awake"
+            default: title = item.session ?? "Running sessions"
+            }
+            if out.last?.title == title { out[out.count - 1].items.append(item) }
+            else { out.append(HealthSection(title: title, isSession: item.group == "session", items: [item])) }
+        }
+        return out
+    }
+}
+
+/// One heading of the health report and its items.
+public struct HealthSection: Sendable {
+    public let title: String
+    /// Whether the heading is a running session's name, listed under Running sessions.
+    public let isSession: Bool
+    public var items: [HealthItem]
+}
+
+/// One thing the engine needs to be worked on from away.
+public struct HealthItem: Decodable, Sendable, Hashable {
+    public let name: String
+    public let present: Bool
+    /// The command run, or the file read, written so a person can do the same by hand.
+    public let checked: String
+    /// What the check saw.
+    public let found: String
+    /// What would make it present; nil when present.
+    public let fix: String?
+    /// setup, awake or session.
+    public let group: String
+    public let session: String?
+    /// The `engineroom api` action that applies the fix, when the program can (HEALTH-FIX-001); nil
+    /// for a fix the developer runs themselves (HEALTH-FIX-002).
+    public let action: [String]?
+
+    /// The action the page may offer for this item's fix, or nil when it offers none. A present
+    /// item has nothing to fix. A client working local does its actions on this Mac, while the
+    /// report is the engine's: the fix would start the app here, not where it was found missing,
+    /// so it is shown as words only until the work is handed back.
+    public func runnableFix(workingLocal: Bool) -> [String]? {
+        guard !present, !workingLocal, let a = action, !a.isEmpty else { return nil }
+        return a
+    }
+}
