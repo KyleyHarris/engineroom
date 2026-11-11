@@ -23,7 +23,7 @@ program's own configuration; it never touches the repository.
    `--category`.
 
 3. Report what it printed, word for word: the name it was registered as, and which setup
-   scripts (`.engineroom/create`, `.engineroom/up`, `.engineroom/down`, `.engineroom/teardown`) the repository declares.
+   scripts (`.engineroom/create`, `.engineroom/up`, `.engineroom/status`, `.engineroom/down`, `.engineroom/teardown`) the repository declares.
 4. If it says the repository is already registered, say under which name; do not register it
    again under another.
 
