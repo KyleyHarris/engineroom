@@ -18,13 +18,13 @@ final class Store: ObservableObject {
     }
 
     /// The app's two surfaces: the menu bar panel, which holds the sessions, and the window, which
-    /// holds the projects, repositories, history and settings.
+    /// holds the projects, repositories, history, settings and the engine's health.
     enum Surface { case panel, window }
 
     /// What the window's sidebar has chosen.
     enum WindowItem: Hashable {
         case project(String)
-        case repositories, history, settings
+        case repositories, history, settings, health
     }
 
     let client: EngineRoomClient?
@@ -492,6 +492,34 @@ final class Store: ObservableObject {
     func setPinned(_ project: String, _ on: Bool) async {
         pendingPin[project] = on
         await runQuietly(["pin", project, on ? "on" : "off"], saying: on ? "Pinning \(project)…" : "Unpinning \(project)…")
+    }
+
+    // MARK: health
+
+    /// The engine's health as last checked (D-037), and when; nil until the Health page has been
+    /// opened. It is checked when the page is opened and on its Check again button, never on a
+    /// timer nor by a refresh (D-023), so what it shows is what was true at `healthCheckedAt`.
+    @Published var health: HealthReport?
+    @Published var healthCheckedAt: Date?
+    /// Why the last check gave no report at all (engineroom not found, or an answer it could not read).
+    @Published var healthError: String?
+    @Published var healthChecking = false
+
+    /// Checks the engine's health: on this Mac when it is the engine, asked of the engine from a
+    /// client. One check at a time: asking again while one runs waits for that one's answer. A check
+    /// runs every status script (each bounded to 10 seconds), so it is not repeated for nothing.
+    func checkHealth() async {
+        guard let client, !healthChecking else { return }
+        healthChecking = true
+        defer { healthChecking = false }
+        do {
+            health = try await client.health()
+            healthError = nil
+        } catch {
+            health = nil
+            healthError = error.localizedDescription
+        }
+        healthCheckedAt = Date()
     }
 
     func loadProject(_ name: String) async {

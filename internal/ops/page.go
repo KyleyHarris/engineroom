@@ -14,6 +14,7 @@ import (
 	"github.com/KyleyHarris/engineroom/internal/config"
 	"github.com/KyleyHarris/engineroom/internal/engineroomfile"
 	"github.com/KyleyHarris/engineroom/internal/procs"
+	"github.com/KyleyHarris/engineroom/internal/projects"
 	"github.com/KyleyHarris/engineroom/internal/settings"
 	"github.com/KyleyHarris/engineroom/internal/signal"
 	"github.com/KyleyHarris/engineroom/internal/slots"
@@ -160,7 +161,7 @@ func Page(cfg *config.Config, name string) (ProjectPage, error) {
 		Identity: settings.Identity(p.Path), Settings: tildeHome(settings.Dir(p.Name, p.Path)),
 		Scripts: []ScriptView{}, Checkouts: []CheckoutView{},
 	}
-	for _, s := range []string{"create", "up", "down", "teardown"} {
+	for _, s := range projects.Scripts {
 		v := ScriptView{Name: s}
 		if path, from, ok := settings.Script(p.Name, p.Path, p.Path, s); ok {
 			v.From, v.Path = from, tildeHome(path)

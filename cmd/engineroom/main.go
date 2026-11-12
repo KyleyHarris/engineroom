@@ -193,6 +193,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runRole(args[1:], stdout, stderr)
 	case "setup":
 		return runSetup(args[1:], stdout, stderr)
+	case "health":
+		return runHealth(args[1:], stdout, stderr)
 	case "version", "--version":
 		// --clone is the clone this build was made from (scripts/install.sh records it), where
 		// its docs and scripts are; empty for a build that recorded none.
@@ -320,6 +322,10 @@ func usage(w io.Writer) {
   engineroom setup check [--json]              what this machine needs for its role and lacks, how each
                                          item was checked and how to fix it; changes nothing, and
                                          ends with a failure when anything is missing
+  engineroom health [--json]                   whether the engine is ready to be worked on from away:
+                                         setup, staying awake, each running session's Remote
+                                         Control and app; the engine's report on a client; changes
+                                         nothing, and ends with a failure when anything is missing
   engineroom signal waiting --message <text>   (for the agent's hooks) this session is waiting for the developer
   engineroom signal waiting --from-hook        the same, reading the hook's JSON from standard input
   engineroom signal clear                      (for the agent's hooks) the developer answered
@@ -918,7 +924,7 @@ func runProject(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stdout, "Registered as %s: %s\n", r.Name, r.Path)
 		}
 		if len(r.Declared) == 0 {
-			fmt.Fprintln(stdout, "It declares no setup scripts (.engineroom/create, .engineroom/up, .engineroom/down, .engineroom/teardown): new work gets a plain worktree and session. Your own scripts for it go in: engineroom settings where "+r.Name)
+			fmt.Fprintln(stdout, "It declares no setup scripts (.engineroom/create, .engineroom/up, .engineroom/status, .engineroom/down, .engineroom/teardown): new work gets a plain worktree and session. Your own scripts for it go in: engineroom settings where "+r.Name)
 		} else {
 			fmt.Fprintf(stdout, "It declares these setup scripts: %s.\n", strings.Join(r.Declared, ", "))
 		}

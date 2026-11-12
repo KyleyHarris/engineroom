@@ -156,7 +156,7 @@ runs.
 Everything you set for a project lives in your own settings folder, outside every repository:
 `engineroom settings where <project>` prints it (`~/.config/engineroom/settings/projects/<owner>/<repository>/`,
 keyed by the project's GitHub owner and name). It holds the project's `engineroom.toml` and its scripts
-(`create`, `up`, `down`, `teardown`). Nothing of yours is ever committed to a repository you
+(`create`, `up`, `status`, `down`, `teardown`). Nothing of yours is ever committed to a repository you
 work in but do not own.
 
 Keep the settings folder in a private git repository of your own and it is the same on every
@@ -226,8 +226,31 @@ deps . || exit 1
 start web "${ENGINEROOM_PORT_UI:-5173}" "http://localhost:${ENGINEROOM_PORT_UI:-5173}/" . -- npx vite --port "${ENGINEROOM_PORT_UI:-5173}" --strictPort
 ```
 
-and `down` is `. "$(engineroom stack-lib)"` then `stop web`. The `adopt-project` skill writes
-them for a repository, starting from your own recipes.
+and `down` is `. "$(engineroom stack-lib)"` then `stop web`. A `status` script says whether the
+app runs, for the health check (below): it ends with success when everything `up` started is
+running, printing what it found, changes nothing, and ends within 10 seconds. With the helper it is
+`. "$(engineroom stack-lib)"` then `running web`. The `adopt-project` skill writes them for a
+repository, starting from your own recipes.
+
+### Before you leave the engine
+
+`engineroom health` says whether the engine is ready to be worked on from away, and changes
+nothing. It lists the engine's setup items (as `engineroom setup check` does), whether it stays
+awake on power and with its lid closed, and for each running session whether Remote Control is on
+and whether its app runs, as the project's `status` script says. Each item says how it was
+checked, and a missing one shows its fix; `engineroom up <session>` starts an app that is not
+running. On a client it asks the engine. It ends with a failure when anything is missing, and
+`--json` gives the same report to a program.
+
+Remote Control is read from Claude Code in the session, so it counts however it was turned on.
+It is counted missing only where you have chosen it (`[agent] remote_control`, the app starting
+sessions with Remote Control, or Claude Code's `remoteControlAtStartup`); the fix is
+`/remote-control` inside the session, which is never restarted for it. A project that starts an
+app and has no `status` script is reported as not checked until it has one.
+
+The app's window has the same report on its Health page, checked when you open the page and when
+you press Check again, never on a timer. A fix the program can run, such as starting an app, has a
+Fix button that shows its commands before anything runs; every other fix is shown for you to run.
 
 ### Ports and slots
 

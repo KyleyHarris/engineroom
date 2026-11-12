@@ -162,3 +162,38 @@ func Task(cfg *config.Config, session, name string) (action.Plan, error) {
 	}
 	return action.Plan{}, fmt.Errorf("%s has no task called %q (it has: %s)", p.Name, name, strings.Join(names, ", "))
 }
+
+// AppCheck is how the health view checks a checkout's app (docs/decisions.md D-037): its project's
+// status script, run as up is run, in the checkout with the slot's values; and whether the project
+// starts an app at all, which is having an up script.
+type AppCheck struct {
+	Project   string
+	Status    action.Command
+	HasStatus bool
+	HasUp     bool
+}
+
+// StatusScriptHelp is what a status script must do, said to a project that starts an app and has
+// none, as a missing up script is told what an up script must do (WORK-STACK-004).
+const StatusScriptHelp = "Add an executable status script to the project's folder in your settings (engineroom settings where <project>), or .engineroom/status to the repository, that ends with success when everything the app needs is running and with a failure otherwise, printing what it found. It runs in the worktree with the same values as up, must change nothing, and must end within 10 seconds; with the stack helper it can be: . \"$(engineroom stack-lib)\"; running <each part up starts> (docs/decisions.md D-037)."
+
+// Apps returns the app check of each named session that is a registered project's checkout; a
+// session that is not one (an Ask Claude session, or one started outside engineroom) is left out.
+// The checkouts are read once for every session, as each read asks git for every project's
+// worktrees.
+func Apps(cfg *config.Config, sessions []string) map[string]AppCheck {
+	all := checkouts(cfg)
+	out := map[string]AppCheck{}
+	for _, name := range sessions {
+		c, ok := all[name]
+		if !ok {
+			continue
+		}
+		p, _ := cfg.Project(c.project)
+		a := AppCheck{Project: p.Name}
+		a.Status, a.HasStatus = script(p, c.path, c.path, workOf(p.Path, c.path), "status")
+		_, _, a.HasUp = settings.Script(p.Name, p.Path, c.path, "up")
+		out[name] = a
+	}
+	return out
+}

@@ -3,7 +3,8 @@ import EngineRoomKit
 import SwiftUI
 
 /// The window opened by the panel's gear (D-019): a sidebar of the registered projects (pinned
-/// first), the repositories, the history and the settings, and on the right whichever is chosen. It
+/// first), the repositories, the history, the settings and the engine's health, and on the right
+/// whichever is chosen. It
 /// has room the panel does not, so a project's worktrees sit side by side, and it stays open while
 /// the developer works. It is read while it is open and never while it is closed, as the panel is.
 struct MainWindow: View {
@@ -45,10 +46,17 @@ struct MainWindow: View {
             store.windowVisible = true
             store.activeSurface = .window
             Task { await store.panelOpened() }
+            // The Health page checks the engine each time it is opened (HEALTH-PAGE-001), and the
+            // window opening on it is it being opened.
+            if store.windowItem == .health { Task { await store.checkHealth() } }
         }
         .onDisappear { store.windowVisible = false }
         .onChange(of: store.windowItem) { item in
             if case .project(let name) = item { Task { await store.openProject(name) } }
+            // Choosing Health opens it, and opening it checks the engine (HEALTH-PAGE-001). Coming
+            // back to it from an action started on it is not opening it: that shows the check as it
+            // was, with its time, and Check again checks anew.
+            if item == .health { Task { await store.checkHealth() } }
             if case .action = store.page, store.actionIn == .window, !store.running { store.close() }
             if store.page != .none, store.actionIn == .window || store.page.isWindowTask { store.page = .none }
         }
@@ -77,8 +85,9 @@ struct MainWindow: View {
                 case .repositories: ReposView()
                 case .history: HistoryView()
                 case .settings: SettingsView()
+                case .health: HealthView()
                 case nil:
-                    EmptyState(title: "Nothing is chosen", detail: "Choose a project on the left, or the repositories, the history or the settings.")
+                    EmptyState(title: "Nothing is chosen", detail: "Choose a project on the left, or the repositories, the history, the settings or the engine's health.")
                         .padding(Gutter.page)
                 }
             }
@@ -127,6 +136,7 @@ struct Sidebar: View {
                 Label("Repositories", systemImage: "square.stack.3d.up").tag(Store.WindowItem.repositories)
                 Label("History", systemImage: "clock").tag(Store.WindowItem.history)
                 Label("Settings", systemImage: "gearshape").tag(Store.WindowItem.settings)
+                Label("Health", systemImage: "stethoscope").tag(Store.WindowItem.health)
             }
         }
         .listStyle(.sidebar)

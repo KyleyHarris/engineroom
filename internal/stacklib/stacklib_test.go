@@ -69,8 +69,19 @@ func TestTheHelperStartsLeavesAndStopsAPart(t *testing.T) {
 	part := `start site ` + p + ` "http://127.0.0.1:` + p + `/" . -- python3 -m http.server ` + p + ` --bind 127.0.0.1`
 	t.Cleanup(func() { run(t, helper, a, "stop site") })
 
+	// A status script's running is false before up started the part, in any worktree.
+	if out, err := run(t, helper, a, "running site"); err == nil || !strings.Contains(out, "not started by up here") {
+		t.Fatalf("running before start: %v\n%s", err, out)
+	}
 	if out, err := run(t, helper, a, part); err != nil || !strings.Contains(out, "site is running") || !listens(port) {
 		t.Fatalf("start: %v\n%s", err, out)
+	}
+	if out, err := run(t, helper, a, "running site"); err != nil || !strings.Contains(out, "site: running (pid") || !strings.Contains(out, "on "+p) {
+		t.Fatalf("running after start: %v\n%s", err, out)
+	}
+	// Another worktree's status never counts this one's part as its own.
+	if out, err := run(t, helper, b, "running site"); err == nil {
+		t.Fatalf("running in another worktree: %v\n%s", err, out)
 	}
 	if out, err := run(t, helper, a, part); err != nil || !strings.Contains(out, "already runs here") {
 		t.Fatalf("started again: %v\n%s", err, out)
@@ -86,6 +97,15 @@ func TestTheHelperStartsLeavesAndStopsAPart(t *testing.T) {
 	}
 	if listens(port) {
 		t.Fatal("the part still answers after stop")
+	}
+	if out, err := run(t, helper, a, "running site"); err == nil || !strings.Contains(out, "not started by up here") {
+		t.Fatalf("running after stop: %v\n%s", err, out)
+	}
+	// A part whose process lives on but no longer listens is not running: the script's own shell
+	// stands in for that process, recorded on a port nothing listens on.
+	ghost := `echo $$ >"$STATE/ghost.pid"; echo ` + strconv.Itoa(freePort(t)) + ` >"$STATE/ghost.port"; running ghost; s=$?; rm -f "$STATE/ghost.pid" "$STATE/ghost.port"; exit $s`
+	if out, err := run(t, helper, a, ghost); err == nil || !strings.Contains(out, "but nothing listens on") {
+		t.Fatalf("running with nothing listening: %v\n%s", err, out)
 	}
 	if out, _ := run(t, helper, a, "stop site"); !strings.Contains(out, "not started by up here") {
 		t.Fatalf("stopping again: %s", out)

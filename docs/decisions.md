@@ -133,10 +133,12 @@ kind of resource could never be general, and every new stack would need a change
 
 **Decision.**
 
-- A project that wants more than a plain worktree and session has four optional scripts:
+- A project that wants more than a plain worktree and session has five optional scripts:
   - `create` runs once, after the worktree exists and its slot is claimed, and makes what is
     unique to that worktree, such as a database or storage;
   - `up` runs on request and starts everything the worktree needs, returning once it is running;
+  - `status` runs when the health view asks, and says whether what `up` started is running
+    (D-037);
   - `down` runs on request, and before teardown, and stops what `up` started;
   - `teardown` runs before the worktree is removed and gives back what `create` made.
 - The stack is started on request (`engineroom up`, the app's Run button, or the agent inside a
@@ -1088,3 +1090,60 @@ action failed, and someone without Claude Code had no check at all.
   without one (a full DNS name) is fine for VS Code, and an entry that leads elsewhere is not.
 - Every item in the guide: the rest need a person (a key copied in, a login at the screen) or
   read another machine.
+
+## D-037 The health view checks the engine on request; a project says whether its app runs
+
+**Problem.** Before leaving the engine to work from somewhere else, the developer had no one place
+that said whether it was ready: set up, awake on power with the lid closed, and each running
+session reachable by Remote Control with its app running. Whether an app runs differs from
+project to project, as starting it does (D-006).
+
+**Decision.**
+
+- `engineroom health [--json]`, and the app's Health page, report the engine's setup items (D-036)
+  and, beside them, staying awake on power, staying awake with the lid closed, and for each running
+  session its Remote Control and its app (acceptance/health). Every item says how it was checked
+  and, when missing, its fix. It ends with a failure when anything is missing, and changes nothing.
+- The sessions checked are the running ones. Nothing records which sessions should be running.
+- On a client it is the engine's report: the client runs `engineroom health --json` on the engine
+  over SSH, as every client action does, and an engine not reached is said with its cause (D-034).
+- Staying awake on power is `sleep 0` under AC Power in `pmset -g custom`. Staying awake with the
+  lid closed is `AppleClamshellCausesSleep` read with `ioreg`: whether closing the lid would sleep
+  the machine now. A Mac with no lid has no such entry and is ready.
+- Remote Control is read from the running agent, not from how the session was started, because it
+  is turned on either when engineroom starts the session or by Claude inside it (`/remote-control`).
+  An agent is a process in the session (its `ZELLIJ_SESSION_NAME`) that Claude Code keeps a file
+  for in its `sessions` folder, `<pid>.json`; the file carries `bridgeSessionId` while Remote
+  Control is on. That file is Claude Code's own and not a published contract, so the check names
+  it in how it was checked, and a change to it shows as Remote Control off rather than a guess.
+- Remote Control is counted missing only where the developer has chosen it on this machine:
+  engineroom's choice (`agent.remote_control`, or the app starting sessions with Remote Control),
+  or Claude Code's `remoteControlAtStartup`. Otherwise it is shown, on or off, and never missing.
+  The fix is `/remote-control` inside the session: a running session is never restarted to apply
+  it (SESS-REMOTE-004).
+- Whether a session's app runs is said by its project's optional `status` script, beside
+  `create`, `up`, `down` and `teardown`, found the same way (D-013) and run the same way, in the
+  checkout with the slot's values. It ends with success when everything the app needs is running,
+  and what it prints is shown as the reason. It must change nothing and end within 10 seconds.
+  The stack helper gives it `running NAME...`, true when each part `up` started is still running.
+  A project with an `up` script and no `status` script is reported as not checked, never as
+  running; a project with neither has no app to run.
+- A fix the program can run (starting an app, `engineroom up`) runs only when the developer asks,
+  as any action does. A fix that needs an administrator, or is typed inside a session, is shown and
+  never run.
+- The check runs when asked: the command, or the page opening and its Check again button. Nothing
+  checks on a timer (D-023). The page reads `engineroom health --json`, as the command reads it, and
+  says when the items shown were checked; coming back to it from a fix started on it shows that
+  check, not a new one.
+- The page offers a fix the program can run as a button that shows the fix's commands first, as
+  every action does. On a client working local it offers none: its actions run on the client, while
+  the report is the engine's, so the fix would act on the wrong machine. The fix is shown as words.
+
+**Considered.**
+
+- A list of sessions that should be running: the running ones are the ones the developer works on,
+  and a list would be one more thing to keep up to date.
+- Judging Remote Control by the agent's command line (`--remote-control`): it misses Remote
+  Control turned on inside a session.
+- Judging an app by its slot's ports answering: a port held by something else, or a part that
+  listens but is broken, would read as running. The project knows what running means.

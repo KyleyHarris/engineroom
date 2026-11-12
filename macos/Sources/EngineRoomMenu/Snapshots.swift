@@ -46,6 +46,17 @@ enum Snapshots {
         }),
         ("window-repositories", true, { s in s.status = sample(Status.self, statusEngine); s.repos = repos; s.sessions = sessions; s.windowItem = .repositories }),
         ("window-history", true, { s in s.status = sample(Status.self, statusEngine); s.repos = repos; s.history = sample([HistoryEntry].self, historyJSON); s.windowItem = .history }),
+        // The engine's health as a client sees it: setup and staying awake, one item missing with a
+        // fix to type, and a session whose app is not running with the fix the program can run.
+        ("window-health", true, { s in
+            s.status = sample(Status.self, statusClient); s.repos = repos; s.windowItem = .health
+            s.health = sample(HealthReport.self, healthJSON); s.healthCheckedAt = Date(timeIntervalSince1970: 1_794_000_000)
+        }),
+        // The engine not reached: nothing checked, said with its cause.
+        ("window-health-unreached", true, { s in
+            s.status = sample(Status.self, statusClient); s.repos = repos; s.windowItem = .health
+            s.health = sample(HealthReport.self, healthUnreachedJSON); s.healthCheckedAt = Date(timeIntervalSince1970: 1_794_000_000)
+        }),
         ("window-settings", true, { s in s.status = sample(Status.self, statusClient); s.repos = repos; s.windowItem = .settings }),
         // A handover being worked out: the engine half read, this Mac waiting to start.
         ("panel-reading", false, { s in
@@ -208,6 +219,19 @@ enum Snapshots {
       "project-a":{"repo":"owner-a/project-a","code":"https://github.com/owner-a/project-a","issues":"https://github.com/owner-a/project-a/issues","pulls":"https://github.com/owner-a/project-a/pulls"},
       "project-b":{"repo":"owner-a/project-b","code":"https://github.com/owner-a/project-b","issues":"https://github.com/owner-a/project-b/issues","pulls":"https://github.com/owner-a/project-b/pulls"},
       "project-d":{"repo":"owner-a/project-d","code":"https://github.com/owner-a/project-d","issues":"https://github.com/owner-a/project-d/issues","pulls":"https://github.com/owner-a/project-d/pulls"}}}
+    """
+    static let healthJSON = """
+    {"machine":"engine.example","missing":3,"items":[
+     {"name":"zellij","for":"both","present":true,"checked":"zellij --version","found":"zellij 0.43.1","group":"setup"},
+     {"name":"stays awake on power","for":"engine","present":false,"checked":"pmset -g custom (sleep under AC Power)","found":"sleep 1 on power: sleeps after 1 minutes idle","fix":"System Settings, Battery (or Energy), Options: prevent automatic sleeping on power adapter when the display is off; or sudo pmset -c sleep 0","group":"awake"},
+     {"name":"Remote Control in project-a","for":"engine","present":true,"checked":"the Claude Code processes in the session (ZELLIJ_SESSION_NAME=project-a) and bridgeSessionId in /Users/dev/.claude/sessions/<pid>.json","found":"on (Claude pid 4242)","group":"session","session":"project-a"},
+     {"name":"the app of project-a","for":"engine","present":false,"checked":"/Users/dev/src/project-a/.engineroom/status","found":"not running: api not answering on 7202","fix":"start the app: engineroom up project-a","group":"session","session":"project-a","action":["up","project-a"]},
+     {"name":"Remote Control in project-b","for":"engine","present":false,"checked":"the Claude Code processes in the session (ZELLIJ_SESSION_NAME=project-b) and bridgeSessionId in /Users/dev/.claude/sessions/<pid>.json","found":"off; chosen because agent.remote_control is on in engineroom's configuration","fix":"in the session, type /remote-control to Claude","group":"session","session":"project-b"},
+     {"name":"the app of project-b","for":"engine","present":true,"checked":"the project's scripts (no up script, no status script)","found":"no app to run: project-b has no up script","group":"session","session":"project-b"}
+    ]}
+    """
+    static let healthUnreachedJSON = """
+    {"machine":"engine.example","unreached":"The engine did not answer. ssh: connect to host engine.example port 22: Operation timed out","items":null,"missing":0}
     """
     static let historyJSON = """
     [{"id":"1","started":"2026-11-07T09:00:00Z","ended":"2026-11-07T09:00:04Z","machine":"engine.example","title":"Start project-a","status":"done","commands":[{"display":"zellij attach --create-background project-a","why":"start the session","status":"ok","exit":0}]},

@@ -1,11 +1,11 @@
 # engineroom's stack helper, for a project's up and down scripts: start each part of a worktree's
 # stack in the background on its slot's ports, and stop exactly what was started.
 #
-# An up or down script sources it first:
+# An up, down or status script sources it first:
 #
 #   . "$(engineroom stack-lib)"
 #
-# then calls deps, start and stop (below). Safe to run again by construction: a part whose port
+# then calls deps, start and stop, or running (below). Safe to run again by construction: a part whose port
 # already answers for this worktree is not started, packages are installed only when missing or
 # older than their lock file, and stopping something already stopped just says so.
 
@@ -66,6 +66,8 @@ start() {
     BROWSER=none nohup "$@" >"$STATE/$name.log" 2>&1 </dev/null &
     echo $! >"$STATE/$name.pid"
   )
+  # The port is kept beside the pid, so running can say whether the part still listens on it.
+  echo "$port" >"$STATE/$name.port"
   local i
   for ((i = 0; i < ${START_WAIT:-120}; i++)); do
     if [ "$url" = "-" ]; then
@@ -123,6 +125,34 @@ stop() {
     else
       echo "$name: already stopped."
     fi
-    rm -f "$STATE/$name.pid"
+    rm -f "$STATE/$name.pid" "$STATE/$name.port"
   done
+}
+
+# running NAME...: for a status script. True when every named part that up started here is still
+# running: its recorded pid is alive and, where up recorded its port, something listens on that
+# port. Says each part's state on one line, and changes nothing.
+running() {
+  local name pid port all=0
+  for name in "$@"; do
+    if [ ! -f "$STATE/$name.pid" ]; then
+      echo "$name: not started by up here."
+      all=1
+      continue
+    fi
+    pid="$(cat "$STATE/$name.pid")"
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo "$name: stopped (pid $pid is gone)."
+      all=1
+      continue
+    fi
+    port="$(cat "$STATE/$name.port" 2>/dev/null)"
+    if [ -n "$port" ] && ! listening "$port"; then
+      echo "$name: pid $pid runs, but nothing listens on $port."
+      all=1
+      continue
+    fi
+    echo "$name: running (pid $pid${port:+, on $port})."
+  done
+  return "$all"
 }

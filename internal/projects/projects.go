@@ -17,8 +17,9 @@ import (
 )
 
 // Scripts are the lifecycle scripts a repository may declare in its .engineroom folder, in the order
-// they run in a worktree's life.
-var Scripts = []string{"create", "up", "down", "teardown"}
+// of a worktree's life: status sits between up and down, as it asks whether what up started still
+// runs (docs/decisions.md D-037).
+var Scripts = []string{"create", "up", "status", "down", "teardown"}
 
 // Declared lists which lifecycle scripts the repository at root declares: an executable file
 // .engineroom/<name>.

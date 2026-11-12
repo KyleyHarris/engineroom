@@ -74,6 +74,9 @@ Show, with a line of reasoning each:
   pick one, and must fail rather than move to another port when its own is taken (Vite's
   `--strictPort`).
 - **`down`**: `. "$(engineroom stack-lib)"`, then `stop web api`: exactly what `up` started.
+- **`status`**: `. "$(engineroom stack-lib)"`, then `running web api`: ends with success when every
+  part `up` started still runs, for `engineroom health`. It must change nothing and end within 10
+  seconds.
 - **`create` and `teardown`**, only when a worktree needs set-up of its own (a database per slot)
   and its undoing.
 - **What the developer must do**: add the slot record and anything rendered to `.gitignore`

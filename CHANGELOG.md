@@ -8,6 +8,14 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- **`engineroom health`, and a Health page in the app's window, say whether the engine is ready to
+  be worked on from away**: its setup items, staying awake on power and with the lid closed, and
+  for each running session whether Remote Control is on and whether its app is running, as the
+  project's new optional `status` script says. Every item says how it was checked and, when
+  missing, its fix; nothing is changed unless you ask for a fix the program can run, such as
+  starting a session's app, whose commands are shown first. On a client it is the engine's report
+  (docs/decisions.md D-037).
+
 - **Three more skills in the Claude Code plugin**, so Claude in any session works engineroom the
   way the menu bar app does, with the same commands: `sessions` (what is running and what waits
   for you; start, join, restart or stop a session; run a project's task; read the history),

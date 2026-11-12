@@ -5,203 +5,219 @@ package scenarios
 // Fields lists, for each generated type, the clause fields in document order. tools/clausecheck
 // reads it to fail the gate when a journey leaves a clause out.
 var Fields = map[string][]string{
-	"AppAdd001":      {"GivenARootWhoseOwnerHasARepositoryCalledWidgetThatIsNotHere", "WhenTheDeveloperGetsWidgetFromTheAppIntoThatRootInTheCategoryTools", "ThenItIsClonedIntoTheRootAsWidget", "AndItIsAProjectInTheCategoryTools"},
-	"AppAdd002":      {"GivenTheOwnerOfARootHasNoRepositoryCalledGadget", "WhenTheDeveloperCreatesGadgetFromTheAppAsAPublicRepositoryInTheCategoryTools", "ThenAPublicRepositoryGadgetIsCreatedForTheOwnerOnGitHubHoldingItsFirstCommit", "AndItIsAProjectInTheCategoryTools"},
-	"AppAsk001":      {"GivenAProjectWithPortsWhoseMainCloneTheDeveloperIsLookingAtInTheApp", "WhenTheyAskClaudeAboutIt", "ThenASessionOfItsOwnStartsInThatCheckoutBesideItsMainSession", "AndClaudeIsToldTheProjectTheCheckoutItsPortsAndWhereItsSettingsAre", "AndClaudeIsAskedToSayWhatItSeesAndAskWhatToDo"},
-	"AppEdit001":     {"GivenAProjectRegisteredOnTheEngine", "WhenTheDeveloperOpensItInEditorFromTheAppOnTheEngineAndFromTheAppOnAClient", "ThenOnTheEngineEditorOpensTheFolderOfTheProjectItself", "AndOnTheClientEditorOpensTheFolderOnTheEngineOverSSH"},
-	"AppFeed001":     {"GivenTheAppOnAClientFollowsTheEnginesSessions", "WhenASessionOnTheEngineStartsWaitingForTheDeveloper", "ThenWithinSecondsTheAppIsToldItIsWaitingWithItsQuestion", "AndItWasToldOverTheOneConnectionTheAppOpened"},
-	"AppFeed002":     {"GivenTheAppFollowsTheSessionsOneOfThemRunning", "WhenNothingChangesForAWhile", "ThenTheAppIsSentNoListAfterTheFirst"},
-	"AppFeed003":     {"GivenTheAppFollowsTheSessionsLookingByItselfOnlyOnceAMinute", "WhenASessionStartsAndTheAppAsksToLookNow", "ThenTheAppIsToldOfTheNewSessionWithinSeconds"},
-	"AppFeed004":     {"GivenTheAppOnAClientFollowsTheEnginesSessions", "WhenTheAppClosesItsEnd", "ThenNothingIsLeftFollowingOnTheEngine"},
-	"AppFeed005":     {"GivenTheAppFollowsTheSessionsAndItsPanelIsClosed", "WhenASessionStartsWaitingForTheDeveloper", "ThenTheMenuBarIconCarriesClaudesMark", "AndTheMarkGoesWhenNoSessionIsWaiting"},
-	"AppFeed006":     {"GivenAPinnedProjectHasACheckoutWithAFileChangedAndACommitThatIsNotOnTheRemote", "AndAnotherCheckoutWhoseBranchWasMergedIntoTheRemotesMain", "AndAThirdOnANewBranchWithNoCommitsOfItsOwn", "WhenTheAppFollowsTheSessions", "ThenTheFirstIsSentWithOneChangeAndOneCommitNotPushed", "AndTheSecondIsSentAsMerged", "AndTheThirdIsNot"},
-	"AppHist001":     {"GivenTheDeveloperStartedASessionFromTheApp", "WhenTheyOpenTheHistory", "ThenTheStartIsListedWithEachOfItsCommandsAndTheirOutcomes"},
-	"AppList001":     {"GivenTheEngineHasASessionWaitingForTheDeveloperAndOneThatIsNot", "WhenTheAppListsTheSessions", "ThenTheWaitingSessionIsMarkedAsWaitingWithItsQuestion", "AndTheOtherIsListedOnceNotMarked"},
-	"AppList002":     {"GivenThePinnedProjectBetaWithNoRunningSession", "AndRunningSessionsOfAlphaAndGammaOneOfThemWaitingForTheDeveloper", "WhenThePanelListsThem", "ThenBetaIsListedFirstWithAWayToStartIt", "AndTheSessionsOfAlphaAndGammaFollowByNameTheWaitingOneMarkedInItsPlace", "AndTheyAreListedInTheSameOrderWhenNoneIsWaiting"},
-	"AppList003":     {"GivenAProjectWhoseOriginIsTheGitHubRepositoryAcmeWidget", "AndARunningSessionInACheckoutOnTheBranchFeatureXSentToGitHub", "WhenTheAppListsTheSessionsAndTheRepositories", "ThenTheProjectLinksToTheCodeTheIssuesAndThePullRequestsOfAcmeWidgetOnGitHub", "AndTheSessionLinksToTheBranchFeatureXAndThePullRequestsFromItOnGitHub"},
-	"AppList004":     {"GivenThePinnedProjectBetaWithNoRunningSession", "AndAlphaWithTwoRunningSessionsOneWaitingForTheDeveloper", "AndGammaWithOneRunningSession", "WhenThePanelListsThem", "ThenBetaIsFirstItsLightOffThenAlphaWithClaudesMarkAndGammaWithARunningLight", "AndAlphaShowsBothOfItsCheckoutsWhenItIsChosen"},
-	"AppLogin001":    {"GivenTheAppIsInstalled", "WhenTheDeveloperTurnsOnOpeningAtLogin", "ThenTheAppIsRegisteredWithMacOSToOpenAtLogin", "AndTurningItOffUnregistersIt"},
-	"AppPage001":     {"GivenAProjectWithPortsARunningSessionInItsMainCloneAndACheckoutWithNoSession", "WhenTheDeveloperOpensTheProjectSPage", "ThenTheMainCloneIsListedFirstAsRunningWithSlot1sPortsAndTheLinksItsStackServes", "AndTheCheckoutIsListedWithItsBranchAsNotRunningWithItsOwnSlotsPorts", "AndTheProjectSScriptsAreListedWithWhereEachComesFrom"},
-	"AppPage002":     {"GivenARegisteredProjectWithNoCategory", "WhenTheDeveloperPinsItAndGivesItTheCategoryToolsFromItsPage", "ThenTheProjectIsListedAsPinnedUnderTools", "AndNothingOnDiskIsChanged"},
-	"AppPage003":     {"GivenARegisteredProject", "WhenTheDeveloperUnregistersItFromItsPage", "ThenItIsNoLongerARegisteredProject", "AndItsFolderIsStillThere"},
-	"AppPage004":     {"GivenAProjectWhoseSettingsNameTheLinkAppAsHttpsOnItsUiPort", "WhenTheDeveloperListsTheSessions", "ThenTheRunningSessionCarriesTheLinkAppWithItsSlotsUiPort"},
-	"AppPage005":     {"GivenAProjectWhoseOriginIsTheGitHubRepositoryAcmeWidget", "WhenTheDeveloperOpensItsPage", "ThenThePageLinksToTheCodeTheIssuesAndThePullRequestsOfAcmeWidgetOnGitHub"},
-	"AppPage006":     {"GivenAProjectOnGitHubWithACheckoutOnTheBranchFeatureXSentToGitHub", "AndACheckoutOnTheBranchLocalOnlyWhichGitHubDoesNotHave", "WhenTheDeveloperOpensTheProjectSPage", "ThenTheCheckoutOnFeatureXLinksToThatBranchsCodeAndItsPullRequestsOnGitHub", "AndTheCheckoutOnLocalOnlyHasNoGitHubLinks"},
-	"AppPage007":     {"GivenAProjectWithNoOrigin", "WhenTheDeveloperOpensItsPage", "ThenNeitherThePageNorItsCheckoutLinksToGitHub"},
-	"AppPreview001":  {"GivenTheOwnerOfARootHasNoRepositoryCalledGadget", "WhenTheDeveloperAsksTheAppToCreateGadget", "ThenTheCommandsItWouldRunAreShownInOrder", "AndNoFolderIsMadeAndNothingIsCreatedOnGitHub"},
-	"AppRepos001":    {"GivenARootWhoseOwnerHasOneRepositoryOnGitHubThatIsNotHere", "AndOneClonedInTheRootAndRegisteredInTheCategoryTools", "AndAGitRepositoryInTheFolderOfTheRootThatIsNotRegistered", "WhenTheAppListsTheRepositories", "ThenEachIsListedUnderTheRoot", "AndTheyAreMarkedOnGitHubButNotHereRegisteredInToolsAndHereButNotRegistered"},
-	"AppRepos002":    {"GivenAGitRepositoryInTheFolderOfARootThatIsNotRegistered", "WhenTheDeveloperRegistersItFromTheAppInTheCategoryTools", "ThenItIsAProjectInTheCategoryTools", "AndTheCommandThatRegisteredItIsInTheHistory"},
-	"AppRepos003":    {"GivenARootWhoseOwnerHasARepositoryOnGitHubThatIsNotHere", "WhenTheDeveloperHidesItFromTheApp", "ThenItIsMarkedHiddenInTheList", "AndOnceTheyShowItAgainItIsNot"},
-	"AppStart001":    {"GivenAProjectWithNoSession", "WhenTheDeveloperStartsItFromTheAppInZellij", "ThenASessionRunsClaudeCodeInsideZellijWithoutRemoteControl", "AndAWindowOfTheChosenTerminalIsOpenedJoinedToThatSession"},
-	"AppStart002":    {"GivenAProjectWithNoSession", "WhenTheDeveloperStartsItFromTheAppWithRemoteControl", "ThenASessionRunsClaudeCodeInsideZellijWithRemoteControlUnderTheNameOfTheSession", "AndNoTerminalWindowIsOpened"},
-	"AppStart003":    {"GivenAProjectWithNoSession", "WhenTheDeveloperStartsItFromTheAppWithBoth", "ThenASessionRunsClaudeCodeInsideZellijWithRemoteControlUnderTheNameOfTheSession", "AndAWindowOfTheChosenTerminalIsOpenedJoinedToThatSession"},
-	"AppTask001":     {"GivenAProjectWhoseSettingsNameATask", "WhenTheDeveloperRunsThatTaskOnItsMainCloneFromTheApp", "ThenTheTasksCommandRunsInThatCheckoutWithTheSlotsPorts", "AndItIsListedOnTheProjectSPage"},
-	"AppTerm001":     {"GivenGhosttyAndTerminalAreTheTerminalsInstalledOnThisMac", "WhenTheDeveloperLooksAtWhichTerminalSessionsAreJoinedIn", "ThenOnlyGhosttyAndTerminalAreOfferedAndGhosttyIsChosen", "AndOnceTheDeveloperChoosesTerminalSessionsAreJoinedInTerminalFromThenOn"},
-	"AppUpgrade001":  {"GivenThisMachineRunsEngineroomWithItsApp", "WhenTheDeveloperAsksToUpgradeThisMachine", "ThenAnUpgradeSessionStartsOnThisMachine", "AndClaudeIsToldTheStepsThisMachinesBuildAndWhereItsAppIs", "AndClaudeIsAskedToUpgradeItNow"},
-	"AppUpgrade002":  {"GivenThisMachineIsAClientOfAnEngineThatAnswers", "WhenTheDeveloperAsksToUpgradeTheEngine", "ThenAnUpgradeSessionStartsOnTheEngine", "AndNothingIsStartedOnThisMachine"},
-	"AppUpgrade003":  {"GivenAnUpgradeSessionFromAnEarlierUpgradeIsStillOnThisMachine", "WhenTheDeveloperAsksToUpgradeThisMachine", "ThenTheEarlierUpgradeSessionIsEndedAndANewOneStarts", "AndClaudeIsAskedToUpgradeItNow"},
-	"ConnDown001":    {"GivenThisMachineIsAClient", "AndTheEngineDoesNotAnswer", "WhenTheDeveloperOpensAProject", "ThenTheyAreAskedToRetryWorkLocallyOrStop", "AndNothingHasBeenStartedOnEitherMachine"},
-	"ConnDown002":    {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "WhenTheyChooseStop", "ThenNothingHasBeenStartedOrChangedOnEitherMachine"},
-	"ConnDown003":    {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "AndTheEngineNowAnswers", "WhenTheyChooseRetry", "ThenTheProjectTheyAskedForIsOpenedOnTheEngine"},
-	"ConnDown004":    {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "AndTheEngineStillDoesNotAnswer", "WhenTheyChooseRetry", "ThenTheyAreAskedAgainToRetryWorkLocallyOrStop", "AndNothingHasBeenStartedOnEitherMachine"},
-	"ConnHandoff001": {"GivenTheClientIsOffline", "AndACommitWasMadeInTheClientSCheckoutOfAProjectAndNotPushed", "WhenTheDeveloperSwitchesTheClientBackOnline", "ThenTheyAreShownThatTheProjectHasACommitOnTheClientThatIsNotOnGitHub", "AndTheyAreShownTheCommandsThatPushItFromTheClientAndBringTheEngineSCheckoutUpToIt", "AndNothingHasRunYet"},
-	"ConnHandoff002": {"GivenGoingBackOnlineShowedACommitOnTheClientToHandOver", "WhenTheDeveloperRunsTheHandoff", "ThenTheCommitIsOnGitHub", "AndTheEngineSCheckoutOfTheProjectIsAtThatCommit"},
-	"ConnHandoff003": {"GivenTheClientHasACommitToHandOver", "AndTheEnginesCheckoutOfThatProjectHasUncommittedChanges", "WhenTheDeveloperHandsTheWorkBackToTheEngineAndRunsIt", "ThenTheEnginesCheckoutIsAtTheClientSCommitWithNoChangesOfItsOwn", "AndTheEnginesChangesAreInItsStashListLabelledWithItsBranch"},
-	"ConnHandoff004": {"GivenACommitWasMadeInTheEngineSCheckoutOfAProjectAndNotPushed", "AndTheEngineAnswers", "WhenTheDeveloperSwitchesTheClientOffline", "ThenTheyAreShownThatTheProjectHasACommitOnTheEngineThatIsNotOnGitHub", "AndTheyAreShownTheCommandsThatPushItFromTheEngineAndBringTheClientSCheckoutUpToIt"},
-	"ConnHandoff005": {"GivenTheEngineDoesNotAnswer", "WhenTheDeveloperSwitchesTheClientOffline", "ThenTheClientIsOffline", "AndTheyAreToldTheEngineCouldNotBeCheckedForWorkThatIsNotOnGitHub"},
-	"ConnHandoff006": {"GivenASessionStartedOnTheClientWhileItWasOfflineIsStillRunning", "WhenTheDeveloperSwitchesTheClientBackOnline", "ThenTheSessionListShowsTheEngineSSessions", "AndItShowsThatSessionMarkedAsOnThisMachine", "AndJoiningItJoinsItOnTheClient"},
-	"ConnHandoff007": {"GivenABranchInNoCheckoutOnTheEngineHasACommitThatGitHubDoesNot", "AndTheEnginesMainCloneHasACommitOnItsOwnBranchThatGitHubDoesNot", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheMainClonesBranchIsOnGitHubWithItsCommit", "AndTheBranchInNoCheckoutIsNotOnGitHub", "AndTheyAreToldTheCommandThatWouldPushIt"},
-	"ConnHandoff008": {"GivenTheEnginesCheckoutOfAProjectHasAChangedFileAndANewFileNeitherCommitted", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheClientSCheckoutHasTheChangedFileAndTheNewFileUncommitted", "AndTheEnginesCheckoutNoLongerHasThemAndKeepsThemInItsStashList", "AndGitHubHasNothingOfThem"},
-	"ConnHandoff009": {"GivenTheEngineHasAProjectTheClientDoesNot", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheClientHasThatProjectAtTheSamePlaceUnderItsHomeAsOnTheEngine", "AndItIsRegisteredOnTheClientUnderTheSameName"},
-	"ConnHandoff010": {"GivenTheEnginesMainCloneHasACommitOnItsOwnBranchThatGitHubDoesNot", "WhenTheDeveloperReleasesTheEngineFromTheAppOnTheEngine", "ThenThatBranchIsOnGitHubWithItsCommit", "AndTheEngineShowsWhenItWasReleased"},
-	"ConnHandoff011": {"GivenTheEngineHasAProjectTheClientDoesNot", "AndGitHubHasACommitTheClientSCheckoutOfAnotherProjectDoesNot", "WhenTheClientKeepsItselfReadyToWorkLocal", "ThenTheMissingProjectIsCopiedToTheClientAndRegistered", "AndTheClientSCheckoutIsNotMoved"},
-	"ConnHandoff012": {"GivenTheEnginesMainCloneHasAReleaseBranchCheckedOutWithACommitThatGitHubDoesNot", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheReleaseBranchIsNotOnGitHub", "AndTheyAreToldAHandoverNeverPushesAReleaseBranch"},
-	"ConnHandoff013": {"GivenTheEngineHasTwoProjectsRegistered", "WhenTheDeveloperAsksForTheHandoverFromTheEngineToTheClient", "ThenTheyAreToldTheEnginesReadingProjectByProjectUpToTwoOfTwoWithTheCommandDoingIt", "AndTheyAreToldThisMachinesReadingToo", "AndTheHandoversCommandsFollow"},
-	"ConnHandoff014": {"GivenTheClientSCheckoutOfAProjectHasANewFileNotCommitted", "WhenTheDeveloperHandsTheWorkBackToTheEngineAndRunsIt", "ThenTheEnginesCheckoutHasTheNewFileUncommitted", "AndTheClientSCheckoutNoLongerHasIt"},
-	"ConnHandoff015": {"GivenTheEnginesCheckoutOfAProjectHasUncommittedChanges", "AndTheClientSBranchOfThatProjectHasACommitOfItsOwnThatGitHubDoesNot", "WhenTheDeveloperSwitchesTheClientToWorkLocal", "ThenTheyAreToldTheHandoverCannotRunBecauseOfTheClientSCommit", "AndNothingHasChangedOnEitherMachine", "AndTheClientIsNotWorkingLocal"},
-	"ConnHandoff016": {"GivenTheEnginesCheckoutOfAProjectIsOnAnotherBranchThanMainWithAnUncommittedChange", "AndTheClientSCheckoutOfThatProjectIsOnMainWithANewFileOfItsOwn", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheClientSCheckoutIsOnTheEnginesBranchAtItsCommitWithItsChange", "AndTheClientSNewFileIsInItsStashListLabelledMain"},
-	"ConnHandoff017": {"GivenTheDeveloperIsShownAHandoverFromTheEngineToTheClientWithACommitToPush", "WhenTheEnginesCheckoutIsEditedBeforeTheDeveloperRunsIt", "ThenTheHandoverStopsAtItsFirstStep", "AndGitHubAndBothCheckoutsAreAsTheyWere"},
-	"ConnHandoff018": {"GivenACommitWasMadeInTheEnginesCheckoutOfAProjectAndPushedToGitHub", "AndTheClientSCheckoutOfThatProjectHasNotTakenIt", "WhenTheDeveloperHandsTheWorkBackToTheEngine", "ThenTheyAreToldTheHandoverCannotRunBecauseItWouldMoveTheEngineBack", "AndTheEnginesCheckoutIsStillAtItsCommit"},
-	"ConnHandoff019": {"GivenTheEnginesCheckoutOfAProjectHasACommitGitHubDoesNotAndAnUncommittedChange", "AndABranchInNoCheckoutThereHasACommitGitHubDoesNot", "WhenTheDeveloperAsksForTheHandoverFromTheEngineToTheClient", "ThenOneLineForTheProjectSaysTheCommitIsSentToGitHubAndTheChangeCarried", "AndTheBranchInNoCheckoutIsNamedInOneLineOfWhatIsLeftAsItIs"},
-	"ConnLocal001":   {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "AndThisMachineHasItsOwnCheckoutOfTheProject", "WhenTheyChooseToWorkLocally", "ThenASessionIsOpenedOnThisMachineInThatCheckout"},
-	"ConnLocal002":   {"GivenTheDeveloperChoseToWorkLocally", "WhenAnyScreenOfTheToolIsShown", "ThenItIsMarkedLOCAL"},
-	"ConnLocal003":   {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "AndThisMachineHasNoCheckoutOfTheProject", "WhenTheyChooseToWorkLocally", "ThenTheyAreToldThisMachineHasNoCopyOfTheProject", "AndNothingIsStartedOnThisMachine"},
-	"ConnOffline001": {"GivenAClientWhoseEngineAnswers", "AndTheClientHasItsOwnCheckoutOfAProject", "WhenTheDeveloperSwitchesTheClientOfflineAndOpensThatProject", "ThenASessionIsOpenedOnTheClientInItsCheckout", "AndNothingIsAskedOfTheEngine", "AndEveryScreenIsMarkedOFFLINE"},
-	"ConnOffline002": {"GivenTheDeveloperSwitchedTheClientOffline", "WhenTheyStartTheToolAgain", "ThenItIsStillOfflineAndMarkedOFFLINE", "AndOnceTheySwitchItBackOnlineTheSessionsItListsAreThoseOnTheEngine"},
-	"ConnOffline003": {"GivenASessionWasStartedOnTheClientWhileItWasOffline", "WhenTheDeveloperSwitchesTheClientBackOnline", "ThenThatSessionIsStillRunningOnTheClient"},
-	"ConnOffline004": {"GivenAClientWorkingOnTheEngine", "WhenTheDeveloperAsksTheAppToWorkLocalAndIsShownTheHandover", "ThenTheClientIsStillWorkingOnTheEngine", "AndOnceTheyRunTheHandoverItWorksLocal"},
-	"ConnRejoin001":  {"GivenTheDeveloperHasJoinedASessionFromAClient", "WhenTheConnectionToTheEngineDropsWhileTheSessionKeepsRunning", "ThenTheSameWindowJoinsThatSessionAgain", "AndTheCommandsItRanToDoSoAreInTheHistory"},
-	"ConnRejoin002":  {"GivenTheDeveloperHasJoinedASessionFromAClient", "WhenTheConnectionToTheEngineDropsAndTheEngineDoesNotAnswer", "ThenTheWindowSaysTheConnectionWasLostAndThatItJoinsAgainWhenTheEngineAnswers", "AndOnceTheEngineAnswersItJoinsTheSessionAgain"},
-	"ConnRejoin003":  {"GivenTheDeveloperHasJoinedASessionFromAClient", "WhenTheConnectionToTheEngineDropsAndTheSessionIsStoppedBeforeItComesBack", "ThenTheWindowDoesNotJoinASessionAgain", "AndNoSessionIsStartedOnEitherMachine"},
-	"ConnRejoin004":  {"GivenTheWindowIsWaitingForTheEngineToAnswerAfterTheConnectionDropped", "WhenTheDeveloperPressesQ", "ThenTheWindowStopsWaitingAndJoinsNothing"},
-	"ConnRole001":    {"GivenThisMachineIsSetUpAsAClient", "AndTheEngineAnswers", "WhenTheDeveloperOpensAProject", "ThenItsSessionIsOpenedOnTheEngine", "AndNothingIsStartedOnThisMachine"},
-	"ConnRole002":    {"GivenThisMachineIsSetUpAsTheEngine", "WhenTheDeveloperOpensAProject", "ThenItsSessionIsOpenedOnThisMachine", "AndNoneOfTheCommandsShownConnectToAnotherMachine"},
-	"ConnRole003":    {"GivenThisMachineIsAClientThatReachesTheEngineByAnSSHNameOfItsOwn", "AndTheEngineAnswers", "WhenTheClientComparesItsVersionWithTheEngines", "ThenItIsToldTheEnginesOwnMachineNameNotTheSSHName"},
-	"ConnSetup001":   {"GivenThisMachineHasNotBeenSetUpAsTheEngineOrAsAClient", "WhenTheDeveloperStartsTheTool", "ThenTheyAreToldThisMachineHasNoRoleYet", "AndTheyAreShownHowToSetOne", "AndNoActionIsOfferedUntilARoleIsSet"},
-	"EditOpen001":    {"GivenASessionIsRunningInACheckoutOnTheEngine", "WhenTheDeveloperOpensItInEditorFromTheSessionList", "ThenEditorIsStartedOnThatCheckoutSFolder", "AndTheCommandThatStartedItIsShown"},
-	"EditOpen002":    {"GivenTheDeveloperIsOnAClient", "AndASessionIsRunningInACheckoutOnTheEngine", "WhenTheDeveloperOpensItInEditor", "ThenEditorOnTheClientIsStartedOnTheEngineSFolderForThatCheckoutReachedOverSSH", "AndNothingIsStartedOnTheEngine"},
-	"EditOpen003":    {"GivenASessionInACheckoutOnTheEngineHasEnded", "WhenTheDeveloperOpensItInEditorFromTheSessionList", "ThenEditorIsStartedOnThatCheckoutSFolder", "AndTheSessionIsStillEnded"},
-	"EditOpen004":    {"GivenASessionIsRunningThatDoesNotBelongToARegisteredProject", "WhenTheDeveloperOpensItInEditorFromTheSessionList", "ThenTheyAreToldItsFolderIsNotKnownBecauseItIsNotInARegisteredProject", "AndEditorIsNotStarted"},
-	"EditOpen005":    {"GivenEditorSCommandIsNotInstalledOnThisMachine", "WhenTheDeveloperOpensASessionInEditor", "ThenTheyAreToldTheCommandWasNotFoundOnThisMachineAndHowToInstallIt", "AndNothingIsRun"},
-	"EditOpen006":    {"GivenTheDeveloperIsWorkingLocallyOnAClientBecauseTheEngineDidNotAnswer", "AndASessionIsRunningInThisMachinesOwnCopyOfAProject", "WhenTheDeveloperOpensItInEditorFromTheSessionList", "ThenEditorIsStartedOnThisMachinesFolderNotTheEngineS"},
-	"LearnCopy001":   {"GivenTheCommandsOfAnActionAreShown", "WhenTheDeveloperCopiesTheSecondCommand", "ThenExactlyThatCommandIsSentToTheTerminalsClipboard", "AndTheyAreToldItWasSentToTheTerminalsClipboard"},
-	"LearnCopy002":   {"GivenTheCommandsOfAnActionAreShown", "WhenTheDeveloperCopiesAllOfThem", "ThenTheCommandsAreSentToTheTerminalsClipboardInOrderEachJoinedToTheNextWith", "AndPastedIntoAShellTheyStopAtTheFirstCommandThatFails"},
-	"LearnHist001":   {"GivenTheDeveloperHasRunActionsOnThisMachine", "WhenTheyOpenTheHistory", "ThenEachActionIsListedWithWhenItRanWhichMachineItRanOnItsCommandsAndTheirOutcomes"},
-	"LearnHist002":   {"GivenAnActionIsInTheHistory", "WhenTheDeveloperCopiesItsCommands", "ThenTheyGetCommandsThatRunAsTheyAreWhenPastedIntoATerminal"},
-	"LearnHist003":   {"GivenTheDeveloperJoinsASessionAndZellijCannotAttachToIt", "WhenTheyOpenTheHistory", "ThenTheJoinIsListedAsFailedWithWhatZellijSaid"},
-	"LearnShow001":   {"GivenTheDeveloperHasChosenAnAction", "WhenTheyAskToSeeWhatItWillDo", "ThenTheCommandsItWillRunAreListedInTheOrderTheyWillRun", "AndNothingHasRunYet"},
-	"LearnShow002":   {"GivenAnActionIsRunning", "WhenEachOfItsCommandsStartsAndThenFinishes", "ThenTheCommandIsShownAsItStarts", "AndItsOutcomeIsShownWhenItFinishes"},
-	"LearnShow003":   {"GivenAnActionIsRunning", "WhenOneOfItsCommandsFails", "ThenTheActionStopsAtThatCommand", "AndThatCommandAndItsErrorAreShown", "AndTheCommandsAfterItAreShownAsNotRun"},
-	"PortFwd001":     {"GivenASessionIsRunningOnTheEngineWithAServerOnItsSlotsPort", "WhenTheDeveloperTurnsForwardingOnOnAClient", "ThenTheClientSOwnPortOfThatNumberReachesTheEnginesServer", "AndTheForwardIsKeptInTheHistory"},
-	"PortFwd002":     {"GivenTheClientForwardsARunningSessionSPort", "WhenTheSessionStopsAndForwardingChecksAgain", "ThenTheClientSPortNoLongerReachesTheEngine"},
-	"PortFwd003":     {"GivenAProgramOnTheClientAlreadyListensOnARunningSessionSPort", "WhenTheDeveloperTurnsForwardingOn", "ThenTheyAreToldThePortIsInUseAndWhatHoldsIt", "AndThatProgramKeepsThePort"},
-	"PortFwd004":     {"GivenTheClientForwardsARunningSessionSPort", "WhenTheDeveloperSwitchesTheClientToWorkLocal", "ThenTheClientSPortNoLongerReachesTheEngine", "AndForwardingChecksAgainDoNotForwardItWhileTheClientWorksLocal"},
-	"PortFwd005":     {"GivenTheClientForwardsARunningSessionSPortAndItsForwarderIsWatching", "AndANewConnectionToTheEngineCouldNotBeMade", "WhenAnotherSessionStartsOnTheEngineWithAServerOnItsPort", "ThenWithinSecondsTheClientSPortOfThatNumberReachesTheEnginesServer"},
-	"PortFwd006":     {"GivenForwardingIsOnAndASessionIsRunningOnTheEngine", "AndTheClientHasNoConnectionToTheEngine", "WhenTheForwarderWatchesForAWhile", "ThenNoConnectionToTheEngineIsOpened", "AndNothingIsAddedToTheHistory"},
-	"PortFwd007":     {"GivenForwardingEverySessionIsOffAndTwoSessionSRunOnTheEngineEachWithAServerOnItsPort", "WhenTheDeveloperSwitchesOneSessionSForwardingOn", "ThenThatSessionSPortReachesTheEnginesServer", "AndTheOtherSessionSPortIsNotForwarded", "AndOnceTheySwitchItOffAgainItsPortNoLongerReachesTheEngineAndTheConnectionToTheEngineIsClosed"},
-	"PortRes001":     {"GivenTwoProjectsWhoseSettingsBothUseOnePort", "WhenTheDeveloperChecksThePorts", "ThenTheClashIsReportedNamingBothProjectsAndThePort", "AndNeitherProjectSSettingsAreChanged"},
-	"PortRes002":     {"GivenAnotherProjectAlreadyReservesTheFirstBlock", "WhenTheDeveloperReservesPortsForAProjectThatNamesItsPorts", "ThenTheProjectReservesTheNextFreeBlockOf100", "AndItsSlot1KeepsThePortsItHad", "AndSlots2To10TakePortsFromTheBlock"},
-	"PortSet001":     {"GivenTheRepositoryRecommendsOneSetOfPortsAndTheDevelopersSettingsGiveAnother", "WhenTheDeveloperStartsNewWorkOnTheProject", "ThenItsRecordHoldsThePortsFromTheDevelopersSettings"},
-	"PortSet002":     {"GivenTheDevelopersSettingsForAProjectNameAPortSlotTheProgramsOwnKey", "WhenTheDeveloperStartsNewWorkOnTheProject", "ThenTheyAreToldThePortSlotIsTheProgramsOwnKeyNamingTheirSettingsFile", "AndNoCheckoutIsCreated"},
-	"PortSlot001":    {"GivenAProjectWhoseSettingsGiveItThreeSlots", "WhenTheDeveloperStartsNewWorkOnIt", "ThenTheNewCheckoutHoldsASlotThatIsNotTheMainClones", "AndItsRecordHoldsThatSlotsPorts"},
-	"PortSlot002":    {"GivenNewWorkHoldsASlot", "WhenTheDeveloperCleansItUpAndConfirms", "ThenTheSlotIsFree", "AndTheNextNewWorkIsGivenIt"},
-	"PortSlot003":    {"GivenAProjectWhoseSettingsNameTheirOwnSlotRecord", "AndNewWorkOnItHoldsSlot2", "WhenTheDeveloperStartsTheStackOfThatNewWorkAndRunsOneOfItsTasksThere", "ThenTheUpScriptIsGivenSlot2sPorts", "AndTheTaskIsGivenThemToo"},
-	"PortSlot004":    {"GivenAProjectWhoseSettingsGiveItOneSlotWhichItsMainCloneRunsOn", "WhenTheDeveloperStartsNewWorkOnIt", "ThenTheyAreToldEverySlotIsHeldNamingTheMainClone", "AndNoCheckoutIsCreated"},
-	"PortSlot005":    {"GivenNewWorkHoldsASlotAndTheRepositorysGitignoreNamesNoneOfTheSlotsFiles", "WhenTheDeveloperAsksForTheSlotsFilesToBeIgnoredTwice", "ThenGitIgnoresTheRecordAndItsEnvironmentFile", "AndGitignoreNamesEachOfThemOnce"},
-	"ProjAdd001":     {"GivenAGitRepositoryOnThisMachineThatIsNotRegistered", "WhenTheDeveloperRegistersItsFolder", "ThenItIsListedAmongTheRegisteredProjectsUnderItsFoldersName", "AndItCanBeOpenedByThatName"},
-	"ProjAdd002":     {"GivenAGitRepositoryOnThisMachineThatIsNotRegistered", "WhenTheDeveloperRegistersItsFolderWithTheNameWeb", "ThenItIsListedAmongTheRegisteredProjectsAsWeb"},
-	"ProjAdd003":     {"GivenAFolderOnThisMachineThatIsNotAGitRepository", "WhenTheDeveloperRegistersIt", "ThenTheyAreToldItIsNotAGitRepository", "AndNothingIsRegistered"},
-	"ProjAdd004":     {"GivenARepositoryIsAlreadyRegistered", "WhenTheDeveloperRegistersTheSameFolderAgain", "ThenTheyAreToldItIsAlreadyRegisteredAndUnderWhichName", "AndItIsListedOnce"},
-	"ProjAdd005":     {"GivenAGitRepositoryThatDeclaresACreateScriptAndATeardownScript", "WhenTheDeveloperRegistersItsFolder", "ThenTheyAreToldWhichSetupScriptsTheRepositoryDeclares"},
-	"ProjBrowse001":  {"GivenARootWhoseOwnerHasThreeRepositoriesOnGitHub", "AndOneOfThemIsClonedInTheRootAndRegisteredAsAProject", "WhenTheDeveloperBrowsesTheRoot", "ThenAllThreeRepositoriesAreListed", "AndTheyAreListedInAlphabeticalOrderOfTheirNamesIgnoringCase", "AndTheOneAlreadyHereIsMarkedAsRegisteredUnderItsProjectName"},
-	"ProjBrowse002":  {"GivenARootWhoseGitHubAccountIsNotSignedInOnTheEngine", "WhenTheDeveloperBrowsesTheRoot", "ThenTheyAreToldTheOwnersRepositoriesCouldNotBeListedAndWhy", "AndTheyAreShownTheCommandThatSignsTheAccountIn"},
-	"ProjCat001":     {"GivenAProjectRegisteredInTheCategoryToolsTwoInTheCategoryWebAndOneWithNoCategory", "WhenTheDeveloperOpensTheListOfProjects", "ThenEachProjectIsShownUnderAHeadingForItsCategory", "AndUnderEachHeadingTheProjectsAreInAlphabeticalOrderOfTheirNamesIgnoringCase", "AndTheProjectWithNoCategoryIsListedAfterTheCategorys"},
-	"ProjCat002":     {"GivenAnEngineThatAnswersTheListOfProjectsWithTheirNamesOnly", "WhenTheDeveloperOnAClientOpensTheListOfProjects", "ThenEveryProjectIsListedWithNoCategoryHeadings"},
-	"ProjClone001":   {"GivenARootWhoseOwnerHasARepositoryCalledWidgetThatIsNotOnTheEngine", "WhenTheDeveloperAddsWidgetFromTheListInTheCategoryTools", "ThenItIsClonedIntoTheRootAsWidget", "AndItIsRegisteredAsAProjectCalledWidgetInTheCategoryTools"},
-	"ProjClone002":   {"GivenAFolderCalledWidgetIsAlreadyInTheRoot", "WhenTheDeveloperAddsTheRepositoryWidgetFromTheList", "ThenTheyAreToldTheFolderIsAlreadyThereAndHowToRegisterIt", "AndNothingIsClonedAndTheFolderIsUnchanged"},
-	"ProjCreate001":  {"GivenTheOwnerOfTheRootHasNoRepositoryCalledGadget", "WhenTheDeveloperCreatesGadgetInTheRootAsAPrivateRepositoryInTheCategoryTools", "ThenItsFolderIsMadeInTheRootWithAFirstCommit", "AndAPrivateRepositoryGadgetIsCreatedForTheOwnerOnGitHubHoldingThatCommit", "AndItIsRegisteredAsAProjectCalledGadgetInTheCategoryTools"},
-	"ProjCreate002":  {"GivenTheOwnerOfTheRootAlreadyHasARepositoryCalledWidgetOnGitHub", "WhenTheDeveloperCreatesWidgetInTheRoot", "ThenTheyAreToldTheOwnerAlreadyHasARepositoryOfThatName", "AndNoFolderIsMadeAndNothingIsCreatedOnGitHub"},
-	"ProjHere001":    {"GivenARegisteredProjectWithASecondCheckoutAndAFolderThatIsInNoProject", "WhenTheDeveloperAsksWhetherEachOfThatCheckoutAndTheOtherFolderIsAProjectS", "ThenThatCheckoutIsAnsweredWithTheProjectSNameAndSuccess", "AndTheOtherFolderIsAnsweredWithFailureAndNothingPrinted"},
-	"ProjList001":    {"GivenTwoProjectsAreRegistered", "WhenTheDeveloperListsTheProjects", "ThenEachIsListedWithItsNameAndItsFolder"},
-	"ProjRemove001":  {"GivenAProjectIsRegistered", "WhenTheDeveloperRemovesIt", "ThenItIsNoLongerListedAmongTheRegisteredProjects", "AndItsFolderAndEverythingInItAreUnchanged"},
-	"ProjRoot001":    {"GivenAFolderOnTheEngineMeantForOneGitHubOwnersRepositories", "WhenTheDeveloperRegistersItAsARootForThatOwnerWithTheGitHubAccountThatListsIt", "ThenItIsListedAmongTheRootsWithItsFolderItsOwnerAndItsAccount"},
-	"ProjRoot002":    {"GivenThereIsNoFolderAtThePathTheDeveloperNames", "WhenTheDeveloperRegistersThatPathAsARoot", "ThenTheyAreToldTheFolderDoesNotExist", "AndNoRootIsRegistered"},
-	"SessBack001":    {"GivenASessionWithALayoutOfItsOwnEndedBecauseTheEngineRestarted", "WhenTheDeveloperStartsItAgain", "ThenItOpensWithTheCurrentStandardLayout", "AndNotWithTheTabsAndPanesItHad"},
-	"SessBack002":    {"GivenASessionEndedBecauseTheEngineRestarted", "WhenTheDeveloperStartsItAgain", "ThenClaudeCodeContinuesTheConversationItWasHaving", "AndANewEmptyConversationIsNotStartedInItsPlace"},
-	"SessBack003":    {"GivenASessionWithALayoutOfItsOwnIsRunning", "WhenTheDeveloperRestartsItFromTheApp", "ThenItRunsWithTheCurrentStandardLayout", "AndClaudeCodeContinuesTheConversationItWasHaving"},
-	"SessBack004":    {"GivenTheDeveloperHasJoinedASessionFromAClientInAWindowOpenedOnlyToJoinIt", "WhenTheyRestartItFromTheApp", "ThenTheProgramInThatWindowEndsRatherThanStayingOpenOnTheSessionList", "AndTheSessionIsRunningAgainOnTheEngine"},
-	"SessJoin001":    {"GivenASessionIsRunningOnTheEngine", "WhenTheDeveloperJoinsItFromAClient", "ThenTheySeeThatSessionAsItIsOnTheEngine"},
-	"SessJoin002":    {"GivenTheDeveloperHasJoinedASessionFromAClient", "WhenTheyLeaveIt", "ThenTheSessionIsStillRunningOnTheEngine", "AndTheWorkItWasDoingCarriesOn"},
-	"SessList001":    {"GivenTheEngineHasSessionsForTwoProjects", "WhenTheDeveloperOpensTheListOfSessions", "ThenEachSessionIsListedWithItsProjectItsCheckoutAndWhetherItIsRunning"},
-	"SessList002":    {"GivenOneSessionHasStoppedToAskTheDeveloperAQuestion", "WhenTheDeveloperOpensTheListOfSessions", "ThenThatSessionIsListedWhereItWouldBeIfItWereNotWaiting", "AndItIsMarkedWithClaudesMarkAsWaiting", "AndTheQuestionItAskedIsShownBesideIt"},
-	"SessList003":    {"GivenASessionHasEnded", "WhenTheDeveloperOpensTheListOfSessions", "ThenItIsListedAsEnded", "AndItIsNotShownAsRunning"},
-	"SessList004":    {"GivenTheEngineHasNoSessions", "WhenTheDeveloperOpensTheListOfSessions", "ThenTheyAreToldThereAreNoSessions", "AndTheyAreOfferedTheRegisteredProjectsToOpen"},
-	"SessList005":    {"GivenRunningSessionsForAlphaBetaAndGammaWithGammaPinned", "WhenTheDeveloperOpensTheListOfSessions", "ThenGammasSessionIsListedFirst", "AndAlphasAndBetasFollowItByName"},
-	"SessMouse001":   {"GivenTwoSessionsAreRunning", "WhenTheDeveloperClicksTheSecondSessionInTheList", "ThenTheSecondSessionIsSelected", "AndClickingItAgainJoinsIt"},
-	"SessMouse002":   {"GivenThreeSessionsAreRunningAndTheFirstIsSelected", "WhenTheDeveloperScrollsDownTwiceOverTheList", "ThenTheThirdSessionIsSelected", "AndScrollingUpOnceSelectsTheSecond"},
-	"SessNew001":     {"GivenAProjectHasNoSessionOnTheEngine", "WhenTheDeveloperOpensIt", "ThenASessionIsCreatedInItsCheckout", "AndItHoldsClaudeCodeOnItsOwnTabAndAPlaceForGit"},
-	"SessNew002":     {"GivenAProjectAlreadyHasARunningSession", "WhenTheDeveloperOpensIt", "ThenTheyJoinThatSession", "AndNoSecondSessionIsCreated"},
-	"SessNew003":     {"GivenNoProjectCalledAcmeSiteIsRegistered", "WhenTheDeveloperOpensAcmeSite", "ThenTheyAreToldItIsNotARegisteredProject", "AndTheyAreShownTheRegisteredProjects", "AndNoSessionIsCreated"},
-	"SessNew004":     {"GivenAProjectHasNoSessionOnTheEngine", "WhenTheDeveloperStartsItWithoutJoining", "ThenASessionIsCreatedInItsCheckoutAndIsRunning", "AndTheDeveloperStaysWhereTheyWereShownTheListOfSessions"},
-	"SessNew005":     {"GivenTheProgramIsRunByAClaudeCodeAgentWithThatAgentsMarkersInItsEnvironment", "WhenItStartsAProjectSSession", "ThenTheAgentInThatSessionIsGivenNoneOfThoseMarkers"},
-	"SessNew006":     {"GivenTheDeveloperIsLoggedInAtTheEnginesScreen", "AndTheProgramRunsOnTheEngineOutsideThatLoginAsItDoesOverSSH", "WhenItStartsAProjectSSession", "ThenWhatRunsInTheSessionRunsInsideTheDevelopersDesktopLogin", "AndNothingOfHowItWasStartedThereIsLeftRunningOrLoaded"},
-	"SessRemote001":  {"GivenTheDeveloperIsChoosingAProjectToOpen", "WhenTheyTurnRemoteControlOn", "ThenTheChoiceIsShownAsOn", "AndItIsStillOnTheNextTimeTheProgramIsStarted"},
-	"SessRemote002":  {"GivenRemoteControlIsOn", "AndAProjectHasNoSessionOnTheEngine", "WhenTheDeveloperOpensIt", "ThenClaudeCodeInTheNewSessionStartsWithRemoteControl", "AndTheNameItIsReachedByIsTheSessionsName"},
-	"SessRemote003":  {"GivenRemoteControlIsOnForTheClientAndOffOnTheEngine", "WhenTheDeveloperOpensAProjectWithNoSessionFromTheClient", "ThenClaudeCodeInTheNewSessionStartsWithRemoteControl"},
-	"SessRemote004":  {"GivenASessionIsRunningWithoutRemoteControl", "AndRemoteControlIsOn", "WhenTheDeveloperOpensItsProject", "ThenTheyJoinThatSessionAsItIs", "AndItIsNotRestarted"},
-	"SessStop001":    {"GivenASessionIsRunning", "WhenTheDeveloperChoosesToStopIt", "ThenTheyAreAskedToConfirmBeforeAnythingIsStopped"},
-	"SessStop002":    {"GivenTwoSessionsAreRunning", "WhenTheDeveloperStopsOneOfThemAndConfirms", "ThenThatSessionIsGoneWithNothingOfItKeptToBringBack", "AndTheOtherIsStillRunning"},
-	"SessStop003":    {"GivenTheDeveloperHasBeenAskedToConfirmStoppingASession", "WhenTheyDecline", "ThenTheSessionIsStillRunning"},
-	"SessSwitch001":  {"GivenTheDeveloperIsInOneSession", "WhenTheyChooseAnotherSessionFromInsideIt", "ThenThisWindowShowsTheOtherSession", "AndTheOneTheyLeftIsStillRunning"},
-	"SetupCheck001":  {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenEveryItemEveryMachineNeedsAndEveryItemTheEngineNeedsIsListed", "AndEachIsMarkedPresentOrMissing", "AndNoItemAClientNeedsIsListed"},
-	"SetupCheck002":  {"GivenThisMachineIsAClient", "WhenTheDeveloperRunsTheSetupCheck", "ThenEveryItemEveryMachineNeedsAndEveryItemAClientNeedsIsListed", "AndNoItemOnlyTheEngineNeedsIsListed"},
-	"SetupCheck003":  {"GivenZellijIsNotInstalledOnThisMachine", "WhenTheDeveloperRunsTheSetupCheck", "ThenZellijIsMarkedMissingWithTheVersionNeededAndTheCommandThatInstallsIt", "AndNothingOnTheMachineHasChanged"},
-	"SetupCheck004":  {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom"},
-	"SetupCheck005":  {"GivenThisMachineHasNoRoleSet", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheRoleIsMarkedMissingWithTheCommandThatSetsEachRole", "AndEveryItemEveryMachineNeedsIsStillListedPresentOrMissing"},
-	"SetupCheck006":  {"GivenThisMachinesConfigurationNamesAnUnknownRole", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheConfigurationIsMarkedMissingNamingTheFileAndTheFieldThatIsWrong"},
-	"SetupCheck007":  {"GivenThisMachineIsTheEngine", "AndTheProgramsFolderIsOnThePATHOnlyForInteractiveShells", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheProgramIsMarkedMissingForSSHCommandsWithTheLineToAddToTheFileEveryShellReads"},
-	"SetupCheck008":  {"GivenThisMachineIsAClient", "AndTheEngineSHostKeyHasChanged", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineIsMarkedMissingSaidAsAChangedHostKeyWithWhatToDo"},
-	"SetupCheck009":  {"GivenThisMachineIsAClient", "AndTheSSHConfigurationEditorUsesHasNoEntryForTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineSNameIsMarkedMissingForEditorNamingTheFileEditorReads"},
-	"SetupRead001":   {"GivenEveryItemForThisMachinesRoleIsPresent", "WhenTheDeveloperRunsTheSetupCheck", "ThenItEndsWithSuccess", "AndWhenOneItemIsMissingItEndsWithAFailure"},
-	"SetupRead002":   {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheckAsJSON", "ThenEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix", "AndTheItemsAreTheSameAsTheReportOnScreen"},
-	"WorkClean001":   {"GivenNewWorkWhoseChangesAreAllCommittedAndPushedHasARunningSession", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsSessionIsStopped", "AndItsCheckoutIsRemoved"},
-	"WorkClean002":   {"GivenNewWorkHasAFileChangedButNotCommitted", "WhenTheDeveloperCleansItUp", "ThenTheyAreToldItHasUncommittedChangesNamingTheFile", "AndNothingIsStoppedOrRemoved"},
-	"WorkClean003":   {"GivenNewWorkHasACommitThatIsNotOnTheRemote", "WhenTheDeveloperCleansItUp", "ThenTheyAreToldItHasCommitsThatWereNeverPushed", "AndNothingIsStoppedOrRemoved"},
-	"WorkClean004":   {"GivenNewWorkWhoseBranchHasBeenMergedIntoMain", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsBranchNoLongerExistsOnThisMachineOrOnTheRemote"},
-	"WorkClean005":   {"GivenNewWorkWhoseBranchIsPushedButNotMergedIntoMain", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsCheckoutIsRemoved", "AndItsBranchStillExistsOnThisMachineAndOnTheRemote"},
-	"WorkClean006":   {"GivenAProjectIsRegistered", "WhenTheDeveloperAsksToCleanUpItsMainCheckout", "ThenTheyAreToldTheMainCheckoutIsNeverCleanedUp", "AndNothingIsStoppedOrRemoved"},
-	"WorkClean007":   {"GivenTheProjectDeclaresATeardownScript", "WhenTheDeveloperCleansUpNewWorkOnItAndConfirms", "ThenTheTeardownScriptRunsInTheCheckoutBeforeItIsRemoved"},
-	"WorkClean008":   {"GivenNewWorkHasAFileChangedButNotCommitted", "WhenTheDeveloperCleansItUp", "ThenTheyAreToldItHasUncommittedChangesNamingTheFile", "AndTheyAreOfferedToSaveTheChangesToTheBranchOrToPutThemAside"},
-	"WorkClean009":   {"GivenNewWorkHasAFileChangedButNotCommitted", "WhenTheDeveloperSavesItsChangesToTheBranch", "ThenTheChangeIsCommittedOnTheBranchOnThisMachineAndOnTheRemote", "AndCleaningTheWorkUpIsNoLongerRefused"},
-	"WorkClean010":   {"GivenNewWorkHasAFileChangedButNotCommitted", "WhenTheDeveloperPutsTheChangesAsideAndCleansTheWorkUp", "ThenItsCheckoutIsRemoved", "AndTheChangeCanBeBroughtBackFromTheRepositorysStash"},
-	"WorkClean011":   {"GivenNewWorkHasACommitThatIsNotOnTheRemote", "WhenTheDeveloperCleansItUp", "ThenTheyAreOfferedToPushTheCommits", "AndOnceTheyArePushedCleaningTheWorkUpIsNoLongerRefused"},
-	"WorkNew001":     {"GivenAProjectIsRegistered", "WhenTheDeveloperStartsNewWorkOnItCalledFixLogin", "ThenACheckoutNamedAfterTheProjectAndFixLoginExistsBesideTheMainOneOnANewBranchCalledFixLogin", "AndASessionIsOpenInThatCheckout"},
-	"WorkNew002":     {"GivenTheRemotesMainHasACommitThisMachineHasNotFetched", "WhenTheDeveloperStartsNewWorkOnTheProject", "ThenTheNewBranchStartsFromThatCommit"},
-	"WorkNew003":     {"GivenAProjectIsRegistered", "WhenTheDeveloperStartsNewWorkOnItCalledFeatureLoginPage", "ThenTheyAreToldTheNameMayOnlyHoldLettersDigitsAnd", "AndNoCheckoutBranchOrSessionIsCreated"},
-	"WorkNew004":     {"GivenNewWorkCalledFixLoginWasStartedOnTheProject", "WhenTheDeveloperStartsNewWorkCalledFixLoginAgain", "ThenTheSessionInTheExistingCheckoutIsOpened", "AndNoSecondCheckoutOrBranchIsCreated"},
-	"WorkNew005":     {"GivenTheProjectDeclaresACreateScript", "WhenTheDeveloperStartsNewWorkOnIt", "ThenTheCreateScriptRunsInTheNewCheckoutBeforeTheSessionOpens", "AndWhatTheScriptPrintsIsShownWhileItRuns"},
-	"WorkNew006":     {"GivenTheProjectDeclaresACreateScriptThatFails", "WhenTheDeveloperStartsNewWorkOnIt", "ThenTheyAreToldTheCheckoutWasCreatedButItsSetupFailedWithTheScriptsError", "AndNoSessionIsOpened"},
-	"WorkNew007":     {"GivenTheMainCheckoutIsOnABranchThatAddsACreateScriptTheRemotesMainDoesNotHave", "WhenTheDeveloperStartsNewWorkOnTheProject", "ThenNoCreateScriptIsRun", "AndTheSessionInTheNewCheckoutOpens"},
-	"WorkRole001":    {"GivenAProjectIsRegistered", "WhenTheDeveloperMakesACheckoutForTheRoleDesignerOnTheBranchNavRework", "ThenACheckoutNamedAfterTheProjectAndDesignerExistsBesideTheMainOneOnANewBranchNavReworkFromTheRemotesMain", "AndDesignerIsRecordedAsOneOfTheProjectSRolesInTheDevelopersSettings", "AndTheProjectSPageShowsTheCheckoutAsTheDesignersOnNavRework"},
-	"WorkRole002":    {"GivenTheDesignerCheckoutSBranchIsPushedAndNothingInItIsUncommitted", "WhenTheDeveloperMovesItOnToTheBranchSearchFix", "ThenTheSameCheckoutIsOnANewBranchSearchFixFromTheRemotesMain", "AndTheEarlierBranchIsStillOnTheRemote"},
-	"WorkRole003":    {"GivenTheDesignerCheckoutHasAFileChangedButNotCommitted", "WhenTheDeveloperMovesItOnToAnotherBranch", "ThenTheyAreToldItHasUncommittedChangesNamingTheFileAndOfferedToSaveOrPutThemAside", "AndTheCheckoutIsStillOnItsBranchWithTheChange"},
-	"WorkRole004":    {"GivenNewWorkCalledDesignerExistsOnTheProject", "WhenTheDeveloperMakesACheckoutForTheRoleDesigner", "ThenTheyAreToldTheNameIsTakenByBranchWork", "AndNoRoleIsRecorded"},
-	"WorkRole005":    {"GivenTheDesignerCheckoutHasNothingUncommittedOrUnpushed", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsCheckoutIsRemoved", "AndDesignerIsNoLongerOneOfTheProjectSRoles"},
-	"WorkStack001":   {"GivenTheProjectDeclaresAnUpScriptAndHasASessionInACheckout", "WhenTheDeveloperStartsTheStackOfThatSession", "ThenTheUpScriptRunsInThatCheckoutToldWhichProjectWorkAndCheckoutItIs", "AndItsCommandAndOutputAreShownAndKeptInTheHistory"},
-	"WorkStack002":   {"GivenTheProjectDeclaresADownScriptAndHasASessionInACheckout", "WhenTheDeveloperStopsTheStackOfThatSession", "ThenTheDownScriptRunsInThatCheckout"},
-	"WorkStack003":   {"GivenTheProjectDeclaresADownScriptAndATeardownScript", "WhenTheDeveloperCleansUpNewWorkOnItAndConfirms", "ThenTheDownScriptRunsBeforeTheTeardownScript", "AndBothRunBeforeTheCheckoutIsRemoved"},
-	"WorkStack004":   {"GivenTheProjectDeclaresNoUpScriptAndHasASessionInACheckout", "WhenTheDeveloperStartsTheStackOfThatSession", "ThenTheyAreToldTheRepositoryDeclaresNoUpScriptAndWhatOneMustDo", "AndNothingIsRun"},
-	"WorkStack005":   {"GivenTheProjectDeclaresAnUpScriptAndItsCheckoutHasNoRunningSession", "WhenTheDeveloperStartsTheStackOfThatCheckoutFromTheApp", "ThenItsSessionIsStartedInTheBackgroundAsTheAppStartsSessionSBeforeTheUpScriptRuns", "AndNoTerminalWindowIsOpened"},
-	"WorkStack006":   {"GivenACheckoutSSessionIsRunningWithItsStackStarted", "AndAServerWasStartedFromInsideThatSession", "AndAnotherServerOnTheProjectSPortsWasStartedOutsideAnySession", "WhenTheDeveloperStopsThatSessionAndConfirms", "ThenTheDownScriptRunsBeforeTheSessionEnds", "AndTheServerStartedInsideTheSessionIsStopped", "AndTheServerStartedOutsideAnySessionIsStillRunning"},
-	"WorkStack007":   {"GivenASessionIsRunningWithItsStackStartedAndTheDeveloperHasJoinedIt", "WhenTheDeveloperClosesTheTerminalWindow", "ThenTheSessionIsStillRunning", "AndSoIsItsStack"},
-	"WorkStack008":   {"GivenASessionSStackWasStarted", "AndTheSessionWasEndedFromInsideZellijMoreThanTwoMinutesAgo", "WhenTheEngineChecksItsSessions", "ThenTheDownScriptHasRunInThatCheckout", "AndTheHistorySaysTheStackWasStoppedBecauseItsSessionHadEnded"},
-	"WorkStack009":   {"GivenASessionSStackWasStarted", "AndTheSessionWasEndedFromInsideZellijLessThanTwoMinutesAgo", "WhenTheEngineChecksItsSessions", "ThenNothingIsStopped"},
-	"WorkStack010":   {"GivenASessionIsRunningWithItsStackStarted", "WhenTheDeveloperRestartsItAndConfirms", "ThenItsStackIsStillRunning"},
-	"WorkStack011":   {"GivenAServerOnAProjectSPortsWasStartedOutsideAnySession", "WhenTheEngineChecksItsSessions", "ThenTheServerIsStillRunning", "AndTheProjectSPageListsItWithItsPortItsProcessWhenItStartedAndItsFolderAndOffersToStopThatOne"},
-	"WorkStack012":   {"GivenTwoCheckoutsEachHaveARunningSession", "AndFromInsideTheFirstTheDeveloperStartedTheStackOfTheSecond", "WhenTheDeveloperStopsTheFirstSessionAndConfirms", "ThenTheSecondCheckoutSStackIsStillRunning"},
-	"WorkStack013":   {"GivenACheckoutSSessionIsRunning", "AndAnAppThatServesNothingWasOpenedFromInsideThatSession", "WhenTheDeveloperStopsThatSessionAndConfirms", "ThenTheAppIsStillRunning"},
-	"WorkStack014":   {"GivenASessionOfACheckoutHasEndedLeavingWhatZellijKeepsOfIt", "WhenTheSweepsWatchIsStarted", "ThenTheEndedSessionIsForgottenAtOnce", "AndWhenWhatStartedTheWatchEndsTheWatchEndsToo"},
-	"WorkStack015":   {"GivenACheckoutOfAProjectWithAnUpScriptHasASessionAndNothingAnswersOnItsPort", "WhenTheDeveloperOpensOneOfItsLinks", "ThenItsUpScriptRunsInThatCheckoutBeforeTheLinkIsOpened", "AndOpeningALinkWhenSomethingAnswersOnItsPortStartsNothing"},
+	"AppAdd001":       {"GivenARootWhoseOwnerHasARepositoryCalledWidgetThatIsNotHere", "WhenTheDeveloperGetsWidgetFromTheAppIntoThatRootInTheCategoryTools", "ThenItIsClonedIntoTheRootAsWidget", "AndItIsAProjectInTheCategoryTools"},
+	"AppAdd002":       {"GivenTheOwnerOfARootHasNoRepositoryCalledGadget", "WhenTheDeveloperCreatesGadgetFromTheAppAsAPublicRepositoryInTheCategoryTools", "ThenAPublicRepositoryGadgetIsCreatedForTheOwnerOnGitHubHoldingItsFirstCommit", "AndItIsAProjectInTheCategoryTools"},
+	"AppAsk001":       {"GivenAProjectWithPortsWhoseMainCloneTheDeveloperIsLookingAtInTheApp", "WhenTheyAskClaudeAboutIt", "ThenASessionOfItsOwnStartsInThatCheckoutBesideItsMainSession", "AndClaudeIsToldTheProjectTheCheckoutItsPortsAndWhereItsSettingsAre", "AndClaudeIsAskedToSayWhatItSeesAndAskWhatToDo"},
+	"AppEdit001":      {"GivenAProjectRegisteredOnTheEngine", "WhenTheDeveloperOpensItInEditorFromTheAppOnTheEngineAndFromTheAppOnAClient", "ThenOnTheEngineEditorOpensTheFolderOfTheProjectItself", "AndOnTheClientEditorOpensTheFolderOnTheEngineOverSSH"},
+	"AppFeed001":      {"GivenTheAppOnAClientFollowsTheEnginesSessions", "WhenASessionOnTheEngineStartsWaitingForTheDeveloper", "ThenWithinSecondsTheAppIsToldItIsWaitingWithItsQuestion", "AndItWasToldOverTheOneConnectionTheAppOpened"},
+	"AppFeed002":      {"GivenTheAppFollowsTheSessionsOneOfThemRunning", "WhenNothingChangesForAWhile", "ThenTheAppIsSentNoListAfterTheFirst"},
+	"AppFeed003":      {"GivenTheAppFollowsTheSessionsLookingByItselfOnlyOnceAMinute", "WhenASessionStartsAndTheAppAsksToLookNow", "ThenTheAppIsToldOfTheNewSessionWithinSeconds"},
+	"AppFeed004":      {"GivenTheAppOnAClientFollowsTheEnginesSessions", "WhenTheAppClosesItsEnd", "ThenNothingIsLeftFollowingOnTheEngine"},
+	"AppFeed005":      {"GivenTheAppFollowsTheSessionsAndItsPanelIsClosed", "WhenASessionStartsWaitingForTheDeveloper", "ThenTheMenuBarIconCarriesClaudesMark", "AndTheMarkGoesWhenNoSessionIsWaiting"},
+	"AppFeed006":      {"GivenAPinnedProjectHasACheckoutWithAFileChangedAndACommitThatIsNotOnTheRemote", "AndAnotherCheckoutWhoseBranchWasMergedIntoTheRemotesMain", "AndAThirdOnANewBranchWithNoCommitsOfItsOwn", "WhenTheAppFollowsTheSessions", "ThenTheFirstIsSentWithOneChangeAndOneCommitNotPushed", "AndTheSecondIsSentAsMerged", "AndTheThirdIsNot"},
+	"AppHist001":      {"GivenTheDeveloperStartedASessionFromTheApp", "WhenTheyOpenTheHistory", "ThenTheStartIsListedWithEachOfItsCommandsAndTheirOutcomes"},
+	"AppList001":      {"GivenTheEngineHasASessionWaitingForTheDeveloperAndOneThatIsNot", "WhenTheAppListsTheSessions", "ThenTheWaitingSessionIsMarkedAsWaitingWithItsQuestion", "AndTheOtherIsListedOnceNotMarked"},
+	"AppList002":      {"GivenThePinnedProjectBetaWithNoRunningSession", "AndRunningSessionsOfAlphaAndGammaOneOfThemWaitingForTheDeveloper", "WhenThePanelListsThem", "ThenBetaIsListedFirstWithAWayToStartIt", "AndTheSessionsOfAlphaAndGammaFollowByNameTheWaitingOneMarkedInItsPlace", "AndTheyAreListedInTheSameOrderWhenNoneIsWaiting"},
+	"AppList003":      {"GivenAProjectWhoseOriginIsTheGitHubRepositoryAcmeWidget", "AndARunningSessionInACheckoutOnTheBranchFeatureXSentToGitHub", "WhenTheAppListsTheSessionsAndTheRepositories", "ThenTheProjectLinksToTheCodeTheIssuesAndThePullRequestsOfAcmeWidgetOnGitHub", "AndTheSessionLinksToTheBranchFeatureXAndThePullRequestsFromItOnGitHub"},
+	"AppList004":      {"GivenThePinnedProjectBetaWithNoRunningSession", "AndAlphaWithTwoRunningSessionsOneWaitingForTheDeveloper", "AndGammaWithOneRunningSession", "WhenThePanelListsThem", "ThenBetaIsFirstItsLightOffThenAlphaWithClaudesMarkAndGammaWithARunningLight", "AndAlphaShowsBothOfItsCheckoutsWhenItIsChosen"},
+	"AppLogin001":     {"GivenTheAppIsInstalled", "WhenTheDeveloperTurnsOnOpeningAtLogin", "ThenTheAppIsRegisteredWithMacOSToOpenAtLogin", "AndTurningItOffUnregistersIt"},
+	"AppPage001":      {"GivenAProjectWithPortsARunningSessionInItsMainCloneAndACheckoutWithNoSession", "WhenTheDeveloperOpensTheProjectSPage", "ThenTheMainCloneIsListedFirstAsRunningWithSlot1sPortsAndTheLinksItsStackServes", "AndTheCheckoutIsListedWithItsBranchAsNotRunningWithItsOwnSlotsPorts", "AndTheProjectSScriptsAreListedWithWhereEachComesFrom"},
+	"AppPage002":      {"GivenARegisteredProjectWithNoCategory", "WhenTheDeveloperPinsItAndGivesItTheCategoryToolsFromItsPage", "ThenTheProjectIsListedAsPinnedUnderTools", "AndNothingOnDiskIsChanged"},
+	"AppPage003":      {"GivenARegisteredProject", "WhenTheDeveloperUnregistersItFromItsPage", "ThenItIsNoLongerARegisteredProject", "AndItsFolderIsStillThere"},
+	"AppPage004":      {"GivenAProjectWhoseSettingsNameTheLinkAppAsHttpsOnItsUiPort", "WhenTheDeveloperListsTheSessions", "ThenTheRunningSessionCarriesTheLinkAppWithItsSlotsUiPort"},
+	"AppPage005":      {"GivenAProjectWhoseOriginIsTheGitHubRepositoryAcmeWidget", "WhenTheDeveloperOpensItsPage", "ThenThePageLinksToTheCodeTheIssuesAndThePullRequestsOfAcmeWidgetOnGitHub"},
+	"AppPage006":      {"GivenAProjectOnGitHubWithACheckoutOnTheBranchFeatureXSentToGitHub", "AndACheckoutOnTheBranchLocalOnlyWhichGitHubDoesNotHave", "WhenTheDeveloperOpensTheProjectSPage", "ThenTheCheckoutOnFeatureXLinksToThatBranchsCodeAndItsPullRequestsOnGitHub", "AndTheCheckoutOnLocalOnlyHasNoGitHubLinks"},
+	"AppPage007":      {"GivenAProjectWithNoOrigin", "WhenTheDeveloperOpensItsPage", "ThenNeitherThePageNorItsCheckoutLinksToGitHub"},
+	"AppPreview001":   {"GivenTheOwnerOfARootHasNoRepositoryCalledGadget", "WhenTheDeveloperAsksTheAppToCreateGadget", "ThenTheCommandsItWouldRunAreShownInOrder", "AndNoFolderIsMadeAndNothingIsCreatedOnGitHub"},
+	"AppRepos001":     {"GivenARootWhoseOwnerHasOneRepositoryOnGitHubThatIsNotHere", "AndOneClonedInTheRootAndRegisteredInTheCategoryTools", "AndAGitRepositoryInTheFolderOfTheRootThatIsNotRegistered", "WhenTheAppListsTheRepositories", "ThenEachIsListedUnderTheRoot", "AndTheyAreMarkedOnGitHubButNotHereRegisteredInToolsAndHereButNotRegistered"},
+	"AppRepos002":     {"GivenAGitRepositoryInTheFolderOfARootThatIsNotRegistered", "WhenTheDeveloperRegistersItFromTheAppInTheCategoryTools", "ThenItIsAProjectInTheCategoryTools", "AndTheCommandThatRegisteredItIsInTheHistory"},
+	"AppRepos003":     {"GivenARootWhoseOwnerHasARepositoryOnGitHubThatIsNotHere", "WhenTheDeveloperHidesItFromTheApp", "ThenItIsMarkedHiddenInTheList", "AndOnceTheyShowItAgainItIsNot"},
+	"AppStart001":     {"GivenAProjectWithNoSession", "WhenTheDeveloperStartsItFromTheAppInZellij", "ThenASessionRunsClaudeCodeInsideZellijWithoutRemoteControl", "AndAWindowOfTheChosenTerminalIsOpenedJoinedToThatSession"},
+	"AppStart002":     {"GivenAProjectWithNoSession", "WhenTheDeveloperStartsItFromTheAppWithRemoteControl", "ThenASessionRunsClaudeCodeInsideZellijWithRemoteControlUnderTheNameOfTheSession", "AndNoTerminalWindowIsOpened"},
+	"AppStart003":     {"GivenAProjectWithNoSession", "WhenTheDeveloperStartsItFromTheAppWithBoth", "ThenASessionRunsClaudeCodeInsideZellijWithRemoteControlUnderTheNameOfTheSession", "AndAWindowOfTheChosenTerminalIsOpenedJoinedToThatSession"},
+	"AppTask001":      {"GivenAProjectWhoseSettingsNameATask", "WhenTheDeveloperRunsThatTaskOnItsMainCloneFromTheApp", "ThenTheTasksCommandRunsInThatCheckoutWithTheSlotsPorts", "AndItIsListedOnTheProjectSPage"},
+	"AppTerm001":      {"GivenGhosttyAndTerminalAreTheTerminalsInstalledOnThisMac", "WhenTheDeveloperLooksAtWhichTerminalSessionsAreJoinedIn", "ThenOnlyGhosttyAndTerminalAreOfferedAndGhosttyIsChosen", "AndOnceTheDeveloperChoosesTerminalSessionsAreJoinedInTerminalFromThenOn"},
+	"AppUpgrade001":   {"GivenThisMachineRunsEngineroomWithItsApp", "WhenTheDeveloperAsksToUpgradeThisMachine", "ThenAnUpgradeSessionStartsOnThisMachine", "AndClaudeIsToldTheStepsThisMachinesBuildAndWhereItsAppIs", "AndClaudeIsAskedToUpgradeItNow"},
+	"AppUpgrade002":   {"GivenThisMachineIsAClientOfAnEngineThatAnswers", "WhenTheDeveloperAsksToUpgradeTheEngine", "ThenAnUpgradeSessionStartsOnTheEngine", "AndNothingIsStartedOnThisMachine"},
+	"AppUpgrade003":   {"GivenAnUpgradeSessionFromAnEarlierUpgradeIsStillOnThisMachine", "WhenTheDeveloperAsksToUpgradeThisMachine", "ThenTheEarlierUpgradeSessionIsEndedAndANewOneStarts", "AndClaudeIsAskedToUpgradeItNow"},
+	"ConnDown001":     {"GivenThisMachineIsAClient", "AndTheEngineDoesNotAnswer", "WhenTheDeveloperOpensAProject", "ThenTheyAreAskedToRetryWorkLocallyOrStop", "AndNothingHasBeenStartedOnEitherMachine"},
+	"ConnDown002":     {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "WhenTheyChooseStop", "ThenNothingHasBeenStartedOrChangedOnEitherMachine"},
+	"ConnDown003":     {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "AndTheEngineNowAnswers", "WhenTheyChooseRetry", "ThenTheProjectTheyAskedForIsOpenedOnTheEngine"},
+	"ConnDown004":     {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "AndTheEngineStillDoesNotAnswer", "WhenTheyChooseRetry", "ThenTheyAreAskedAgainToRetryWorkLocallyOrStop", "AndNothingHasBeenStartedOnEitherMachine"},
+	"ConnHandoff001":  {"GivenTheClientIsOffline", "AndACommitWasMadeInTheClientSCheckoutOfAProjectAndNotPushed", "WhenTheDeveloperSwitchesTheClientBackOnline", "ThenTheyAreShownThatTheProjectHasACommitOnTheClientThatIsNotOnGitHub", "AndTheyAreShownTheCommandsThatPushItFromTheClientAndBringTheEngineSCheckoutUpToIt", "AndNothingHasRunYet"},
+	"ConnHandoff002":  {"GivenGoingBackOnlineShowedACommitOnTheClientToHandOver", "WhenTheDeveloperRunsTheHandoff", "ThenTheCommitIsOnGitHub", "AndTheEngineSCheckoutOfTheProjectIsAtThatCommit"},
+	"ConnHandoff003":  {"GivenTheClientHasACommitToHandOver", "AndTheEnginesCheckoutOfThatProjectHasUncommittedChanges", "WhenTheDeveloperHandsTheWorkBackToTheEngineAndRunsIt", "ThenTheEnginesCheckoutIsAtTheClientSCommitWithNoChangesOfItsOwn", "AndTheEnginesChangesAreInItsStashListLabelledWithItsBranch"},
+	"ConnHandoff004":  {"GivenACommitWasMadeInTheEngineSCheckoutOfAProjectAndNotPushed", "AndTheEngineAnswers", "WhenTheDeveloperSwitchesTheClientOffline", "ThenTheyAreShownThatTheProjectHasACommitOnTheEngineThatIsNotOnGitHub", "AndTheyAreShownTheCommandsThatPushItFromTheEngineAndBringTheClientSCheckoutUpToIt"},
+	"ConnHandoff005":  {"GivenTheEngineDoesNotAnswer", "WhenTheDeveloperSwitchesTheClientOffline", "ThenTheClientIsOffline", "AndTheyAreToldTheEngineCouldNotBeCheckedForWorkThatIsNotOnGitHub"},
+	"ConnHandoff006":  {"GivenASessionStartedOnTheClientWhileItWasOfflineIsStillRunning", "WhenTheDeveloperSwitchesTheClientBackOnline", "ThenTheSessionListShowsTheEngineSSessions", "AndItShowsThatSessionMarkedAsOnThisMachine", "AndJoiningItJoinsItOnTheClient"},
+	"ConnHandoff007":  {"GivenABranchInNoCheckoutOnTheEngineHasACommitThatGitHubDoesNot", "AndTheEnginesMainCloneHasACommitOnItsOwnBranchThatGitHubDoesNot", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheMainClonesBranchIsOnGitHubWithItsCommit", "AndTheBranchInNoCheckoutIsNotOnGitHub", "AndTheyAreToldTheCommandThatWouldPushIt"},
+	"ConnHandoff008":  {"GivenTheEnginesCheckoutOfAProjectHasAChangedFileAndANewFileNeitherCommitted", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheClientSCheckoutHasTheChangedFileAndTheNewFileUncommitted", "AndTheEnginesCheckoutNoLongerHasThemAndKeepsThemInItsStashList", "AndGitHubHasNothingOfThem"},
+	"ConnHandoff009":  {"GivenTheEngineHasAProjectTheClientDoesNot", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheClientHasThatProjectAtTheSamePlaceUnderItsHomeAsOnTheEngine", "AndItIsRegisteredOnTheClientUnderTheSameName"},
+	"ConnHandoff010":  {"GivenTheEnginesMainCloneHasACommitOnItsOwnBranchThatGitHubDoesNot", "WhenTheDeveloperReleasesTheEngineFromTheAppOnTheEngine", "ThenThatBranchIsOnGitHubWithItsCommit", "AndTheEngineShowsWhenItWasReleased"},
+	"ConnHandoff011":  {"GivenTheEngineHasAProjectTheClientDoesNot", "AndGitHubHasACommitTheClientSCheckoutOfAnotherProjectDoesNot", "WhenTheClientKeepsItselfReadyToWorkLocal", "ThenTheMissingProjectIsCopiedToTheClientAndRegistered", "AndTheClientSCheckoutIsNotMoved"},
+	"ConnHandoff012":  {"GivenTheEnginesMainCloneHasAReleaseBranchCheckedOutWithACommitThatGitHubDoesNot", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheReleaseBranchIsNotOnGitHub", "AndTheyAreToldAHandoverNeverPushesAReleaseBranch"},
+	"ConnHandoff013":  {"GivenTheEngineHasTwoProjectsRegistered", "WhenTheDeveloperAsksForTheHandoverFromTheEngineToTheClient", "ThenTheyAreToldTheEnginesReadingProjectByProjectUpToTwoOfTwoWithTheCommandDoingIt", "AndTheyAreToldThisMachinesReadingToo", "AndTheHandoversCommandsFollow"},
+	"ConnHandoff014":  {"GivenTheClientSCheckoutOfAProjectHasANewFileNotCommitted", "WhenTheDeveloperHandsTheWorkBackToTheEngineAndRunsIt", "ThenTheEnginesCheckoutHasTheNewFileUncommitted", "AndTheClientSCheckoutNoLongerHasIt"},
+	"ConnHandoff015":  {"GivenTheEnginesCheckoutOfAProjectHasUncommittedChanges", "AndTheClientSBranchOfThatProjectHasACommitOfItsOwnThatGitHubDoesNot", "WhenTheDeveloperSwitchesTheClientToWorkLocal", "ThenTheyAreToldTheHandoverCannotRunBecauseOfTheClientSCommit", "AndNothingHasChangedOnEitherMachine", "AndTheClientIsNotWorkingLocal"},
+	"ConnHandoff016":  {"GivenTheEnginesCheckoutOfAProjectIsOnAnotherBranchThanMainWithAnUncommittedChange", "AndTheClientSCheckoutOfThatProjectIsOnMainWithANewFileOfItsOwn", "WhenTheDeveloperHandsTheWorkOverFromTheEngineToTheClientAndRunsIt", "ThenTheClientSCheckoutIsOnTheEnginesBranchAtItsCommitWithItsChange", "AndTheClientSNewFileIsInItsStashListLabelledMain"},
+	"ConnHandoff017":  {"GivenTheDeveloperIsShownAHandoverFromTheEngineToTheClientWithACommitToPush", "WhenTheEnginesCheckoutIsEditedBeforeTheDeveloperRunsIt", "ThenTheHandoverStopsAtItsFirstStep", "AndGitHubAndBothCheckoutsAreAsTheyWere"},
+	"ConnHandoff018":  {"GivenACommitWasMadeInTheEnginesCheckoutOfAProjectAndPushedToGitHub", "AndTheClientSCheckoutOfThatProjectHasNotTakenIt", "WhenTheDeveloperHandsTheWorkBackToTheEngine", "ThenTheyAreToldTheHandoverCannotRunBecauseItWouldMoveTheEngineBack", "AndTheEnginesCheckoutIsStillAtItsCommit"},
+	"ConnHandoff019":  {"GivenTheEnginesCheckoutOfAProjectHasACommitGitHubDoesNotAndAnUncommittedChange", "AndABranchInNoCheckoutThereHasACommitGitHubDoesNot", "WhenTheDeveloperAsksForTheHandoverFromTheEngineToTheClient", "ThenOneLineForTheProjectSaysTheCommitIsSentToGitHubAndTheChangeCarried", "AndTheBranchInNoCheckoutIsNamedInOneLineOfWhatIsLeftAsItIs"},
+	"ConnLocal001":    {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "AndThisMachineHasItsOwnCheckoutOfTheProject", "WhenTheyChooseToWorkLocally", "ThenASessionIsOpenedOnThisMachineInThatCheckout"},
+	"ConnLocal002":    {"GivenTheDeveloperChoseToWorkLocally", "WhenAnyScreenOfTheToolIsShown", "ThenItIsMarkedLOCAL"},
+	"ConnLocal003":    {"GivenTheDeveloperWasAskedWhatToDoBecauseTheEngineDidNotAnswer", "AndThisMachineHasNoCheckoutOfTheProject", "WhenTheyChooseToWorkLocally", "ThenTheyAreToldThisMachineHasNoCopyOfTheProject", "AndNothingIsStartedOnThisMachine"},
+	"ConnOffline001":  {"GivenAClientWhoseEngineAnswers", "AndTheClientHasItsOwnCheckoutOfAProject", "WhenTheDeveloperSwitchesTheClientOfflineAndOpensThatProject", "ThenASessionIsOpenedOnTheClientInItsCheckout", "AndNothingIsAskedOfTheEngine", "AndEveryScreenIsMarkedOFFLINE"},
+	"ConnOffline002":  {"GivenTheDeveloperSwitchedTheClientOffline", "WhenTheyStartTheToolAgain", "ThenItIsStillOfflineAndMarkedOFFLINE", "AndOnceTheySwitchItBackOnlineTheSessionsItListsAreThoseOnTheEngine"},
+	"ConnOffline003":  {"GivenASessionWasStartedOnTheClientWhileItWasOffline", "WhenTheDeveloperSwitchesTheClientBackOnline", "ThenThatSessionIsStillRunningOnTheClient"},
+	"ConnOffline004":  {"GivenAClientWorkingOnTheEngine", "WhenTheDeveloperAsksTheAppToWorkLocalAndIsShownTheHandover", "ThenTheClientIsStillWorkingOnTheEngine", "AndOnceTheyRunTheHandoverItWorksLocal"},
+	"ConnRejoin001":   {"GivenTheDeveloperHasJoinedASessionFromAClient", "WhenTheConnectionToTheEngineDropsWhileTheSessionKeepsRunning", "ThenTheSameWindowJoinsThatSessionAgain", "AndTheCommandsItRanToDoSoAreInTheHistory"},
+	"ConnRejoin002":   {"GivenTheDeveloperHasJoinedASessionFromAClient", "WhenTheConnectionToTheEngineDropsAndTheEngineDoesNotAnswer", "ThenTheWindowSaysTheConnectionWasLostAndThatItJoinsAgainWhenTheEngineAnswers", "AndOnceTheEngineAnswersItJoinsTheSessionAgain"},
+	"ConnRejoin003":   {"GivenTheDeveloperHasJoinedASessionFromAClient", "WhenTheConnectionToTheEngineDropsAndTheSessionIsStoppedBeforeItComesBack", "ThenTheWindowDoesNotJoinASessionAgain", "AndNoSessionIsStartedOnEitherMachine"},
+	"ConnRejoin004":   {"GivenTheWindowIsWaitingForTheEngineToAnswerAfterTheConnectionDropped", "WhenTheDeveloperPressesQ", "ThenTheWindowStopsWaitingAndJoinsNothing"},
+	"ConnRole001":     {"GivenThisMachineIsSetUpAsAClient", "AndTheEngineAnswers", "WhenTheDeveloperOpensAProject", "ThenItsSessionIsOpenedOnTheEngine", "AndNothingIsStartedOnThisMachine"},
+	"ConnRole002":     {"GivenThisMachineIsSetUpAsTheEngine", "WhenTheDeveloperOpensAProject", "ThenItsSessionIsOpenedOnThisMachine", "AndNoneOfTheCommandsShownConnectToAnotherMachine"},
+	"ConnRole003":     {"GivenThisMachineIsAClientThatReachesTheEngineByAnSSHNameOfItsOwn", "AndTheEngineAnswers", "WhenTheClientComparesItsVersionWithTheEngines", "ThenItIsToldTheEnginesOwnMachineNameNotTheSSHName"},
+	"ConnSetup001":    {"GivenThisMachineHasNotBeenSetUpAsTheEngineOrAsAClient", "WhenTheDeveloperStartsTheTool", "ThenTheyAreToldThisMachineHasNoRoleYet", "AndTheyAreShownHowToSetOne", "AndNoActionIsOfferedUntilARoleIsSet"},
+	"EditOpen001":     {"GivenASessionIsRunningInACheckoutOnTheEngine", "WhenTheDeveloperOpensItInEditorFromTheSessionList", "ThenEditorIsStartedOnThatCheckoutSFolder", "AndTheCommandThatStartedItIsShown"},
+	"EditOpen002":     {"GivenTheDeveloperIsOnAClient", "AndASessionIsRunningInACheckoutOnTheEngine", "WhenTheDeveloperOpensItInEditor", "ThenEditorOnTheClientIsStartedOnTheEngineSFolderForThatCheckoutReachedOverSSH", "AndNothingIsStartedOnTheEngine"},
+	"EditOpen003":     {"GivenASessionInACheckoutOnTheEngineHasEnded", "WhenTheDeveloperOpensItInEditorFromTheSessionList", "ThenEditorIsStartedOnThatCheckoutSFolder", "AndTheSessionIsStillEnded"},
+	"EditOpen004":     {"GivenASessionIsRunningThatDoesNotBelongToARegisteredProject", "WhenTheDeveloperOpensItInEditorFromTheSessionList", "ThenTheyAreToldItsFolderIsNotKnownBecauseItIsNotInARegisteredProject", "AndEditorIsNotStarted"},
+	"EditOpen005":     {"GivenEditorSCommandIsNotInstalledOnThisMachine", "WhenTheDeveloperOpensASessionInEditor", "ThenTheyAreToldTheCommandWasNotFoundOnThisMachineAndHowToInstallIt", "AndNothingIsRun"},
+	"EditOpen006":     {"GivenTheDeveloperIsWorkingLocallyOnAClientBecauseTheEngineDidNotAnswer", "AndASessionIsRunningInThisMachinesOwnCopyOfAProject", "WhenTheDeveloperOpensItInEditorFromTheSessionList", "ThenEditorIsStartedOnThisMachinesFolderNotTheEngineS"},
+	"HealthApp001":    {"GivenARunningSessionWhoseProjectHasAStatusScript", "AndTheScriptEndsWithSuccess", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheSessionsAppIsMarkedPresentWithWhatTheScriptPrinted"},
+	"HealthApp002":    {"GivenARunningSessionWhoseProjectHasAStatusScript", "AndTheScriptEndsWithAFailure", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheSessionsAppIsMarkedMissingWithWhatTheScriptPrinted", "AndItsFixIsStartingTheAppWithEngineroomUpAndTheSessionsName"},
+	"HealthApp003":    {"GivenARunningSessionWhoseProjectHasAnUpScriptAndNoStatusScript", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheSessionsAppIsMarkedMissingAsNotChecked", "AndItsFixSaysWhatAStatusScriptMustDoAndWhereItGoes"},
+	"HealthApp004":    {"GivenARunningSessionWhoseProjectHasNeitherAnUpScriptNorAStatusScript", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheSessionsAppIsMarkedPresentAsHavingNoAppToRun"},
+	"HealthApp005":    {"GivenARunningSessionWhoseStatusScriptDoesNotEnd", "WhenTheDeveloperRunsTheHealthCheck", "ThenThatSessionsAppIsMarkedMissingAsNotAnsweringWithinItsTime", "AndEveryOtherItemIsStillReported"},
+	"HealthAwake001":  {"GivenTheEngineIsSetToSleepAfterATimeOnPower", "WhenTheDeveloperRunsTheHealthCheck", "ThenStayingAwakeOnPowerIsMarkedMissingWithTheSettingThatWasReadAndItsFix"},
+	"HealthAwake002":  {"GivenTheEngineIsALaptopThatWouldSleepIfItsLidWereClosedNow", "WhenTheDeveloperRunsTheHealthCheck", "ThenStayingAwakeWithTheLidClosedIsMarkedMissingWithItsFix", "AndOnAnEngineWithNoLidItIsMarkedPresentAsHavingNoLid"},
+	"HealthCheck001":  {"GivenTheEngineHasTwoRunningSessionS", "WhenTheDeveloperRunsTheHealthCheckOnTheEngine", "ThenEveryItemTheSetupCheckReportsForTheEngineIsListed", "AndStayingAwakeOnPowerAndStayingAwakeWithTheLidClosedAreListed", "AndEachRunningSessionIsListedWithItsRemoteControlAndItsApp", "AndEachItemIsMarkedPresentOrMissing"},
+	"HealthCheck002":  {"GivenTheEngineSleepsOnPower", "WhenTheDeveloperRunsTheHealthCheckOnTheEngine", "ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom", "AndStayingAwakeOnPowerIsMarkedMissingWithItsFix", "AndNothingOnTheEngineHasChanged"},
+	"HealthCheck003":  {"GivenThisMachineIsAClient", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheItemsAreTheEnginesCheckedOnTheEngine", "AndWhenTheEngineIsNotReachedThatIsSaidWithItsCauseAndNoItemIsMarkedPresent"},
+	"HealthFix001":    {"GivenTheHealthCheckReportsASessionsAppAsNotRunning", "WhenTheDeveloperAsksForThatFix", "ThenTheCommandsThatStartTheAppAreShownBeforeTheyRun", "AndTheStartIsListedInTheHistoryWithEachOfItsCommandsAndTheirOutcomes", "AndNothingElseIsChanged"},
+	"HealthFix002":    {"GivenTheHealthCheckReportsStayingAwakeOnPowerAsMissing", "WhenTheDeveloperLooksAtItsFix", "ThenTheFixIsShownAsACommandToRunThemselves", "AndThereIsNoWayToRunItFromTheCheck"},
+	"HealthPage001":   {"GivenTheAppIsRunning", "WhenTheDeveloperOpensTheHealthPage", "ThenTheEngineIsCheckedAndEveryItemIsShownWithItsFix", "AndItIsCheckedAgainOnlyWhenTheDeveloperAsks"},
+	"HealthRead001":   {"GivenEveryItemIsPresent", "WhenTheDeveloperRunsTheHealthCheck", "ThenItEndsWithSuccess", "AndWhenOneItemIsMissingItEndsWithAFailure", "AndAsJSONEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix"},
+	"HealthRemote001": {"GivenASessionStartedWithRemoteControl", "AndASessionStartedWithoutItWhereRemoteControlWasThenTurnedOnInsideIt", "AndASessionWithoutRemoteControl", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheFirstTwoAreShownWithRemoteControlOn", "AndTheThirdIsShownWithRemoteControlOff"},
+	"HealthRemote002": {"GivenRemoteControlIsOnInTheEnginesChoice", "AndASessionIsRunningWithoutRemoteControl", "WhenTheDeveloperRunsTheHealthCheck", "ThenItsRemoteControlIsMarkedMissingWithRemoteControlToRunInsideIt", "AndTheSessionIsNotRestarted"},
+	"LearnCopy001":    {"GivenTheCommandsOfAnActionAreShown", "WhenTheDeveloperCopiesTheSecondCommand", "ThenExactlyThatCommandIsSentToTheTerminalsClipboard", "AndTheyAreToldItWasSentToTheTerminalsClipboard"},
+	"LearnCopy002":    {"GivenTheCommandsOfAnActionAreShown", "WhenTheDeveloperCopiesAllOfThem", "ThenTheCommandsAreSentToTheTerminalsClipboardInOrderEachJoinedToTheNextWith", "AndPastedIntoAShellTheyStopAtTheFirstCommandThatFails"},
+	"LearnHist001":    {"GivenTheDeveloperHasRunActionsOnThisMachine", "WhenTheyOpenTheHistory", "ThenEachActionIsListedWithWhenItRanWhichMachineItRanOnItsCommandsAndTheirOutcomes"},
+	"LearnHist002":    {"GivenAnActionIsInTheHistory", "WhenTheDeveloperCopiesItsCommands", "ThenTheyGetCommandsThatRunAsTheyAreWhenPastedIntoATerminal"},
+	"LearnHist003":    {"GivenTheDeveloperJoinsASessionAndZellijCannotAttachToIt", "WhenTheyOpenTheHistory", "ThenTheJoinIsListedAsFailedWithWhatZellijSaid"},
+	"LearnShow001":    {"GivenTheDeveloperHasChosenAnAction", "WhenTheyAskToSeeWhatItWillDo", "ThenTheCommandsItWillRunAreListedInTheOrderTheyWillRun", "AndNothingHasRunYet"},
+	"LearnShow002":    {"GivenAnActionIsRunning", "WhenEachOfItsCommandsStartsAndThenFinishes", "ThenTheCommandIsShownAsItStarts", "AndItsOutcomeIsShownWhenItFinishes"},
+	"LearnShow003":    {"GivenAnActionIsRunning", "WhenOneOfItsCommandsFails", "ThenTheActionStopsAtThatCommand", "AndThatCommandAndItsErrorAreShown", "AndTheCommandsAfterItAreShownAsNotRun"},
+	"PortFwd001":      {"GivenASessionIsRunningOnTheEngineWithAServerOnItsSlotsPort", "WhenTheDeveloperTurnsForwardingOnOnAClient", "ThenTheClientSOwnPortOfThatNumberReachesTheEnginesServer", "AndTheForwardIsKeptInTheHistory"},
+	"PortFwd002":      {"GivenTheClientForwardsARunningSessionSPort", "WhenTheSessionStopsAndForwardingChecksAgain", "ThenTheClientSPortNoLongerReachesTheEngine"},
+	"PortFwd003":      {"GivenAProgramOnTheClientAlreadyListensOnARunningSessionSPort", "WhenTheDeveloperTurnsForwardingOn", "ThenTheyAreToldThePortIsInUseAndWhatHoldsIt", "AndThatProgramKeepsThePort"},
+	"PortFwd004":      {"GivenTheClientForwardsARunningSessionSPort", "WhenTheDeveloperSwitchesTheClientToWorkLocal", "ThenTheClientSPortNoLongerReachesTheEngine", "AndForwardingChecksAgainDoNotForwardItWhileTheClientWorksLocal"},
+	"PortFwd005":      {"GivenTheClientForwardsARunningSessionSPortAndItsForwarderIsWatching", "AndANewConnectionToTheEngineCouldNotBeMade", "WhenAnotherSessionStartsOnTheEngineWithAServerOnItsPort", "ThenWithinSecondsTheClientSPortOfThatNumberReachesTheEnginesServer"},
+	"PortFwd006":      {"GivenForwardingIsOnAndASessionIsRunningOnTheEngine", "AndTheClientHasNoConnectionToTheEngine", "WhenTheForwarderWatchesForAWhile", "ThenNoConnectionToTheEngineIsOpened", "AndNothingIsAddedToTheHistory"},
+	"PortFwd007":      {"GivenForwardingEverySessionIsOffAndTwoSessionSRunOnTheEngineEachWithAServerOnItsPort", "WhenTheDeveloperSwitchesOneSessionSForwardingOn", "ThenThatSessionSPortReachesTheEnginesServer", "AndTheOtherSessionSPortIsNotForwarded", "AndOnceTheySwitchItOffAgainItsPortNoLongerReachesTheEngineAndTheConnectionToTheEngineIsClosed"},
+	"PortRes001":      {"GivenTwoProjectsWhoseSettingsBothUseOnePort", "WhenTheDeveloperChecksThePorts", "ThenTheClashIsReportedNamingBothProjectsAndThePort", "AndNeitherProjectSSettingsAreChanged"},
+	"PortRes002":      {"GivenAnotherProjectAlreadyReservesTheFirstBlock", "WhenTheDeveloperReservesPortsForAProjectThatNamesItsPorts", "ThenTheProjectReservesTheNextFreeBlockOf100", "AndItsSlot1KeepsThePortsItHad", "AndSlots2To10TakePortsFromTheBlock"},
+	"PortSet001":      {"GivenTheRepositoryRecommendsOneSetOfPortsAndTheDevelopersSettingsGiveAnother", "WhenTheDeveloperStartsNewWorkOnTheProject", "ThenItsRecordHoldsThePortsFromTheDevelopersSettings"},
+	"PortSet002":      {"GivenTheDevelopersSettingsForAProjectNameAPortSlotTheProgramsOwnKey", "WhenTheDeveloperStartsNewWorkOnTheProject", "ThenTheyAreToldThePortSlotIsTheProgramsOwnKeyNamingTheirSettingsFile", "AndNoCheckoutIsCreated"},
+	"PortSlot001":     {"GivenAProjectWhoseSettingsGiveItThreeSlots", "WhenTheDeveloperStartsNewWorkOnIt", "ThenTheNewCheckoutHoldsASlotThatIsNotTheMainClones", "AndItsRecordHoldsThatSlotsPorts"},
+	"PortSlot002":     {"GivenNewWorkHoldsASlot", "WhenTheDeveloperCleansItUpAndConfirms", "ThenTheSlotIsFree", "AndTheNextNewWorkIsGivenIt"},
+	"PortSlot003":     {"GivenAProjectWhoseSettingsNameTheirOwnSlotRecord", "AndNewWorkOnItHoldsSlot2", "WhenTheDeveloperStartsTheStackOfThatNewWorkAndRunsOneOfItsTasksThere", "ThenTheUpScriptIsGivenSlot2sPorts", "AndTheTaskIsGivenThemToo"},
+	"PortSlot004":     {"GivenAProjectWhoseSettingsGiveItOneSlotWhichItsMainCloneRunsOn", "WhenTheDeveloperStartsNewWorkOnIt", "ThenTheyAreToldEverySlotIsHeldNamingTheMainClone", "AndNoCheckoutIsCreated"},
+	"PortSlot005":     {"GivenNewWorkHoldsASlotAndTheRepositorysGitignoreNamesNoneOfTheSlotsFiles", "WhenTheDeveloperAsksForTheSlotsFilesToBeIgnoredTwice", "ThenGitIgnoresTheRecordAndItsEnvironmentFile", "AndGitignoreNamesEachOfThemOnce"},
+	"ProjAdd001":      {"GivenAGitRepositoryOnThisMachineThatIsNotRegistered", "WhenTheDeveloperRegistersItsFolder", "ThenItIsListedAmongTheRegisteredProjectsUnderItsFoldersName", "AndItCanBeOpenedByThatName"},
+	"ProjAdd002":      {"GivenAGitRepositoryOnThisMachineThatIsNotRegistered", "WhenTheDeveloperRegistersItsFolderWithTheNameWeb", "ThenItIsListedAmongTheRegisteredProjectsAsWeb"},
+	"ProjAdd003":      {"GivenAFolderOnThisMachineThatIsNotAGitRepository", "WhenTheDeveloperRegistersIt", "ThenTheyAreToldItIsNotAGitRepository", "AndNothingIsRegistered"},
+	"ProjAdd004":      {"GivenARepositoryIsAlreadyRegistered", "WhenTheDeveloperRegistersTheSameFolderAgain", "ThenTheyAreToldItIsAlreadyRegisteredAndUnderWhichName", "AndItIsListedOnce"},
+	"ProjAdd005":      {"GivenAGitRepositoryThatDeclaresACreateScriptAndATeardownScript", "WhenTheDeveloperRegistersItsFolder", "ThenTheyAreToldWhichSetupScriptsTheRepositoryDeclares"},
+	"ProjBrowse001":   {"GivenARootWhoseOwnerHasThreeRepositoriesOnGitHub", "AndOneOfThemIsClonedInTheRootAndRegisteredAsAProject", "WhenTheDeveloperBrowsesTheRoot", "ThenAllThreeRepositoriesAreListed", "AndTheyAreListedInAlphabeticalOrderOfTheirNamesIgnoringCase", "AndTheOneAlreadyHereIsMarkedAsRegisteredUnderItsProjectName"},
+	"ProjBrowse002":   {"GivenARootWhoseGitHubAccountIsNotSignedInOnTheEngine", "WhenTheDeveloperBrowsesTheRoot", "ThenTheyAreToldTheOwnersRepositoriesCouldNotBeListedAndWhy", "AndTheyAreShownTheCommandThatSignsTheAccountIn"},
+	"ProjCat001":      {"GivenAProjectRegisteredInTheCategoryToolsTwoInTheCategoryWebAndOneWithNoCategory", "WhenTheDeveloperOpensTheListOfProjects", "ThenEachProjectIsShownUnderAHeadingForItsCategory", "AndUnderEachHeadingTheProjectsAreInAlphabeticalOrderOfTheirNamesIgnoringCase", "AndTheProjectWithNoCategoryIsListedAfterTheCategorys"},
+	"ProjCat002":      {"GivenAnEngineThatAnswersTheListOfProjectsWithTheirNamesOnly", "WhenTheDeveloperOnAClientOpensTheListOfProjects", "ThenEveryProjectIsListedWithNoCategoryHeadings"},
+	"ProjClone001":    {"GivenARootWhoseOwnerHasARepositoryCalledWidgetThatIsNotOnTheEngine", "WhenTheDeveloperAddsWidgetFromTheListInTheCategoryTools", "ThenItIsClonedIntoTheRootAsWidget", "AndItIsRegisteredAsAProjectCalledWidgetInTheCategoryTools"},
+	"ProjClone002":    {"GivenAFolderCalledWidgetIsAlreadyInTheRoot", "WhenTheDeveloperAddsTheRepositoryWidgetFromTheList", "ThenTheyAreToldTheFolderIsAlreadyThereAndHowToRegisterIt", "AndNothingIsClonedAndTheFolderIsUnchanged"},
+	"ProjCreate001":   {"GivenTheOwnerOfTheRootHasNoRepositoryCalledGadget", "WhenTheDeveloperCreatesGadgetInTheRootAsAPrivateRepositoryInTheCategoryTools", "ThenItsFolderIsMadeInTheRootWithAFirstCommit", "AndAPrivateRepositoryGadgetIsCreatedForTheOwnerOnGitHubHoldingThatCommit", "AndItIsRegisteredAsAProjectCalledGadgetInTheCategoryTools"},
+	"ProjCreate002":   {"GivenTheOwnerOfTheRootAlreadyHasARepositoryCalledWidgetOnGitHub", "WhenTheDeveloperCreatesWidgetInTheRoot", "ThenTheyAreToldTheOwnerAlreadyHasARepositoryOfThatName", "AndNoFolderIsMadeAndNothingIsCreatedOnGitHub"},
+	"ProjHere001":     {"GivenARegisteredProjectWithASecondCheckoutAndAFolderThatIsInNoProject", "WhenTheDeveloperAsksWhetherEachOfThatCheckoutAndTheOtherFolderIsAProjectS", "ThenThatCheckoutIsAnsweredWithTheProjectSNameAndSuccess", "AndTheOtherFolderIsAnsweredWithFailureAndNothingPrinted"},
+	"ProjList001":     {"GivenTwoProjectsAreRegistered", "WhenTheDeveloperListsTheProjects", "ThenEachIsListedWithItsNameAndItsFolder"},
+	"ProjRemove001":   {"GivenAProjectIsRegistered", "WhenTheDeveloperRemovesIt", "ThenItIsNoLongerListedAmongTheRegisteredProjects", "AndItsFolderAndEverythingInItAreUnchanged"},
+	"ProjRoot001":     {"GivenAFolderOnTheEngineMeantForOneGitHubOwnersRepositories", "WhenTheDeveloperRegistersItAsARootForThatOwnerWithTheGitHubAccountThatListsIt", "ThenItIsListedAmongTheRootsWithItsFolderItsOwnerAndItsAccount"},
+	"ProjRoot002":     {"GivenThereIsNoFolderAtThePathTheDeveloperNames", "WhenTheDeveloperRegistersThatPathAsARoot", "ThenTheyAreToldTheFolderDoesNotExist", "AndNoRootIsRegistered"},
+	"SessBack001":     {"GivenASessionWithALayoutOfItsOwnEndedBecauseTheEngineRestarted", "WhenTheDeveloperStartsItAgain", "ThenItOpensWithTheCurrentStandardLayout", "AndNotWithTheTabsAndPanesItHad"},
+	"SessBack002":     {"GivenASessionEndedBecauseTheEngineRestarted", "WhenTheDeveloperStartsItAgain", "ThenClaudeCodeContinuesTheConversationItWasHaving", "AndANewEmptyConversationIsNotStartedInItsPlace"},
+	"SessBack003":     {"GivenASessionWithALayoutOfItsOwnIsRunning", "WhenTheDeveloperRestartsItFromTheApp", "ThenItRunsWithTheCurrentStandardLayout", "AndClaudeCodeContinuesTheConversationItWasHaving"},
+	"SessBack004":     {"GivenTheDeveloperHasJoinedASessionFromAClientInAWindowOpenedOnlyToJoinIt", "WhenTheyRestartItFromTheApp", "ThenTheProgramInThatWindowEndsRatherThanStayingOpenOnTheSessionList", "AndTheSessionIsRunningAgainOnTheEngine"},
+	"SessJoin001":     {"GivenASessionIsRunningOnTheEngine", "WhenTheDeveloperJoinsItFromAClient", "ThenTheySeeThatSessionAsItIsOnTheEngine"},
+	"SessJoin002":     {"GivenTheDeveloperHasJoinedASessionFromAClient", "WhenTheyLeaveIt", "ThenTheSessionIsStillRunningOnTheEngine", "AndTheWorkItWasDoingCarriesOn"},
+	"SessList001":     {"GivenTheEngineHasSessionsForTwoProjects", "WhenTheDeveloperOpensTheListOfSessions", "ThenEachSessionIsListedWithItsProjectItsCheckoutAndWhetherItIsRunning"},
+	"SessList002":     {"GivenOneSessionHasStoppedToAskTheDeveloperAQuestion", "WhenTheDeveloperOpensTheListOfSessions", "ThenThatSessionIsListedWhereItWouldBeIfItWereNotWaiting", "AndItIsMarkedWithClaudesMarkAsWaiting", "AndTheQuestionItAskedIsShownBesideIt"},
+	"SessList003":     {"GivenASessionHasEnded", "WhenTheDeveloperOpensTheListOfSessions", "ThenItIsListedAsEnded", "AndItIsNotShownAsRunning"},
+	"SessList004":     {"GivenTheEngineHasNoSessions", "WhenTheDeveloperOpensTheListOfSessions", "ThenTheyAreToldThereAreNoSessions", "AndTheyAreOfferedTheRegisteredProjectsToOpen"},
+	"SessList005":     {"GivenRunningSessionsForAlphaBetaAndGammaWithGammaPinned", "WhenTheDeveloperOpensTheListOfSessions", "ThenGammasSessionIsListedFirst", "AndAlphasAndBetasFollowItByName"},
+	"SessMouse001":    {"GivenTwoSessionsAreRunning", "WhenTheDeveloperClicksTheSecondSessionInTheList", "ThenTheSecondSessionIsSelected", "AndClickingItAgainJoinsIt"},
+	"SessMouse002":    {"GivenThreeSessionsAreRunningAndTheFirstIsSelected", "WhenTheDeveloperScrollsDownTwiceOverTheList", "ThenTheThirdSessionIsSelected", "AndScrollingUpOnceSelectsTheSecond"},
+	"SessNew001":      {"GivenAProjectHasNoSessionOnTheEngine", "WhenTheDeveloperOpensIt", "ThenASessionIsCreatedInItsCheckout", "AndItHoldsClaudeCodeOnItsOwnTabAndAPlaceForGit"},
+	"SessNew002":      {"GivenAProjectAlreadyHasARunningSession", "WhenTheDeveloperOpensIt", "ThenTheyJoinThatSession", "AndNoSecondSessionIsCreated"},
+	"SessNew003":      {"GivenNoProjectCalledAcmeSiteIsRegistered", "WhenTheDeveloperOpensAcmeSite", "ThenTheyAreToldItIsNotARegisteredProject", "AndTheyAreShownTheRegisteredProjects", "AndNoSessionIsCreated"},
+	"SessNew004":      {"GivenAProjectHasNoSessionOnTheEngine", "WhenTheDeveloperStartsItWithoutJoining", "ThenASessionIsCreatedInItsCheckoutAndIsRunning", "AndTheDeveloperStaysWhereTheyWereShownTheListOfSessions"},
+	"SessNew005":      {"GivenTheProgramIsRunByAClaudeCodeAgentWithThatAgentsMarkersInItsEnvironment", "WhenItStartsAProjectSSession", "ThenTheAgentInThatSessionIsGivenNoneOfThoseMarkers"},
+	"SessNew006":      {"GivenTheDeveloperIsLoggedInAtTheEnginesScreen", "AndTheProgramRunsOnTheEngineOutsideThatLoginAsItDoesOverSSH", "WhenItStartsAProjectSSession", "ThenWhatRunsInTheSessionRunsInsideTheDevelopersDesktopLogin", "AndNothingOfHowItWasStartedThereIsLeftRunningOrLoaded"},
+	"SessRemote001":   {"GivenTheDeveloperIsChoosingAProjectToOpen", "WhenTheyTurnRemoteControlOn", "ThenTheChoiceIsShownAsOn", "AndItIsStillOnTheNextTimeTheProgramIsStarted"},
+	"SessRemote002":   {"GivenRemoteControlIsOn", "AndAProjectHasNoSessionOnTheEngine", "WhenTheDeveloperOpensIt", "ThenClaudeCodeInTheNewSessionStartsWithRemoteControl", "AndTheNameItIsReachedByIsTheSessionsName"},
+	"SessRemote003":   {"GivenRemoteControlIsOnForTheClientAndOffOnTheEngine", "WhenTheDeveloperOpensAProjectWithNoSessionFromTheClient", "ThenClaudeCodeInTheNewSessionStartsWithRemoteControl"},
+	"SessRemote004":   {"GivenASessionIsRunningWithoutRemoteControl", "AndRemoteControlIsOn", "WhenTheDeveloperOpensItsProject", "ThenTheyJoinThatSessionAsItIs", "AndItIsNotRestarted"},
+	"SessStop001":     {"GivenASessionIsRunning", "WhenTheDeveloperChoosesToStopIt", "ThenTheyAreAskedToConfirmBeforeAnythingIsStopped"},
+	"SessStop002":     {"GivenTwoSessionsAreRunning", "WhenTheDeveloperStopsOneOfThemAndConfirms", "ThenThatSessionIsGoneWithNothingOfItKeptToBringBack", "AndTheOtherIsStillRunning"},
+	"SessStop003":     {"GivenTheDeveloperHasBeenAskedToConfirmStoppingASession", "WhenTheyDecline", "ThenTheSessionIsStillRunning"},
+	"SessSwitch001":   {"GivenTheDeveloperIsInOneSession", "WhenTheyChooseAnotherSessionFromInsideIt", "ThenThisWindowShowsTheOtherSession", "AndTheOneTheyLeftIsStillRunning"},
+	"SetupCheck001":   {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenEveryItemEveryMachineNeedsAndEveryItemTheEngineNeedsIsListed", "AndEachIsMarkedPresentOrMissing", "AndNoItemAClientNeedsIsListed"},
+	"SetupCheck002":   {"GivenThisMachineIsAClient", "WhenTheDeveloperRunsTheSetupCheck", "ThenEveryItemEveryMachineNeedsAndEveryItemAClientNeedsIsListed", "AndNoItemOnlyTheEngineNeedsIsListed"},
+	"SetupCheck003":   {"GivenZellijIsNotInstalledOnThisMachine", "WhenTheDeveloperRunsTheSetupCheck", "ThenZellijIsMarkedMissingWithTheVersionNeededAndTheCommandThatInstallsIt", "AndNothingOnTheMachineHasChanged"},
+	"SetupCheck004":   {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom"},
+	"SetupCheck005":   {"GivenThisMachineHasNoRoleSet", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheRoleIsMarkedMissingWithTheCommandThatSetsEachRole", "AndEveryItemEveryMachineNeedsIsStillListedPresentOrMissing"},
+	"SetupCheck006":   {"GivenThisMachinesConfigurationNamesAnUnknownRole", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheConfigurationIsMarkedMissingNamingTheFileAndTheFieldThatIsWrong"},
+	"SetupCheck007":   {"GivenThisMachineIsTheEngine", "AndTheProgramsFolderIsOnThePATHOnlyForInteractiveShells", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheProgramIsMarkedMissingForSSHCommandsWithTheLineToAddToTheFileEveryShellReads"},
+	"SetupCheck008":   {"GivenThisMachineIsAClient", "AndTheEngineSHostKeyHasChanged", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineIsMarkedMissingSaidAsAChangedHostKeyWithWhatToDo"},
+	"SetupCheck009":   {"GivenThisMachineIsAClient", "AndTheSSHConfigurationEditorUsesHasNoEntryForTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineSNameIsMarkedMissingForEditorNamingTheFileEditorReads"},
+	"SetupRead001":    {"GivenEveryItemForThisMachinesRoleIsPresent", "WhenTheDeveloperRunsTheSetupCheck", "ThenItEndsWithSuccess", "AndWhenOneItemIsMissingItEndsWithAFailure"},
+	"SetupRead002":    {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheckAsJSON", "ThenEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix", "AndTheItemsAreTheSameAsTheReportOnScreen"},
+	"WorkClean001":    {"GivenNewWorkWhoseChangesAreAllCommittedAndPushedHasARunningSession", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsSessionIsStopped", "AndItsCheckoutIsRemoved"},
+	"WorkClean002":    {"GivenNewWorkHasAFileChangedButNotCommitted", "WhenTheDeveloperCleansItUp", "ThenTheyAreToldItHasUncommittedChangesNamingTheFile", "AndNothingIsStoppedOrRemoved"},
+	"WorkClean003":    {"GivenNewWorkHasACommitThatIsNotOnTheRemote", "WhenTheDeveloperCleansItUp", "ThenTheyAreToldItHasCommitsThatWereNeverPushed", "AndNothingIsStoppedOrRemoved"},
+	"WorkClean004":    {"GivenNewWorkWhoseBranchHasBeenMergedIntoMain", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsBranchNoLongerExistsOnThisMachineOrOnTheRemote"},
+	"WorkClean005":    {"GivenNewWorkWhoseBranchIsPushedButNotMergedIntoMain", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsCheckoutIsRemoved", "AndItsBranchStillExistsOnThisMachineAndOnTheRemote"},
+	"WorkClean006":    {"GivenAProjectIsRegistered", "WhenTheDeveloperAsksToCleanUpItsMainCheckout", "ThenTheyAreToldTheMainCheckoutIsNeverCleanedUp", "AndNothingIsStoppedOrRemoved"},
+	"WorkClean007":    {"GivenTheProjectDeclaresATeardownScript", "WhenTheDeveloperCleansUpNewWorkOnItAndConfirms", "ThenTheTeardownScriptRunsInTheCheckoutBeforeItIsRemoved"},
+	"WorkClean008":    {"GivenNewWorkHasAFileChangedButNotCommitted", "WhenTheDeveloperCleansItUp", "ThenTheyAreToldItHasUncommittedChangesNamingTheFile", "AndTheyAreOfferedToSaveTheChangesToTheBranchOrToPutThemAside"},
+	"WorkClean009":    {"GivenNewWorkHasAFileChangedButNotCommitted", "WhenTheDeveloperSavesItsChangesToTheBranch", "ThenTheChangeIsCommittedOnTheBranchOnThisMachineAndOnTheRemote", "AndCleaningTheWorkUpIsNoLongerRefused"},
+	"WorkClean010":    {"GivenNewWorkHasAFileChangedButNotCommitted", "WhenTheDeveloperPutsTheChangesAsideAndCleansTheWorkUp", "ThenItsCheckoutIsRemoved", "AndTheChangeCanBeBroughtBackFromTheRepositorysStash"},
+	"WorkClean011":    {"GivenNewWorkHasACommitThatIsNotOnTheRemote", "WhenTheDeveloperCleansItUp", "ThenTheyAreOfferedToPushTheCommits", "AndOnceTheyArePushedCleaningTheWorkUpIsNoLongerRefused"},
+	"WorkNew001":      {"GivenAProjectIsRegistered", "WhenTheDeveloperStartsNewWorkOnItCalledFixLogin", "ThenACheckoutNamedAfterTheProjectAndFixLoginExistsBesideTheMainOneOnANewBranchCalledFixLogin", "AndASessionIsOpenInThatCheckout"},
+	"WorkNew002":      {"GivenTheRemotesMainHasACommitThisMachineHasNotFetched", "WhenTheDeveloperStartsNewWorkOnTheProject", "ThenTheNewBranchStartsFromThatCommit"},
+	"WorkNew003":      {"GivenAProjectIsRegistered", "WhenTheDeveloperStartsNewWorkOnItCalledFeatureLoginPage", "ThenTheyAreToldTheNameMayOnlyHoldLettersDigitsAnd", "AndNoCheckoutBranchOrSessionIsCreated"},
+	"WorkNew004":      {"GivenNewWorkCalledFixLoginWasStartedOnTheProject", "WhenTheDeveloperStartsNewWorkCalledFixLoginAgain", "ThenTheSessionInTheExistingCheckoutIsOpened", "AndNoSecondCheckoutOrBranchIsCreated"},
+	"WorkNew005":      {"GivenTheProjectDeclaresACreateScript", "WhenTheDeveloperStartsNewWorkOnIt", "ThenTheCreateScriptRunsInTheNewCheckoutBeforeTheSessionOpens", "AndWhatTheScriptPrintsIsShownWhileItRuns"},
+	"WorkNew006":      {"GivenTheProjectDeclaresACreateScriptThatFails", "WhenTheDeveloperStartsNewWorkOnIt", "ThenTheyAreToldTheCheckoutWasCreatedButItsSetupFailedWithTheScriptsError", "AndNoSessionIsOpened"},
+	"WorkNew007":      {"GivenTheMainCheckoutIsOnABranchThatAddsACreateScriptTheRemotesMainDoesNotHave", "WhenTheDeveloperStartsNewWorkOnTheProject", "ThenNoCreateScriptIsRun", "AndTheSessionInTheNewCheckoutOpens"},
+	"WorkRole001":     {"GivenAProjectIsRegistered", "WhenTheDeveloperMakesACheckoutForTheRoleDesignerOnTheBranchNavRework", "ThenACheckoutNamedAfterTheProjectAndDesignerExistsBesideTheMainOneOnANewBranchNavReworkFromTheRemotesMain", "AndDesignerIsRecordedAsOneOfTheProjectSRolesInTheDevelopersSettings", "AndTheProjectSPageShowsTheCheckoutAsTheDesignersOnNavRework"},
+	"WorkRole002":     {"GivenTheDesignerCheckoutSBranchIsPushedAndNothingInItIsUncommitted", "WhenTheDeveloperMovesItOnToTheBranchSearchFix", "ThenTheSameCheckoutIsOnANewBranchSearchFixFromTheRemotesMain", "AndTheEarlierBranchIsStillOnTheRemote"},
+	"WorkRole003":     {"GivenTheDesignerCheckoutHasAFileChangedButNotCommitted", "WhenTheDeveloperMovesItOnToAnotherBranch", "ThenTheyAreToldItHasUncommittedChangesNamingTheFileAndOfferedToSaveOrPutThemAside", "AndTheCheckoutIsStillOnItsBranchWithTheChange"},
+	"WorkRole004":     {"GivenNewWorkCalledDesignerExistsOnTheProject", "WhenTheDeveloperMakesACheckoutForTheRoleDesigner", "ThenTheyAreToldTheNameIsTakenByBranchWork", "AndNoRoleIsRecorded"},
+	"WorkRole005":     {"GivenTheDesignerCheckoutHasNothingUncommittedOrUnpushed", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsCheckoutIsRemoved", "AndDesignerIsNoLongerOneOfTheProjectSRoles"},
+	"WorkStack001":    {"GivenTheProjectDeclaresAnUpScriptAndHasASessionInACheckout", "WhenTheDeveloperStartsTheStackOfThatSession", "ThenTheUpScriptRunsInThatCheckoutToldWhichProjectWorkAndCheckoutItIs", "AndItsCommandAndOutputAreShownAndKeptInTheHistory"},
+	"WorkStack002":    {"GivenTheProjectDeclaresADownScriptAndHasASessionInACheckout", "WhenTheDeveloperStopsTheStackOfThatSession", "ThenTheDownScriptRunsInThatCheckout"},
+	"WorkStack003":    {"GivenTheProjectDeclaresADownScriptAndATeardownScript", "WhenTheDeveloperCleansUpNewWorkOnItAndConfirms", "ThenTheDownScriptRunsBeforeTheTeardownScript", "AndBothRunBeforeTheCheckoutIsRemoved"},
+	"WorkStack004":    {"GivenTheProjectDeclaresNoUpScriptAndHasASessionInACheckout", "WhenTheDeveloperStartsTheStackOfThatSession", "ThenTheyAreToldTheRepositoryDeclaresNoUpScriptAndWhatOneMustDo", "AndNothingIsRun"},
+	"WorkStack005":    {"GivenTheProjectDeclaresAnUpScriptAndItsCheckoutHasNoRunningSession", "WhenTheDeveloperStartsTheStackOfThatCheckoutFromTheApp", "ThenItsSessionIsStartedInTheBackgroundAsTheAppStartsSessionSBeforeTheUpScriptRuns", "AndNoTerminalWindowIsOpened"},
+	"WorkStack006":    {"GivenACheckoutSSessionIsRunningWithItsStackStarted", "AndAServerWasStartedFromInsideThatSession", "AndAnotherServerOnTheProjectSPortsWasStartedOutsideAnySession", "WhenTheDeveloperStopsThatSessionAndConfirms", "ThenTheDownScriptRunsBeforeTheSessionEnds", "AndTheServerStartedInsideTheSessionIsStopped", "AndTheServerStartedOutsideAnySessionIsStillRunning"},
+	"WorkStack007":    {"GivenASessionIsRunningWithItsStackStartedAndTheDeveloperHasJoinedIt", "WhenTheDeveloperClosesTheTerminalWindow", "ThenTheSessionIsStillRunning", "AndSoIsItsStack"},
+	"WorkStack008":    {"GivenASessionSStackWasStarted", "AndTheSessionWasEndedFromInsideZellijMoreThanTwoMinutesAgo", "WhenTheEngineChecksItsSessions", "ThenTheDownScriptHasRunInThatCheckout", "AndTheHistorySaysTheStackWasStoppedBecauseItsSessionHadEnded"},
+	"WorkStack009":    {"GivenASessionSStackWasStarted", "AndTheSessionWasEndedFromInsideZellijLessThanTwoMinutesAgo", "WhenTheEngineChecksItsSessions", "ThenNothingIsStopped"},
+	"WorkStack010":    {"GivenASessionIsRunningWithItsStackStarted", "WhenTheDeveloperRestartsItAndConfirms", "ThenItsStackIsStillRunning"},
+	"WorkStack011":    {"GivenAServerOnAProjectSPortsWasStartedOutsideAnySession", "WhenTheEngineChecksItsSessions", "ThenTheServerIsStillRunning", "AndTheProjectSPageListsItWithItsPortItsProcessWhenItStartedAndItsFolderAndOffersToStopThatOne"},
+	"WorkStack012":    {"GivenTwoCheckoutsEachHaveARunningSession", "AndFromInsideTheFirstTheDeveloperStartedTheStackOfTheSecond", "WhenTheDeveloperStopsTheFirstSessionAndConfirms", "ThenTheSecondCheckoutSStackIsStillRunning"},
+	"WorkStack013":    {"GivenACheckoutSSessionIsRunning", "AndAnAppThatServesNothingWasOpenedFromInsideThatSession", "WhenTheDeveloperStopsThatSessionAndConfirms", "ThenTheAppIsStillRunning"},
+	"WorkStack014":    {"GivenASessionOfACheckoutHasEndedLeavingWhatZellijKeepsOfIt", "WhenTheSweepsWatchIsStarted", "ThenTheEndedSessionIsForgottenAtOnce", "AndWhenWhatStartedTheWatchEndsTheWatchEndsToo"},
+	"WorkStack015":    {"GivenACheckoutOfAProjectWithAnUpScriptHasASessionAndNothingAnswersOnItsPort", "WhenTheDeveloperOpensOneOfItsLinks", "ThenItsUpScriptRunsInThatCheckoutBeforeTheLinkIsOpened", "AndOpeningALinkWhenSomethingAnswersOnItsPortStartsNothing"},
 }
 
 // AppAdd001 is APP-ADD-001: A repository is got from GitHub into a chosen root and category
@@ -2964,6 +2980,571 @@ func (s EditOpen006) Scenario() Scenario {
 			{Text: "And a {session.lower} is running in this machine's own copy of a {project.lower}", Display: "And a session is running in this machine's own copy of a project", Fn: s.AndASessionIsRunningInThisMachinesOwnCopyOfAProject},
 			{Text: "When the developer opens it in {editor} from the {session.lower} list", Display: "When the developer opens it in VS Code from the session list", Fn: s.WhenTheDeveloperOpensItInEditorFromTheSessionList},
 			{Text: "Then {editor} is started on this machine's folder, not the {engine.lower}'s", Display: "Then VS Code is started on this machine's folder, not the engine's", Fn: s.ThenEditorIsStartedOnThisMachinesFolderNotTheEngineS},
+		},
+	}
+}
+
+// HealthApp001 is HEALTH-APP-001: A running app is reported by the Project's status script
+//
+// Intent: D-006 - what a project needs is set up by its own scripts; whether its app is running is said by its status script, so the program never guesses how to check an app
+// Source: acceptance/health/health-acceptance.md
+type HealthApp001 struct {
+	// Given a running session whose project has a status script
+	GivenARunningSessionWhoseProjectHasAStatusScript func()
+	// And the script ends with success
+	AndTheScriptEndsWithSuccess func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then the Session's app is marked present, with what the script printed
+	ThenTheSessionsAppIsMarkedPresentWithWhatTheScriptPrinted func()
+}
+
+// Scenario describes HEALTH-APP-001 with the clause functions this journey supplied.
+func (s HealthApp001) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-APP-001",
+		Title:   "A running app is reported by the Project's status script",
+		Feature: "Apps",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "D-006 - what a project needs is set up by its own scripts; whether its app is running is said by its status script, so the program never guesses how to check an app",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given a running {session.lower} whose {project.lower} has a status script", Display: "Given a running session whose project has a status script", Fn: s.GivenARunningSessionWhoseProjectHasAStatusScript},
+			{Text: "And the script ends with success", Display: "And the script ends with success", Fn: s.AndTheScriptEndsWithSuccess},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then the {session.possessive} app is marked present, with what the script printed", Display: "Then the Session's app is marked present, with what the script printed", Fn: s.ThenTheSessionsAppIsMarkedPresentWithWhatTheScriptPrinted},
+		},
+	}
+}
+
+// HealthApp002 is HEALTH-APP-002: An app that is not running is reported with what its script said
+//
+// Intent: as HEALTH-APP-001; the fix for an app that is not running is starting it, as the Run button does (D-006, WORK-STACK-001)
+// Source: acceptance/health/health-acceptance.md
+type HealthApp002 struct {
+	// Given a running session whose project has a status script
+	GivenARunningSessionWhoseProjectHasAStatusScript func()
+	// And the script ends with a failure
+	AndTheScriptEndsWithAFailure func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then the Session's app is marked missing, with what the script printed
+	ThenTheSessionsAppIsMarkedMissingWithWhatTheScriptPrinted func()
+	// And its fix is starting the app with engineroom up and the Session's name
+	AndItsFixIsStartingTheAppWithEngineroomUpAndTheSessionsName func()
+}
+
+// Scenario describes HEALTH-APP-002 with the clause functions this journey supplied.
+func (s HealthApp002) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-APP-002",
+		Title:   "An app that is not running is reported with what its script said",
+		Feature: "Apps",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "as HEALTH-APP-001; the fix for an app that is not running is starting it, as the Run button does (D-006, WORK-STACK-001)",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given a running {session.lower} whose {project.lower} has a status script", Display: "Given a running session whose project has a status script", Fn: s.GivenARunningSessionWhoseProjectHasAStatusScript},
+			{Text: "And the script ends with a failure", Display: "And the script ends with a failure", Fn: s.AndTheScriptEndsWithAFailure},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then the {session.possessive} app is marked missing, with what the script printed", Display: "Then the Session's app is marked missing, with what the script printed", Fn: s.ThenTheSessionsAppIsMarkedMissingWithWhatTheScriptPrinted},
+			{Text: "And its fix is starting the app with engineroom up and the {session.possessive} name", Display: "And its fix is starting the app with engineroom up and the Session's name", Fn: s.AndItsFixIsStartingTheAppWithEngineroomUpAndTheSessionsName},
+		},
+	}
+}
+
+// HealthApp003 is HEALTH-APP-003: A project with an up script and no status script is not counted as running
+//
+// Intent: nothing is counted as running unproved; a project that starts an app but cannot say whether it is running is told what the status script must do, as a missing up script is (WORK-STACK-004)
+// Source: acceptance/health/health-acceptance.md
+type HealthApp003 struct {
+	// Given a running session whose project has an up script and no status script
+	GivenARunningSessionWhoseProjectHasAnUpScriptAndNoStatusScript func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then the Session's app is marked missing, as not checked
+	ThenTheSessionsAppIsMarkedMissingAsNotChecked func()
+	// And its fix says what a status script must do and where it goes
+	AndItsFixSaysWhatAStatusScriptMustDoAndWhereItGoes func()
+}
+
+// Scenario describes HEALTH-APP-003 with the clause functions this journey supplied.
+func (s HealthApp003) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-APP-003",
+		Title:   "A project with an up script and no status script is not counted as running",
+		Feature: "Apps",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "nothing is counted as running unproved; a project that starts an app but cannot say whether it is running is told what the status script must do, as a missing up script is (WORK-STACK-004)",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given a running {session.lower} whose {project.lower} has an up script and no status script", Display: "Given a running session whose project has an up script and no status script", Fn: s.GivenARunningSessionWhoseProjectHasAnUpScriptAndNoStatusScript},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then the {session.possessive} app is marked missing, as not checked", Display: "Then the Session's app is marked missing, as not checked", Fn: s.ThenTheSessionsAppIsMarkedMissingAsNotChecked},
+			{Text: "And its fix says what a status script must do and where it goes", Display: "And its fix says what a status script must do and where it goes", Fn: s.AndItsFixSaysWhatAStatusScriptMustDoAndWhereItGoes},
+		},
+	}
+}
+
+// HealthApp004 is HEALTH-APP-004: A project with no app is not reported missing
+//
+// Intent: a project with no up script has no app the program starts, so there is nothing to be running and nothing missing
+// Source: acceptance/health/health-acceptance.md
+type HealthApp004 struct {
+	// Given a running session whose project has neither an up script nor a status script
+	GivenARunningSessionWhoseProjectHasNeitherAnUpScriptNorAStatusScript func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then the Session's app is marked present, as having no app to run
+	ThenTheSessionsAppIsMarkedPresentAsHavingNoAppToRun func()
+}
+
+// Scenario describes HEALTH-APP-004 with the clause functions this journey supplied.
+func (s HealthApp004) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-APP-004",
+		Title:   "A project with no app is not reported missing",
+		Feature: "Apps",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "a project with no up script has no app the program starts, so there is nothing to be running and nothing missing",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given a running {session.lower} whose {project.lower} has neither an up script nor a status script", Display: "Given a running session whose project has neither an up script nor a status script", Fn: s.GivenARunningSessionWhoseProjectHasNeitherAnUpScriptNorAStatusScript},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then the {session.possessive} app is marked present, as having no app to run", Display: "Then the Session's app is marked present, as having no app to run", Fn: s.ThenTheSessionsAppIsMarkedPresentAsHavingNoAppToRun},
+		},
+	}
+}
+
+// HealthApp005 is HEALTH-APP-005: A status script that does not end is reported, and the rest are still checked
+//
+// Intent: one script that hangs cannot hold the whole view, as one tool cannot hold the setup check
+// Source: acceptance/health/health-acceptance.md
+type HealthApp005 struct {
+	// Given a running session whose status script does not end
+	GivenARunningSessionWhoseStatusScriptDoesNotEnd func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then that Session's app is marked missing, as not answering within its time
+	ThenThatSessionsAppIsMarkedMissingAsNotAnsweringWithinItsTime func()
+	// And every other item is still reported
+	AndEveryOtherItemIsStillReported func()
+}
+
+// Scenario describes HEALTH-APP-005 with the clause functions this journey supplied.
+func (s HealthApp005) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-APP-005",
+		Title:   "A status script that does not end is reported, and the rest are still checked",
+		Feature: "Apps",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "one script that hangs cannot hold the whole view, as one tool cannot hold the setup check",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given a running {session.lower} whose status script does not end", Display: "Given a running session whose status script does not end", Fn: s.GivenARunningSessionWhoseStatusScriptDoesNotEnd},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then that {session.possessive} app is marked missing, as not answering within its time", Display: "Then that Session's app is marked missing, as not answering within its time", Fn: s.ThenThatSessionsAppIsMarkedMissingAsNotAnsweringWithinItsTime},
+			{Text: "And every other item is still reported", Display: "And every other item is still reported", Fn: s.AndEveryOtherItemIsStillReported},
+		},
+	}
+}
+
+// HealthAwake001 is HEALTH-AWAKE-001: An engine that sleeps on power is reported
+//
+// Intent: docs/setup.md "Does not sleep on power" - an asleep engine does not answer
+// Source: acceptance/health/health-acceptance.md
+type HealthAwake001 struct {
+	// Given the engine is set to sleep after a time on power
+	GivenTheEngineIsSetToSleepAfterATimeOnPower func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then staying awake on power is marked missing, with the setting that was read and its fix
+	ThenStayingAwakeOnPowerIsMarkedMissingWithTheSettingThatWasReadAndItsFix func()
+}
+
+// Scenario describes HEALTH-AWAKE-001 with the clause functions this journey supplied.
+func (s HealthAwake001) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-AWAKE-001",
+		Title:   "An engine that sleeps on power is reported",
+		Feature: "Staying awake",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "docs/setup.md \"Does not sleep on power\" - an asleep engine does not answer",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given the {engine.lower} is set to sleep after a time on power", Display: "Given the engine is set to sleep after a time on power", Fn: s.GivenTheEngineIsSetToSleepAfterATimeOnPower},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then staying awake on power is marked missing, with the setting that was read and its fix", Display: "Then staying awake on power is marked missing, with the setting that was read and its fix", Fn: s.ThenStayingAwakeOnPowerIsMarkedMissingWithTheSettingThatWasReadAndItsFix},
+		},
+	}
+}
+
+// HealthAwake002 is HEALTH-AWAKE-002: An engine that would sleep with its lid closed is reported
+//
+// Intent: a laptop set never to sleep on power still sleeps when its lid is closed, unless something keeps it awake; the check reads whether closing the lid would sleep it now
+// Source: acceptance/health/health-acceptance.md
+type HealthAwake002 struct {
+	// Given the engine is a laptop that would sleep if its lid were closed now
+	GivenTheEngineIsALaptopThatWouldSleepIfItsLidWereClosedNow func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then staying awake with the lid closed is marked missing, with its fix
+	ThenStayingAwakeWithTheLidClosedIsMarkedMissingWithItsFix func()
+	// And on an engine with no lid it is marked present, as having no lid
+	AndOnAnEngineWithNoLidItIsMarkedPresentAsHavingNoLid func()
+}
+
+// Scenario describes HEALTH-AWAKE-002 with the clause functions this journey supplied.
+func (s HealthAwake002) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-AWAKE-002",
+		Title:   "An engine that would sleep with its lid closed is reported",
+		Feature: "Staying awake",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "a laptop set never to sleep on power still sleeps when its lid is closed, unless something keeps it awake; the check reads whether closing the lid would sleep it now",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given the {engine.lower} is a laptop that would sleep if its lid were closed now", Display: "Given the engine is a laptop that would sleep if its lid were closed now", Fn: s.GivenTheEngineIsALaptopThatWouldSleepIfItsLidWereClosedNow},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then staying awake with the lid closed is marked missing, with its fix", Display: "Then staying awake with the lid closed is marked missing, with its fix", Fn: s.ThenStayingAwakeWithTheLidClosedIsMarkedMissingWithItsFix},
+			{Text: "And on an {engine.lower} with no lid it is marked present, as having no lid", Display: "And on an engine with no lid it is marked present, as having no lid", Fn: s.AndOnAnEngineWithNoLidItIsMarkedPresentAsHavingNoLid},
+		},
+	}
+}
+
+// HealthCheck001 is HEALTH-CHECK-001: Every item is reported as present or missing
+//
+// Intent: one view says whether the engine is ready; "nothing is left out silently" means every item is listed, the present ones as well, as the setup check does (SETUP-CHECK-001)
+// Source: acceptance/health/health-acceptance.md
+type HealthCheck001 struct {
+	// Given the engine has two running sessions
+	GivenTheEngineHasTwoRunningSessionS func()
+	// When the developer runs the health check on the engine
+	WhenTheDeveloperRunsTheHealthCheckOnTheEngine func()
+	// Then every item the setup check reports for the engine is listed
+	ThenEveryItemTheSetupCheckReportsForTheEngineIsListed func()
+	// And staying awake on power and staying awake with the lid closed are listed
+	AndStayingAwakeOnPowerAndStayingAwakeWithTheLidClosedAreListed func()
+	// And each running session is listed with its Remote Control and its app
+	AndEachRunningSessionIsListedWithItsRemoteControlAndItsApp func()
+	// And each item is marked present or missing
+	AndEachItemIsMarkedPresentOrMissing func()
+}
+
+// Scenario describes HEALTH-CHECK-001 with the clause functions this journey supplied.
+func (s HealthCheck001) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-CHECK-001",
+		Title:   "Every item is reported as present or missing",
+		Feature: "Checking the engine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "one view says whether the engine is ready; \"nothing is left out silently\" means every item is listed, the present ones as well, as the setup check does (SETUP-CHECK-001)",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given the {engine.lower} has two running {session.lower}s", Display: "Given the engine has two running sessions", Fn: s.GivenTheEngineHasTwoRunningSessionS},
+			{Text: "When the developer runs the health check on the {engine.lower}", Display: "When the developer runs the health check on the engine", Fn: s.WhenTheDeveloperRunsTheHealthCheckOnTheEngine},
+			{Text: "Then every item the setup check reports for the {engine.lower} is listed", Display: "Then every item the setup check reports for the engine is listed", Fn: s.ThenEveryItemTheSetupCheckReportsForTheEngineIsListed},
+			{Text: "And staying awake on power and staying awake with the lid closed are listed", Display: "And staying awake on power and staying awake with the lid closed are listed", Fn: s.AndStayingAwakeOnPowerAndStayingAwakeWithTheLidClosedAreListed},
+			{Text: "And each running {session.lower} is listed with its Remote Control and its app", Display: "And each running session is listed with its Remote Control and its app", Fn: s.AndEachRunningSessionIsListedWithItsRemoteControlAndItsApp},
+			{Text: "And each item is marked present or missing", Display: "And each item is marked present or missing", Fn: s.AndEachItemIsMarkedPresentOrMissing},
+		},
+	}
+}
+
+// HealthCheck002 is HEALTH-CHECK-002: Each item says how it was checked, and the check changes nothing
+//
+// Intent: CLAUDE.md "It may report a problem and show the fix; it applies a fix only on an explicit request" and "The program never hides what it does"
+// Source: acceptance/health/health-acceptance.md
+type HealthCheck002 struct {
+	// Given the engine sleeps on power
+	GivenTheEngineSleepsOnPower func()
+	// When the developer runs the health check on the engine
+	WhenTheDeveloperRunsTheHealthCheckOnTheEngine func()
+	// Then each item shows the command it was checked with, or the file it was read from
+	ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom func()
+	// And staying awake on power is marked missing, with its fix
+	AndStayingAwakeOnPowerIsMarkedMissingWithItsFix func()
+	// And nothing on the engine has changed
+	AndNothingOnTheEngineHasChanged func()
+}
+
+// Scenario describes HEALTH-CHECK-002 with the clause functions this journey supplied.
+func (s HealthCheck002) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-CHECK-002",
+		Title:   "Each item says how it was checked, and the check changes nothing",
+		Feature: "Checking the engine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "CLAUDE.md \"It may report a problem and show the fix; it applies a fix only on an explicit request\" and \"The program never hides what it does\"",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given the {engine.lower} sleeps on power", Display: "Given the engine sleeps on power", Fn: s.GivenTheEngineSleepsOnPower},
+			{Text: "When the developer runs the health check on the {engine.lower}", Display: "When the developer runs the health check on the engine", Fn: s.WhenTheDeveloperRunsTheHealthCheckOnTheEngine},
+			{Text: "Then each item shows the command it was checked with, or the file it was read from", Display: "Then each item shows the command it was checked with, or the file it was read from", Fn: s.ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom},
+			{Text: "And staying awake on power is marked missing, with its fix", Display: "And staying awake on power is marked missing, with its fix", Fn: s.AndStayingAwakeOnPowerIsMarkedMissingWithItsFix},
+			{Text: "And nothing on the {engine.lower} has changed", Display: "And nothing on the engine has changed", Fn: s.AndNothingOnTheEngineHasChanged},
+		},
+	}
+}
+
+// HealthCheck003 is HEALTH-CHECK-003: On a client, the health check is the Engine's
+//
+// Intent: the developer checks the engine when away from it; a client asks the engine over the one SSH command every client action uses, and an engine not reached is said with its cause (D-034)
+// Source: acceptance/health/health-acceptance.md
+type HealthCheck003 struct {
+	// Given this machine is a client
+	GivenThisMachineIsAClient func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then the items are the Engine's, checked on the engine
+	ThenTheItemsAreTheEnginesCheckedOnTheEngine func()
+	// And when the engine is not reached, that is said with its cause and no item is marked present
+	AndWhenTheEngineIsNotReachedThatIsSaidWithItsCauseAndNoItemIsMarkedPresent func()
+}
+
+// Scenario describes HEALTH-CHECK-003 with the clause functions this journey supplied.
+func (s HealthCheck003) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-CHECK-003",
+		Title:   "On a client, the health check is the Engine's",
+		Feature: "Checking the engine",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "the developer checks the engine when away from it; a client asks the engine over the one SSH command every client action uses, and an engine not reached is said with its cause (D-034)",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine is a {client.lower}", Display: "Given this machine is a client", Fn: s.GivenThisMachineIsAClient},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then the items are the {engine.possessive}, checked on the {engine.lower}", Display: "Then the items are the Engine's, checked on the engine", Fn: s.ThenTheItemsAreTheEnginesCheckedOnTheEngine},
+			{Text: "And when the {engine.lower} is not reached, that is said with its cause and no item is marked present", Display: "And when the engine is not reached, that is said with its cause and no item is marked present", Fn: s.AndWhenTheEngineIsNotReachedThatIsSaidWithItsCauseAndNoItemIsMarkedPresent},
+		},
+	}
+}
+
+// HealthFix001 is HEALTH-FIX-001: A fix the program can run is run only when asked, as an action
+//
+// Intent: CLAUDE.md "it applies a fix only on an explicit request"; a fix that is the program's own action runs as any action does, its commands shown before, during and after
+// Source: acceptance/health/health-acceptance.md
+type HealthFix001 struct {
+	// Given the health check reports a Session's app as not running
+	GivenTheHealthCheckReportsASessionsAppAsNotRunning func()
+	// When the developer asks for that fix
+	WhenTheDeveloperAsksForThatFix func()
+	// Then the commands that start the app are shown before they run
+	ThenTheCommandsThatStartTheAppAreShownBeforeTheyRun func()
+	// And the start is listed in the history with each of its commands and their outcomes
+	AndTheStartIsListedInTheHistoryWithEachOfItsCommandsAndTheirOutcomes func()
+	// And nothing else is changed
+	AndNothingElseIsChanged func()
+}
+
+// Scenario describes HEALTH-FIX-001 with the clause functions this journey supplied.
+func (s HealthFix001) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-FIX-001",
+		Title:   "A fix the program can run is run only when asked, as an action",
+		Feature: "Fixing",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "CLAUDE.md \"it applies a fix only on an explicit request\"; a fix that is the program's own action runs as any action does, its commands shown before, during and after",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given the health check reports a {session.possessive} app as not running", Display: "Given the health check reports a Session's app as not running", Fn: s.GivenTheHealthCheckReportsASessionsAppAsNotRunning},
+			{Text: "When the developer asks for that fix", Display: "When the developer asks for that fix", Fn: s.WhenTheDeveloperAsksForThatFix},
+			{Text: "Then the commands that start the app are shown before they run", Display: "Then the commands that start the app are shown before they run", Fn: s.ThenTheCommandsThatStartTheAppAreShownBeforeTheyRun},
+			{Text: "And the start is listed in the history with each of its commands and their outcomes", Display: "And the start is listed in the history with each of its commands and their outcomes", Fn: s.AndTheStartIsListedInTheHistoryWithEachOfItsCommandsAndTheirOutcomes},
+			{Text: "And nothing else is changed", Display: "And nothing else is changed", Fn: s.AndNothingElseIsChanged},
+		},
+	}
+}
+
+// HealthFix002 is HEALTH-FIX-002: A fix the program cannot run is shown, never run
+//
+// Intent: a fix that needs an administrator, or has to be typed inside a session, is shown for the developer to run; the program never runs it for them
+// Source: acceptance/health/health-acceptance.md
+type HealthFix002 struct {
+	// Given the health check reports staying awake on power as missing
+	GivenTheHealthCheckReportsStayingAwakeOnPowerAsMissing func()
+	// When the developer looks at its fix
+	WhenTheDeveloperLooksAtItsFix func()
+	// Then the fix is shown as a command to run themselves
+	ThenTheFixIsShownAsACommandToRunThemselves func()
+	// And there is no way to run it from the check
+	AndThereIsNoWayToRunItFromTheCheck func()
+}
+
+// Scenario describes HEALTH-FIX-002 with the clause functions this journey supplied.
+func (s HealthFix002) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-FIX-002",
+		Title:   "A fix the program cannot run is shown, never run",
+		Feature: "Fixing",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "a fix that needs an administrator, or has to be typed inside a session, is shown for the developer to run; the program never runs it for them",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given the health check reports staying awake on power as missing", Display: "Given the health check reports staying awake on power as missing", Fn: s.GivenTheHealthCheckReportsStayingAwakeOnPowerAsMissing},
+			{Text: "When the developer looks at its fix", Display: "When the developer looks at its fix", Fn: s.WhenTheDeveloperLooksAtItsFix},
+			{Text: "Then the fix is shown as a command to run themselves", Display: "Then the fix is shown as a command to run themselves", Fn: s.ThenTheFixIsShownAsACommandToRunThemselves},
+			{Text: "And there is no way to run it from the check", Display: "And there is no way to run it from the check", Fn: s.AndThereIsNoWayToRunItFromTheCheck},
+		},
+	}
+}
+
+// HealthPage001 is HEALTH-PAGE-001: The app's Health page checks when opened and when asked again
+//
+// Intent: D-023 and D-019 - the window holds everything other than the sessions, and the app reads nothing on a timer; the check runs on the engine, the app only asks
+// Source: acceptance/health/health-acceptance.md
+type HealthPage001 struct {
+	// Given the app is running
+	GivenTheAppIsRunning func()
+	// When the developer opens the Health page
+	WhenTheDeveloperOpensTheHealthPage func()
+	// Then the engine is checked and every item is shown with its fix
+	ThenTheEngineIsCheckedAndEveryItemIsShownWithItsFix func()
+	// And it is checked again only when the developer asks
+	AndItIsCheckedAgainOnlyWhenTheDeveloperAsks func()
+}
+
+// Scenario describes HEALTH-PAGE-001 with the clause functions this journey supplied.
+func (s HealthPage001) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-PAGE-001",
+		Title:   "The app's Health page checks when opened and when asked again",
+		Feature: "Reading the report",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "D-023 and D-019 - the window holds everything other than the sessions, and the app reads nothing on a timer; the check runs on the engine, the app only asks",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given the app is running", Display: "Given the app is running", Fn: s.GivenTheAppIsRunning},
+			{Text: "When the developer opens the Health page", Display: "When the developer opens the Health page", Fn: s.WhenTheDeveloperOpensTheHealthPage},
+			{Text: "Then the {engine.lower} is checked and every item is shown with its fix", Display: "Then the engine is checked and every item is shown with its fix", Fn: s.ThenTheEngineIsCheckedAndEveryItemIsShownWithItsFix},
+			{Text: "And it is checked again only when the developer asks", Display: "And it is checked again only when the developer asks", Fn: s.AndItIsCheckedAgainOnlyWhenTheDeveloperAsks},
+		},
+	}
+}
+
+// HealthRead001 is HEALTH-READ-001: The exit status says whether anything is missing, and the report can be read as JSON
+//
+// Intent: as SETUP-READ-001 and 002 - the app and scripts read the same report a person does
+// Source: acceptance/health/health-acceptance.md
+type HealthRead001 struct {
+	// Given every item is present
+	GivenEveryItemIsPresent func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then it ends with success
+	ThenItEndsWithSuccess func()
+	// And when one item is missing, it ends with a failure
+	AndWhenOneItemIsMissingItEndsWithAFailure func()
+	// And as JSON each item has its name, whether it is present, how it was checked and its fix
+	AndAsJSONEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix func()
+}
+
+// Scenario describes HEALTH-READ-001 with the clause functions this journey supplied.
+func (s HealthRead001) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-READ-001",
+		Title:   "The exit status says whether anything is missing, and the report can be read as JSON",
+		Feature: "Reading the report",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "as SETUP-READ-001 and 002 - the app and scripts read the same report a person does",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given every item is present", Display: "Given every item is present", Fn: s.GivenEveryItemIsPresent},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then it ends with success", Display: "Then it ends with success", Fn: s.ThenItEndsWithSuccess},
+			{Text: "And when one item is missing, it ends with a failure", Display: "And when one item is missing, it ends with a failure", Fn: s.AndWhenOneItemIsMissingItEndsWithAFailure},
+			{Text: "And as JSON each item has its name, whether it is present, how it was checked and its fix", Display: "And as JSON each item has its name, whether it is present, how it was checked and its fix", Fn: s.AndAsJSONEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix},
+		},
+	}
+}
+
+// HealthRemote001 is HEALTH-REMOTE-001: A Session's Remote Control is shown however it was turned on
+//
+// Intent: Remote Control is turned on when engineroom starts a session (SESS-REMOTE-002) or by Claude inside the session (/remote-control); either way it is on, so the check reads the running agent, not how it was started
+// Source: acceptance/health/health-acceptance.md
+type HealthRemote001 struct {
+	// Given a session started with Remote Control
+	GivenASessionStartedWithRemoteControl func()
+	// And a session started without it, where Remote Control was then turned on inside it
+	AndASessionStartedWithoutItWhereRemoteControlWasThenTurnedOnInsideIt func()
+	// And a session without Remote Control
+	AndASessionWithoutRemoteControl func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then the first two are shown with Remote Control on
+	ThenTheFirstTwoAreShownWithRemoteControlOn func()
+	// And the third is shown with Remote Control off
+	AndTheThirdIsShownWithRemoteControlOff func()
+}
+
+// Scenario describes HEALTH-REMOTE-001 with the clause functions this journey supplied.
+func (s HealthRemote001) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-REMOTE-001",
+		Title:   "A Session's Remote Control is shown however it was turned on",
+		Feature: "Remote Control",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "Remote Control is turned on when engineroom starts a session (SESS-REMOTE-002) or by Claude inside the session (/remote-control); either way it is on, so the check reads the running agent, not how it was started",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given a {session.lower} started with Remote Control", Display: "Given a session started with Remote Control", Fn: s.GivenASessionStartedWithRemoteControl},
+			{Text: "And a {session.lower} started without it, where Remote Control was then turned on inside it", Display: "And a session started without it, where Remote Control was then turned on inside it", Fn: s.AndASessionStartedWithoutItWhereRemoteControlWasThenTurnedOnInsideIt},
+			{Text: "And a {session.lower} without Remote Control", Display: "And a session without Remote Control", Fn: s.AndASessionWithoutRemoteControl},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then the first two are shown with Remote Control on", Display: "Then the first two are shown with Remote Control on", Fn: s.ThenTheFirstTwoAreShownWithRemoteControlOn},
+			{Text: "And the third is shown with Remote Control off", Display: "And the third is shown with Remote Control off", Fn: s.AndTheThirdIsShownWithRemoteControlOff},
+		},
+	}
+}
+
+// HealthRemote002 is HEALTH-REMOTE-002: With Remote Control chosen, a session without it is reported
+//
+// Intent: Remote Control is wanted where the developer has turned it on; the engine's remembered choice (SESS-REMOTE-001) says so. A running session is never restarted to apply it (SESS-REMOTE-004), so the fix is the command inside the session
+// Source: acceptance/health/health-acceptance.md
+type HealthRemote002 struct {
+	// Given Remote Control is on in the Engine's choice
+	GivenRemoteControlIsOnInTheEnginesChoice func()
+	// And a session is running without Remote Control
+	AndASessionIsRunningWithoutRemoteControl func()
+	// When the developer runs the health check
+	WhenTheDeveloperRunsTheHealthCheck func()
+	// Then its Remote Control is marked missing, with /remote-control to run inside it
+	ThenItsRemoteControlIsMarkedMissingWithRemoteControlToRunInsideIt func()
+	// And the session is not restarted
+	AndTheSessionIsNotRestarted func()
+}
+
+// Scenario describes HEALTH-REMOTE-002 with the clause functions this journey supplied.
+func (s HealthRemote002) Scenario() Scenario {
+	return Scenario{
+		ID:      "HEALTH-REMOTE-002",
+		Title:   "With Remote Control chosen, a session without it is reported",
+		Feature: "Remote Control",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "Remote Control is wanted where the developer has turned it on; the engine's remembered choice (SESS-REMOTE-001) says so. A running session is never restarted to apply it (SESS-REMOTE-004), so the fix is the command inside the session",
+		Source:  "acceptance/health/health-acceptance.md",
+		Steps: []Step{
+			{Text: "Given Remote Control is on in the {engine.possessive} choice", Display: "Given Remote Control is on in the Engine's choice", Fn: s.GivenRemoteControlIsOnInTheEnginesChoice},
+			{Text: "And a {session.lower} is running without Remote Control", Display: "And a session is running without Remote Control", Fn: s.AndASessionIsRunningWithoutRemoteControl},
+			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
+			{Text: "Then its Remote Control is marked missing, with /remote-control to run inside it", Display: "Then its Remote Control is marked missing, with /remote-control to run inside it", Fn: s.ThenItsRemoteControlIsMarkedMissingWithRemoteControlToRunInsideIt},
+			{Text: "And the {session.lower} is not restarted", Display: "And the session is not restarted", Fn: s.AndTheSessionIsNotRestarted},
 		},
 	}
 }

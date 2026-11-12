@@ -185,6 +185,10 @@ public final class EngineRoomClient: @unchecked Sendable {
         return try Self.decode(PlanReply.self, data: data, code: code)
     }
     public func history() async throws -> [HistoryEntry] { try await json([HistoryEntry].self, ["history", "--json", "--limit", "60"]) }
+    /// The engine's health (D-037): checked on this Mac when it is the engine, asked of the engine
+    /// over SSH from a client. It ends with a failure when an item is missing, and its report is
+    /// still the answer, so a failing exit is read as the report and not as a refusal.
+    public func health() async throws -> HealthReport { try await json(HealthReport.self, ["health", "--json"]) }
     public func set(_ key: String, _ value: String) async throws -> Status { try await json(Status.self, ["api", "set", key, value]) }
 
     /// Starts engineroom as a long-running child of the app (the forwarder's watch), in the same

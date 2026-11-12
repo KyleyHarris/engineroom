@@ -7,8 +7,10 @@ FROM debian:bookworm-slim
 
 ARG ZELLIJ_VERSION=0.45.1
 
+# zsh because the setup check finds engineroom as an SSH command's shell does, with /bin/zsh and
+# only ~/.zshenv read, as on macOS; without it that item can never be present here.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends openssh-server git ca-certificates curl procps socat \
+ && apt-get install -y --no-install-recommends openssh-server git ca-certificates curl procps socat zsh \
  && rm -rf /var/lib/apt/lists/*
 
 # The musl build is static, so it runs on the slim image without extra libraries.

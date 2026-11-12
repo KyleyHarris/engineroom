@@ -43,7 +43,9 @@ every time, by the developer or by you. Run it whenever you need the app running
    worktree's ports from its slot (`ENGINEROOM_PORT_<KEY>`, `engineroom slot get <name>`, or the
    slot record). Build them on engineroom's stack helper: `. "$(engineroom stack-lib)"`, then
    `deps <dir>`, `start <name> <port> <url> <dir> -- <command...>` and `stop <name>...`; the
-   `adopt-project` skill writes them that way.
+   `adopt-project` skill writes them that way. Offer a `status` script with them too
+   (`running <name>...` with the helper), which `engineroom health` runs to say whether the app
+   is up; it must change nothing and end within 10 seconds.
 
 6. **Scripts must be safe to run again.** Run twice, `up` finds what it installed and started the
    first time and leaves it alone, and `down` with nothing running does nothing. Check before
