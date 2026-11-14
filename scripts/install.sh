@@ -54,26 +54,16 @@ if [ "${found}" != "${bin}/engineroom" ]; then
 fi
 
 if [ "${with_app}" -eq 1 ]; then
-  # The menu bar app (docs/decisions.md D-008): built from macos/, put in an app bundle, and
-  # signed with this Mac's Apple Development identity when it has one (otherwise ad hoc, which
-  # runs on this Mac only). A locally built app needs no notarization.
+  # The menu bar app (docs/decisions.md D-008): built from macos/, then put in place signed by
+  # scripts/install-app.sh, with this Mac's Apple Development identity when it has one and never
+  # ad hoc in its place (D-038). A locally built app needs no notarization.
   if ! command -v swift >/dev/null 2>&1; then
     echo "install: Swift is needed for the app (install Xcode, or: xcode-select --install)" >&2
     exit 1
   fi
   run swift build -c release --package-path macos || exit 1
   app="${apps}/engineroom.app"
-  run mkdir -p "${app}/Contents/MacOS" || exit 1
-  run cp macos/.build/release/EngineRoomMenu "${app}/Contents/MacOS/engineroom-menu" || exit 1
-  printf '+ write %s\n' "${app}/Contents/Info.plist"
-  sed "s/VERSION/${version}/g" macos/bundle/Info.plist > "${app}/Contents/Info.plist" || exit 1
-  identity="$(security find-identity -v -p codesigning 2>/dev/null | awk '/Apple Development/ {print $2; exit}')"
-  # The identity's key is in the login keychain, which is locked to a session started over SSH;
-  # signing then fails, and an ad hoc signature, enough to run on this Mac, is used instead.
-  if [ -z "${identity}" ] || ! run codesign --force --sign "${identity}" "${app}"; then
-    echo "install: signing with an Apple Development identity was not possible here; signing ad hoc (runs on this Mac)." >&2
-    run codesign --force --sign - "${app}" || exit 1
-  fi
+  scripts/install-app.sh macos/.build/release/EngineRoomMenu macos/bundle/Info.plist "${version}" "${apps}" || exit 1
   echo
   # An empty environment, so the app starts as when opened from the Dock, not with this shell's
   # variables (docs/decisions.md D-030).

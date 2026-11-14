@@ -212,7 +212,8 @@ engine.
   both.
 - The terminal is chosen from those installed (Ghostty by default).
 - It is built from `macos/` with SwiftPM and installed by `scripts/install.sh --app` into
-  `~/Applications`, signed with the Mac's own development identity or ad hoc.
+  `~/Applications`, signed with the Mac's own development identity, or ad hoc on a Mac with none
+  (D-038).
 - A phone is out of scope: it reaches sessions through the Claude app and Remote Control.
 
 **Considered.**
@@ -1147,3 +1148,35 @@ project to project, as starting it does (D-006).
   Control turned on inside a session.
 - Judging an app by its slot's ports answering: a port held by something else, or a part that
   listens but is broken, would read as running. The project knows what running means.
+
+## D-038 The app is signed with the Mac's identity or not installed
+
+**Problem.** macOS keeps the permissions granted to an app (Automation, Screen Recording and the
+rest) for as long as its signature names the same signer. A Mac's Apple Development identity
+names the same signer on every build; an ad hoc signature is new on every build. The install fell
+back to ad hoc whenever the identity could not be used, as in a login started over SSH where the
+keychain is locked, so after such an install macOS asked for every permission again. It also
+copied the new build over the installed app before signing it, so a failed signing left an app
+half replaced.
+
+**Decision.**
+
+- Where the Mac has an Apple Development identity, `scripts/install.sh --app` signs the app with
+  it or installs nothing: it says that signing failed, that the installed app is unchanged, and
+  how to let `codesign` use the key from any session
+  (`security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k <password>`, run once at
+  the Mac).
+- A Mac with no identity gets an app signed ad hoc, and is told macOS will ask again for its
+  permissions after each install.
+- The app is assembled and signed in a copy beside the installed one (`.engineroom.app.new`), and
+  put in place only once signed: the installed app is moved aside, the copy moved in, and the old
+  one removed. A failed run leaves the installed app as it was; a copy or an old app left by an
+  interrupted run is removed by the next.
+- This is `scripts/install-app.sh`, which `install.sh` runs after building the app, so its rules
+  are tested without a build, against stand-ins for `security` and `codesign`.
+
+**Considered.**
+
+- Falling back to ad hoc with a louder warning: the warning scrolls past and the prompts return.
+- Unlocking the keychain during the install: it needs the password on every install, typed into
+  whatever ran it.

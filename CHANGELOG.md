@@ -31,6 +31,11 @@ All notable changes are recorded here. The format follows
 
 ### Changed
 
+- **The menu bar app keeps the permissions macOS granted it across installs**: `scripts/install.sh
+  --app` signs it with the Mac's Apple Development identity or installs nothing, saying why and
+  how to let `codesign` use the key, where it used to sign ad hoc and so make macOS ask for every
+  permission again. A failed install leaves the installed app as it was (docs/decisions.md D-038).
+
 - **A session on the engine runs inside your desktop login, however it was started.** A session
   started from a client, over SSH, ran in that SSH login, without your login keychain. While you
   are logged in at the engine's screen, its start is now handed to launchd as a one-time job in
