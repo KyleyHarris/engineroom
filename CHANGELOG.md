@@ -6,6 +6,8 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-14
+
 ### Removed
 
 - **The health check no longer asks whether the engine stays awake.** Whether a Mac sleeps is the
