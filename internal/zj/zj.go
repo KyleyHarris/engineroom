@@ -161,7 +161,9 @@ func Parse(text string) []Session {
 // a worktree named project-alpha-docs-viewer (25) be made and then fail to start its session. Longer names are
 // shortened with a hash so they stay distinct (sessions obligation O9). One limit everywhere,
 // rather than one measured per machine, keeps a checkout's session name the same on the engine and
-// on a client working local.
+// on a client working local. Zellij 0.46 names a socket by a short session id instead, so the
+// limit no longer binds there; it stays, since the setup check accepts Zellij from 0.45.0, and a
+// name that started with one version must start with the other.
 const MaxNameLength = 24
 
 var nameUnsafe = regexp.MustCompile(`[^A-Za-z0-9._-]+`)

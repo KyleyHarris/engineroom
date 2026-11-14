@@ -182,6 +182,7 @@ Choose one way for each Mac, and use the same on every Mac you connect:
 Install a release (the app, the program and Zellij):
 
 ```sh
+brew trust kyleyharris/engineroom    # once per Mac: Homebrew loads nothing from a tap it does not trust
 brew install --cask kyleyharris/engineroom/engineroom
 ```
 

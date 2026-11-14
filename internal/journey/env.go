@@ -116,6 +116,14 @@ func NewMachine(t testing.TB) *Machine {
 		t.Fatal(err)
 	}
 	m.write(filepath.Join(home, ".config", "zellij", "config.kdl"), ZellijConfig)
+	// Zellij 0.46 opens a setup screen over a new home's first session (installing its own app,
+	// keybindings), which takes the keys typed into the session. Its "don't show again" is a flag in
+	// its data folder, set here as the developer's Mac has it once they have dismissed it; the
+	// release notes and startup tips are turned off in the configuration for the same reason.
+	if err := os.MkdirAll(filepath.Join(home, "Library", "Application Support", "org.Zellij-Contributors.Zellij"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	m.write(filepath.Join(home, "Library", "Application Support", "org.Zellij-Contributors.Zellij", "desktop_integration.json"), `{"flags":["SetupNeverShow"]}`+"\n")
 	for name, script := range map[string]string{"fake-agent": FakeAgent, "fake-editor": FakeEditor} {
 		m.write(filepath.Join(m.Bin, name), script)
 		if err := os.Chmod(filepath.Join(m.Bin, name), 0o755); err != nil {
@@ -172,25 +180,40 @@ func (m *Machine) Env() []string {
 	}, m.Extra...)
 }
 
-// systemPath is the directories where git, ssh, zellij and docker live, without anything from
-// the developer's own PATH that could shadow them unpredictably.
+// systemPath is the system's own directories and one folder of links to git, ssh, zellij and
+// docker, without anything from the developer's own PATH that could shadow them unpredictably.
+// The tools are linked rather than their directories added, since a directory such as Homebrew's
+// bin also holds whatever else is installed there, an installed engineroom among them, which would
+// then answer in place of the build under test wherever this machine's own bin is not first.
 func systemPath() string {
-	dirs := []string{"/usr/bin", "/bin", "/usr/sbin", "/sbin"}
-	for _, tool := range []string{"zellij", "git", "ssh", "docker"} {
-		if p, err := exec.LookPath(tool); err == nil {
-			dirs = append([]string{filepath.Dir(p)}, dirs...)
+	toolsOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "engineroom-journey-tools-")
+		if err != nil {
+			toolsErr = err
+			return
 		}
-	}
-	seen := map[string]bool{}
-	var out []string
-	for _, d := range dirs {
-		if !seen[d] {
-			seen[d] = true
-			out = append(out, d)
+		for _, tool := range []string{"zellij", "git", "ssh", "docker"} {
+			if p, err := exec.LookPath(tool); err == nil {
+				if err := os.Symlink(p, filepath.Join(dir, tool)); err != nil {
+					toolsErr = err
+					return
+				}
+			}
 		}
+		toolsDir = dir
+	})
+	if toolsErr != nil {
+		panic(fmt.Sprintf("journey: linking the system tools: %v", toolsErr))
 	}
-	return strings.Join(out, ":")
+	return toolsDir + ":/usr/bin:/bin:/usr/sbin:/sbin"
 }
+
+// toolsDir is the folder of links systemPath makes once per run of the journeys.
+var (
+	toolsOnce sync.Once
+	toolsDir  string
+	toolsErr  error
+)
 
 // Command builds a command that runs on this machine with its environment.
 func (m *Machine) Command(name string, args ...string) *exec.Cmd {
@@ -446,14 +469,21 @@ func resolve(p string) string {
 
 // WaitSerialized waits until Zellij has written the session's layout to its cache, holding the
 // given text, which is what lets an ended session be brought back. It looks only under this
-// machine's home.
+// machine's home. The cache folder is named after the session before Zellij 0.46, and by the
+// session's id from 0.46 (SessionIDs).
 func (m *Machine) WaitSerialized(t testing.TB, name, contains string) {
 	t.Helper()
 	deadline := time.Now().Add(15 * time.Second)
 	for {
 		found := false
+		folders := map[string]bool{name: true}
+		for id, n := range m.SessionIDs(t) {
+			if n == name {
+				folders[id] = true
+			}
+		}
 		_ = filepath.WalkDir(m.Home, func(path string, d os.DirEntry, err error) error {
-			if err == nil && !d.IsDir() && d.Name() == "session-layout.kdl" && filepath.Base(filepath.Dir(path)) == name {
+			if err == nil && !d.IsDir() && d.Name() == "session-layout.kdl" && folders[filepath.Base(filepath.Dir(path))] {
 				if b, rerr := os.ReadFile(path); rerr == nil && strings.Contains(string(b), contains) {
 					found = true
 					return filepath.SkipAll
@@ -471,14 +501,51 @@ func (m *Machine) WaitSerialized(t testing.TB, name, contains string) {
 	}
 }
 
+// SessionIDs is the name of each session id in this machine's Zellij session index. Zellij 0.46
+// names a session's socket and cache folder by a short id and keeps each name's id in an index, a
+// SQLite file in its cache folder under this machine's home; it is read with the sqlite3 command
+// macOS ships. Empty where there is no index (Zellij before 0.46, which names both after the
+// session).
+func (m *Machine) SessionIDs(t testing.TB) map[string]string {
+	t.Helper()
+	ids := map[string]string{}
+	_ = filepath.WalkDir(m.Home, func(p string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasPrefix(d.Name(), "session_index") || !strings.HasSuffix(d.Name(), ".sqlite") {
+			return nil
+		}
+		out, qerr := exec.Command("sqlite3", "-cmd", ".timeout 2000", "-separator", "\t", p, "select id, name from sessions where id is not null").Output()
+		if qerr != nil {
+			var said []byte
+			if ee, ok := qerr.(*exec.ExitError); ok {
+				said = ee.Stderr
+			}
+			t.Fatalf("reading Zellij's session index %s: %v %s", p, qerr, said)
+		}
+		for _, row := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+			if id, n, ok := strings.Cut(row, "\t"); ok {
+				ids[id] = n
+			}
+		}
+		return nil
+	})
+	return ids
+}
+
 // KillServer ends a session abruptly, as a machine restart would: every process holding the
 // session's socket in this run's own socket directory is killed. Processes are found through
 // that socket, never by name, so nothing outside the run can be reached.
 func (m *Machine) KillServer(t testing.TB, name string) {
 	t.Helper()
 	var socket string
+	// The socket is named after the session before Zellij 0.46, and by its id from 0.46.
+	names := map[string]bool{name: true}
+	for id, n := range m.SessionIDs(t) {
+		if n == name {
+			names[id] = true
+		}
+	}
 	_ = filepath.WalkDir(m.Sockets, func(path string, d os.DirEntry, err error) error {
-		if err == nil && !d.IsDir() && d.Name() == name {
+		if err == nil && !d.IsDir() && names[d.Name()] {
 			socket = path
 			return filepath.SkipAll
 		}

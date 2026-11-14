@@ -50,6 +50,10 @@ settings, the login at the screen, the menu bar app) is checked by hand, or by t
 | Claude Code | the agent each session runs | `claude --version` | see Claude Code's install page |
 | git-crypt | keeps the secret files in your settings repository encrypted | `git-crypt --version` | `brew install git-crypt` |
 
+Zellij 0.46 opens a setup screen over the first session you join on a Mac, offering to install its
+own app and keybindings, with the app ticked, so Enter installs it. Press Esc to dismiss it, or
+Ctrl c so it is never shown again; engineroom does not need either.
+
 ### `engineroom` itself
 
 First choose how: **install a release** with Homebrew, for using engineroom, or **build from the
@@ -66,9 +70,13 @@ interactive nor a login shell: zsh reads `~/.zshenv` for it, but not `~/.zprofil
 From a release, with Homebrew, which needs neither Go nor Xcode:
 
 ```sh
+brew trust kyleyharris/engineroom                       # once per Mac (see below)
 brew install --cask kyleyharris/engineroom/engineroom   # the menu bar app, the program and Zellij
 brew install kyleyharris/engineroom/engineroom          # or the program and Zellij alone
 ```
+
+Homebrew loads nothing from a tap outside its own until you trust that tap, a setting kept on each
+Mac; without it the install stops with "Refusing to load formula ... from untrusted tap".
 
 The program goes to Homebrew's `bin` (`/opt/homebrew/bin` on Apple Silicon) and the app to
 `/Applications`; both are signed with the developer's Developer ID and notarized, and `brew upgrade`
