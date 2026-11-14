@@ -22,5 +22,7 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>engineroom opens the terminal you join sessions in, and quits itself to restart after an upgrade.</string>
 </dict>
 </plist>

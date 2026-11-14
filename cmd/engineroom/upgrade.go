@@ -24,11 +24,31 @@ import (
 // upgradeFacts is what the upgrade brief is told about this machine: its name and role, the
 // running build, the clone it was built from (recorded by scripts/install.sh) and where the app is.
 func upgradeFacts(cfg *config.Config) upgrade.Facts {
-	return upgrade.Facts{Machine: machineName(), Role: string(cfg.Role), Version: version, Clone: built, App: appBundle()}
+	return upgrade.Facts{Machine: machineName(), Role: string(cfg.Role), Version: version, Clone: built, App: appBundle(), Homebrew: fromHomebrew()}
 }
 
-// appBundle is the menu bar app installed on this machine, where scripts/install.sh --app puts it
-// (ENGINEROOM_APPS, else ~/Applications), or empty when it is not installed or this is not a Mac.
+// fromHomebrew reports whether the running program is Homebrew's install of a release (D-040): its
+// file, links followed, is in Homebrew's Cellar for engineroom.
+func fromHomebrew() bool {
+	exe, err := os.Executable()
+	if err != nil {
+		return false
+	}
+	if real, err := filepath.EvalSymlinks(exe); err == nil {
+		exe = real
+	}
+	return inHomebrewCellar(exe)
+}
+
+// inHomebrewCellar reports whether a program's real path is Homebrew's install of the engineroom
+// formula: <prefix>/Cellar/engineroom/<version>/bin/engineroom, under any Homebrew prefix.
+func inHomebrewCellar(path string) bool {
+	return strings.Contains(path, "/Cellar/engineroom/")
+}
+
+// appBundle is the menu bar app installed on this machine: where scripts/install.sh --app puts it
+// (ENGINEROOM_APPS, else ~/Applications), or where Homebrew's cask does (/Applications, D-040), or
+// empty when it is not installed or this is not a Mac.
 func appBundle() string {
 	if runtime.GOOS != "darwin" {
 		return ""
@@ -37,6 +57,7 @@ func appBundle() string {
 	if home, err := os.UserHomeDir(); err == nil {
 		dirs = append(dirs, filepath.Join(home, "Applications"))
 	}
+	dirs = append(dirs, "/Applications")
 	for _, d := range dirs {
 		if d == "" {
 			continue

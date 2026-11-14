@@ -139,3 +139,19 @@ func TestARefusedRunIsADoneEventWithItsReason(t *testing.T) {
 		t.Fatalf("exit %d, reply %s", code, out)
 	}
 }
+
+// D-040: the program knows a Homebrew install by its real path in a Cellar, under either
+// Homebrew prefix, and a build from a clone is never taken for one. Fails if a Cellar path is
+// missed or another install read as Homebrew's.
+func TestAHomebrewInstallIsKnownByItsCellar(t *testing.T) {
+	for path, want := range map[string]bool{
+		"/opt/homebrew/Cellar/engineroom/0.2.0/bin/engineroom": true,
+		"/usr/local/Cellar/engineroom/0.2.0/bin/engineroom":    true,
+		"/Users/dev/.local/bin/engineroom":                     false,
+		"/opt/homebrew/Cellar/zellij/0.45.1/bin/zellij":        false,
+	} {
+		if got := inHomebrewCellar(path); got != want {
+			t.Errorf("%s: %v, want %v", path, got, want)
+		}
+	}
+}

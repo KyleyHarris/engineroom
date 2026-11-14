@@ -36,6 +36,12 @@ func newMachine(t *testing.T, config string) *machine {
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("ENGINEROOM_CONFIG", filepath.Join(home, "config.toml"))
+	// The app's two places are this machine's own: ~/Applications under its home, and a folder
+	// standing for /Applications, so the developer's real apps are never read.
+	t.Setenv("ENGINEROOM_APPS", "")
+	system := SystemApps
+	SystemApps = filepath.Join(home, "SystemApplications")
+	t.Cleanup(func() { SystemApps = system })
 	if config != "" {
 		m.write("config.toml", config)
 	}
@@ -118,7 +124,7 @@ func names(r Report) map[For][]string {
 }
 
 var everyItem = []string{"a valid configuration", "a role", "Zellij 0.45.0 or later", "git", "OpenSSH", "Claude Code",
-	"engineroom's Claude Code plugin, with its hooks", "at least one project registered"}
+	"engineroom's Claude Code plugin, with its hooks", "at least one project registered", "one copy of the menu bar app"}
 
 // SETUP-CHECK-001, 002, 005 at the package: each role gets every item every machine needs and its
 // own, never the other role's, and no role gets the shared items with the role reported missing and
@@ -377,5 +383,30 @@ func TestVSCodeSettingsAreReadAsVSCodeWritesThem(t *testing.T) {
 	}
 	if v["a"] != "http://x/*y*/" || v["c"] != `"//"` || len(v["b"].([]any)) != 2 {
 		t.Fatalf("read as %v", v)
+	}
+}
+
+// SETUP-CHECK-010 at the package (D-040): the app built from a clone and Homebrew's are reported
+// when both are installed, with how to keep one, and one or none is fine. Fails if two copies read
+// as present, one copy reads as missing, or the fix does not say how to remove either.
+func TestTwoCopiesOfTheAppAreReported(t *testing.T) {
+	m := newMachine(t, "role = \"local\"\n")
+	mkApp := func(dir string) {
+		if err := os.MkdirAll(filepath.Join(dir, "engineroom.app", "Contents"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if it := item(t, check(t), "one copy of the menu bar app"); !it.Present || !strings.Contains(it.Found, "not installed") {
+		t.Fatalf("no app: %+v", it)
+	}
+	mkApp(filepath.Join(m.home, "Applications"))
+	if it := item(t, check(t), "one copy of the menu bar app"); !it.Present || !strings.HasSuffix(it.Found, "/Applications/engineroom.app") {
+		t.Fatalf("one app built from a clone: %+v", it)
+	}
+	mkApp(SystemApps)
+	it := item(t, check(t), "one copy of the menu bar app")
+	if it.Present || !strings.Contains(it.Found, "two copies") || !strings.Contains(it.Fix, "rm -rf "+filepath.Join(m.home, "Applications", "engineroom.app")) ||
+		!strings.Contains(it.Fix, "brew uninstall --cask kyleyharris/engineroom/engineroom") {
+		t.Fatalf("two apps: %+v", it)
 	}
 }

@@ -229,6 +229,21 @@ Scenario: On a Mac used on its own, a {project.lower}'s {session.lower} starts o
   Then a {session.lower} is created in its {checkout.lower} on this machine
 ```
 
+### Feature: The app installed once
+
+<!-- intent: D-040 - the app built from a clone (~/Applications) and Homebrew's (/Applications)
+     share one bundle identifier, so with both installed macOS opens either for the other and they
+     fight over the login item and the permissions granted; the check says so and how to keep one -->
+
+```gherkin
+@SETUP-CHECK-010 @status:proposed @persona:Developer
+Scenario: Two copies of the menu bar app are reported, with how to keep one
+  Given the menu bar app is installed both from a clone and by Homebrew
+  When the developer runs the setup check
+  Then the app is marked missing as two copies, naming both
+  And the fix says how to remove either one
+```
+
 ### Feature: Reading the report
 
 <!-- intent: the check is for scripts and the skill as well as people: whether anything is missing

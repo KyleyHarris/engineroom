@@ -8,6 +8,12 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- **Releases, installed with Homebrew**: `brew install --cask kyleyharris/engineroom/engineroom`
+  installs the menu bar app, the program and Zellij, signed with the Developer ID and notarized, with
+  no Go or Xcode needed; `brew upgrade` and the app's Upgrade move to the next release. A release is
+  a version number, `vX.Y.Z`. The setup check reports the app installed twice, from a clone and by
+  Homebrew (docs/decisions.md D-040).
+
 - **A Mac used on its own has its own role, `local`** (`engineroom role set local`,
   `scripts/install.sh --local`, or the app's Settings, Role, This Mac only). It works as the engine
   does, and its setup check and install ask nothing about being reached over SSH. The app's

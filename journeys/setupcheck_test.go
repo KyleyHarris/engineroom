@@ -134,7 +134,8 @@ func itemLines(t *testing.T, out, name string) string {
 var (
 	everyMachine = []string{"a valid configuration (every machine)", "a role (every machine)", "Zellij 0.45.0 or later (every machine)",
 		"git (every machine)", "OpenSSH (every machine)", "Claude Code (every machine)",
-		"engineroom's Claude Code plugin, with its hooks (every machine)", "at least one project registered (every machine)"}
+		"engineroom's Claude Code plugin, with its hooks (every machine)", "at least one project registered (every machine)",
+		"one copy of the menu bar app (every machine)"}
 	engineOnly = []string{"engineroom found by an SSH command (engine)", "the SSH server on (Remote Login) (engine)"}
 )
 
@@ -479,7 +480,7 @@ func TestSetupRead001(t *testing.T) {
 		},
 		WhenTheDeveloperRunsTheSetupCheck: func() { run = runCheck(t, m, &term) },
 		ThenItEndsWithSuccess: func() {
-			if run.exit != 0 || !strings.Contains(run.out, "Every item is present (12 checked)") {
+			if run.exit != 0 || !strings.Contains(run.out, "Every item is present (13 checked)") {
 				t.Fatalf("every item present: exit %d\n%s", run.exit, run.out)
 			}
 		},
@@ -487,7 +488,7 @@ func TestSetupRead001(t *testing.T) {
 			// The client's own copy of its project is forgotten: nothing to open when working locally.
 			m.WriteConfig(client)
 			again := runCheck(t, m, &term)
-			if again.exit != 1 || !strings.HasPrefix(itemLines(t, again.out, "at least one project registered"), "missing") || !strings.Contains(again.out, "1 of 12 items is missing") {
+			if again.exit != 1 || !strings.HasPrefix(itemLines(t, again.out, "at least one project registered"), "missing") || !strings.Contains(again.out, "1 of 13 items is missing") {
 				t.Fatalf("one item missing: exit %d\n%s", again.exit, again.out)
 			}
 		},

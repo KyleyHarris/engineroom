@@ -1213,3 +1213,40 @@ and the install stopped until the SSH PATH was set.
   first, with no joining, handover or lasting session, and every session feature needing an answer
   for it.
 
+## D-040 A release is a version, signed, notarized and installed with Homebrew
+
+**Problem.** Installing engineroom meant cloning it and building it, which needs Go, and Xcode
+for the app, and a build was named by its commit. Handing someone a built app needs a signature
+any Mac accepts, and a way to keep it up to date.
+
+**Decision.**
+
+- A release is named `vX.Y.Z`. The program says `engineroom vX.Y.Z` and the app `X.Y.Z`. A build
+  from a clone keeps its commit name.
+- Pushing a `vX.Y.Z` tag runs the `release` workflow: the program and the app built for Apple
+  Silicon and Intel in one file each, signed with the Developer ID with the hardened runtime and a
+  secure timestamp, notarized with Apple, the app's ticket stapled, and both published on the
+  tag's GitHub release, with the tag's section of `CHANGELOG.md` as the notes.
+- The app carries one entitlement, Apple Events, and says why in its `Info.plist`: it drives the
+  terminal sessions are joined in, and quits itself to restart after an upgrade.
+- A tap, `KyleyHarris/homebrew-engineroom`, installs them: the formula `engineroom` (the program,
+  bringing Zellij) and the cask `engineroom` (the app, bringing the formula). The workflow writes
+  both for each release, with each download's SHA-256, pushing with a deploy key that reaches only
+  the tap.
+- A release build records no clone. The app's Upgrade on a machine whose program Homebrew installed
+  runs `brew upgrade`, not a build; the program knows such an install by its path in Homebrew's
+  Cellar.
+- The app may be installed from a clone (`~/Applications`) or by Homebrew (`/Applications`), not
+  both: they share one bundle identifier, so the setup check reports two copies, with how to keep
+  one. The bundle identifier stays `local.engineroom.menu`.
+- A pull request that changes how a release is built runs the workflow as a dry run, signed ad hoc
+  and never published.
+
+**Considered.**
+
+- Building from source in the formula: every install needs Go, and the app could not come from it.
+- Homebrew's own repository (homebrew-core and homebrew-cask): their review and popularity rules,
+  for a program whose releases are its developer's to make.
+- A fine-grained token to push to the tap: it reaches more than the one repository and expires; a
+  deploy key reaches only the tap.
+

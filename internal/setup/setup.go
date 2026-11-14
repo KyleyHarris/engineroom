@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -102,6 +103,9 @@ func Check(ctx context.Context) Report {
 		func() Item { return claudeItem(ctx) },
 		func() Item { return pluginItem(ctx) },
 		func() Item { return projectItem(r.Config, cfg, valid) },
+	}
+	if runtime.GOOS == "darwin" {
+		checks = append(checks, appCopiesItem)
 	}
 	switch r.Role {
 	case string(config.RoleEngine):
@@ -196,6 +200,48 @@ func roleItem(file string, cfg *config.Config, valid bool) Item {
 	default:
 		it.Found = "no role set"
 		it.Fix = roleFix
+	}
+	return it
+}
+
+// SystemApps is where Homebrew's cask puts the menu bar app (D-040). A variable so a test can point
+// it at a folder of its own.
+var SystemApps = "/Applications"
+
+// userApps is where scripts/install.sh --app puts the menu bar app: ENGINEROOM_APPS, else
+// ~/Applications.
+func userApps() string {
+	if d := os.Getenv("ENGINEROOM_APPS"); d != "" {
+		return d
+	}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, "Applications")
+}
+
+// appCopiesItem is the menu bar app installed at most once (D-040). One built from a clone lives
+// in ~/Applications and Homebrew's in /Applications; both share one bundle identifier, so macOS
+// opens either for the other and they fight over its login item and permissions. None is fine: the
+// app is optional.
+func appCopiesItem() Item {
+	user, system := filepath.Join(userApps(), "engineroom.app"), filepath.Join(SystemApps, "engineroom.app")
+	// The check is a listing of the two places, written as the command that does it by hand: the
+	// first is where scripts/install.sh --app puts the app, the second where Homebrew's cask does.
+	it := Item{Name: "one copy of the menu bar app", For: Every, Checked: "ls -d " + user + " " + system}
+	var found []string
+	for _, app := range []string{user, system} {
+		if info, err := os.Stat(app); err == nil && info.IsDir() {
+			found = append(found, app)
+		}
+	}
+	switch len(found) {
+	case 0:
+		it.Present, it.Found = true, "not installed (the app is optional)"
+	case 1:
+		it.Present, it.Found = true, found[0]
+	default:
+		it.Found = "two copies: " + user + " and " + system
+		it.Fix = "keep the one you use: for Homebrew's, quit the app and remove the other with rm -rf " + user +
+			"; for the one built from a clone, brew uninstall --cask kyleyharris/engineroom/engineroom"
 	}
 	return it
 }
