@@ -6,6 +6,12 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- **The health check no longer asks whether the engine stays awake.** Whether a Mac sleeps is the
+  decision of the person running it, kept awake when they need it with a setting or `caffeinate`;
+  engineroom never checks or changes it (docs/decisions.md D-042).
+
 ## [0.2.0] - 2026-11-14
 
 ### Added

@@ -46,8 +46,9 @@ enum Snapshots {
         }),
         ("window-repositories", true, { s in s.status = sample(Status.self, statusEngine); s.repos = repos; s.sessions = sessions; s.windowItem = .repositories }),
         ("window-history", true, { s in s.status = sample(Status.self, statusEngine); s.repos = repos; s.history = sample([HistoryEntry].self, historyJSON); s.windowItem = .history }),
-        // The engine's health as a client sees it: setup and staying awake, one item missing with a
-        // fix to type, and a session whose app is not running with the fix the program can run.
+        // The engine's health as a client sees it: setup, with one item fixed in System Settings, a
+        // session missing Remote Control with a fix to type, and a session whose app is not running
+        // with the fix the program can run.
         ("window-health", true, { s in
             s.status = sample(Status.self, statusClient); s.repos = repos; s.windowItem = .health
             s.health = sample(HealthReport.self, healthJSON); s.healthCheckedAt = Date(timeIntervalSince1970: 1_794_000_000)
@@ -223,7 +224,7 @@ enum Snapshots {
     static let healthJSON = """
     {"machine":"engine.example","missing":3,"items":[
      {"name":"zellij","for":"both","present":true,"checked":"zellij --version","found":"zellij 0.43.1","group":"setup"},
-     {"name":"stays awake on power","for":"engine","present":false,"checked":"pmset -g custom (sleep under AC Power)","found":"sleep 1 on power: sleeps after 1 minutes idle","fix":"System Settings, Battery (or Energy), Options: prevent automatic sleeping on power adapter when the display is off; or sudo pmset -c sleep 0","group":"awake"},
+     {"name":"the SSH server on (Remote Login)","for":"engine","present":false,"checked":"connect to 127.0.0.1 port 22 and read the server's greeting: nc 127.0.0.1 22","found":"nothing answers: connection refused","fix":"System Settings, General, Sharing: turn on Remote Login","group":"setup"},
      {"name":"Remote Control in project-a","for":"engine","present":true,"checked":"the Claude Code processes in the session (ZELLIJ_SESSION_NAME=project-a) and bridgeSessionId in /Users/dev/.claude/sessions/<pid>.json","found":"on (Claude pid 4242)","group":"session","session":"project-a"},
      {"name":"the app of project-a","for":"engine","present":false,"checked":"/Users/dev/src/project-a/.engineroom/status","found":"not running: api not answering on 7202","fix":"start the app: engineroom up project-a","group":"session","session":"project-a","action":["up","project-a"]},
      {"name":"Remote Control in project-b","for":"engine","present":false,"checked":"the Claude Code processes in the session (ZELLIJ_SESSION_NAME=project-b) and bridgeSessionId in /Users/dev/.claude/sessions/<pid>.json","found":"off; chosen because agent.remote_control is on in engineroom's configuration","fix":"in the session, type /remote-control to Claude","group":"session","session":"project-b"},

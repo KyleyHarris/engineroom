@@ -490,7 +490,7 @@ public struct EngineVersion: Decodable, Equatable {
 }
 
 /// The engine's health, as `engineroom health --json` reports it (acceptance/health, D-037): its
-/// setup items, staying awake, and each running session's Remote Control and app, each present or
+/// setup items, and each running session's Remote Control and app, each present or
 /// missing with how it was checked and, when missing, its fix. On a client it is the engine's
 /// report, asked of the engine; an engine not reached is said in `unreached`, with no items.
 public struct HealthReport: Decodable, Sendable {
@@ -515,15 +515,14 @@ public struct HealthReport: Decodable, Sendable {
     /// Whether nothing is missing and the engine was reached, as the command's exit status says.
     public var ready: Bool { missing == 0 && (unreached ?? "").isEmpty }
 
-    /// The items under their headings, in the report's order: the setup items, staying awake, then
-    /// each running session's items under the session's name, as `engineroom health` prints them.
+    /// The items under their headings, in the report's order: the setup items, then each running
+    /// session's items under the session's name, as `engineroom health` prints them.
     public var sections: [HealthSection] {
         var out: [HealthSection] = []
         for item in items {
             let title: String
             switch item.group {
             case "setup": title = "Setup"
-            case "awake": title = "Staying awake"
             default: title = item.session ?? "Running sessions"
             }
             if out.last?.title == title { out[out.count - 1].items.append(item) }
@@ -551,7 +550,7 @@ public struct HealthItem: Decodable, Sendable, Hashable {
     public let found: String
     /// What would make it present; nil when present.
     public let fix: String?
-    /// setup, awake or session.
+    /// setup or session.
     public let group: String
     public let session: String?
     /// The `engineroom api` action that applies the fix, when the program can (HEALTH-FIX-001); nil

@@ -323,9 +323,9 @@ func usage(w io.Writer) {
                                          item was checked and how to fix it; changes nothing, and
                                          ends with a failure when anything is missing
   engineroom health [--json]                   whether the engine is ready to be worked on from away:
-                                         setup, staying awake, each running session's Remote
-                                         Control and app; the engine's report on a client; changes
-                                         nothing, and ends with a failure when anything is missing
+                                         setup, and each running session's Remote Control and
+                                         app; the engine's report on a client; changes nothing,
+                                         and ends with a failure when anything is missing
   engineroom signal waiting --message <text>   (for the agent's hooks) this session is waiting for the developer
   engineroom signal waiting --from-hook        the same, reading the hook's JSON from standard input
   engineroom signal clear                      (for the agent's hooks) the developer answered

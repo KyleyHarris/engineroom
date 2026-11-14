@@ -1094,6 +1094,8 @@ action failed, and someone without Claude Code had no check at all.
 
 ## D-037 The health view checks the engine on request; a project says whether its app runs
 
+(Staying awake is no longer checked since D-042.)
+
 **Problem.** Before leaving the engine to work from somewhere else, the developer had no one place
 that said whether it was ready: set up, awake on power with the lid closed, and each running
 session reachable by Remote Control with its app running. Whether an app runs differs from
@@ -1268,3 +1270,25 @@ for the current SDK, so the Intel half is a cost with no user.
 - Keeping Intel: doubles every download and build, for no Mac in use, on an architecture the
   toolchain is retiring.
 
+## D-042 Whether a Mac sleeps is never checked or changed
+
+**Problem.** The health check (D-037) counted the engine as not ready when it would sleep on power
+or with its lid closed, and its fixes changed the Mac's power settings. Whether a Mac sleeps is the
+decision of the person running it, who keeps it awake when they need to, with a setting or
+`caffeinate`. A check that marks that decision missing reports a choice as a fault.
+
+**Decision.**
+
+- engineroom never checks or changes whether a Mac sleeps: the health check has no staying-awake
+  items, and the setup guide no "does not sleep" item.
+- The setup guide says that an asleep engine does not answer a client, and leaves the choice to
+  the person running it.
+- The scenarios that used sleeping as their example of a missing item use a session's app or its
+  Remote Control instead. HEALTH-AWAKE-001 and HEALTH-AWAKE-002 are removed.
+
+**Considered.**
+
+- Keeping the items as information, never counted missing: still a judgment on the Mac's settings,
+  and a section of the report that says nothing the person does not already know.
+- Checking only on the engine and not on a Mac used on its own: the engine's person decides its
+  sleep as much as anyone.

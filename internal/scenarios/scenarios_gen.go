@@ -89,13 +89,11 @@ var Fields = map[string][]string{
 	"HealthApp003":    {"GivenARunningSessionWhoseProjectHasAnUpScriptAndNoStatusScript", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheSessionsAppIsMarkedMissingAsNotChecked", "AndItsFixSaysWhatAStatusScriptMustDoAndWhereItGoes"},
 	"HealthApp004":    {"GivenARunningSessionWhoseProjectHasNeitherAnUpScriptNorAStatusScript", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheSessionsAppIsMarkedPresentAsHavingNoAppToRun"},
 	"HealthApp005":    {"GivenARunningSessionWhoseStatusScriptDoesNotEnd", "WhenTheDeveloperRunsTheHealthCheck", "ThenThatSessionsAppIsMarkedMissingAsNotAnsweringWithinItsTime", "AndEveryOtherItemIsStillReported"},
-	"HealthAwake001":  {"GivenTheEngineIsSetToSleepAfterATimeOnPower", "WhenTheDeveloperRunsTheHealthCheck", "ThenStayingAwakeOnPowerIsMarkedMissingWithTheSettingThatWasReadAndItsFix"},
-	"HealthAwake002":  {"GivenTheEngineIsALaptopThatWouldSleepIfItsLidWereClosedNow", "WhenTheDeveloperRunsTheHealthCheck", "ThenStayingAwakeWithTheLidClosedIsMarkedMissingWithItsFix", "AndOnAnEngineWithNoLidItIsMarkedPresentAsHavingNoLid"},
-	"HealthCheck001":  {"GivenTheEngineHasTwoRunningSessionS", "WhenTheDeveloperRunsTheHealthCheckOnTheEngine", "ThenEveryItemTheSetupCheckReportsForTheEngineIsListed", "AndStayingAwakeOnPowerAndStayingAwakeWithTheLidClosedAreListed", "AndEachRunningSessionIsListedWithItsRemoteControlAndItsApp", "AndEachItemIsMarkedPresentOrMissing"},
-	"HealthCheck002":  {"GivenTheEngineSleepsOnPower", "WhenTheDeveloperRunsTheHealthCheckOnTheEngine", "ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom", "AndStayingAwakeOnPowerIsMarkedMissingWithItsFix", "AndNothingOnTheEngineHasChanged"},
+	"HealthCheck001":  {"GivenTheEngineHasTwoRunningSessionS", "WhenTheDeveloperRunsTheHealthCheckOnTheEngine", "ThenEveryItemTheSetupCheckReportsForTheEngineIsListed", "AndEachRunningSessionIsListedWithItsRemoteControlAndItsApp", "AndEachItemIsMarkedPresentOrMissing"},
+	"HealthCheck002":  {"GivenARunningSessionWhoseAppIsNotRunning", "WhenTheDeveloperRunsTheHealthCheckOnTheEngine", "ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom", "AndTheSessionsAppIsMarkedMissingWithItsFix", "AndNothingOnTheEngineHasChanged"},
 	"HealthCheck003":  {"GivenThisMachineIsAClient", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheItemsAreTheEnginesCheckedOnTheEngine", "AndWhenTheEngineIsNotReachedThatIsSaidWithItsCauseAndNoItemIsMarkedPresent"},
 	"HealthFix001":    {"GivenTheHealthCheckReportsASessionsAppAsNotRunning", "WhenTheDeveloperAsksForThatFix", "ThenTheCommandsThatStartTheAppAreShownBeforeTheyRun", "AndTheStartIsListedInTheHistoryWithEachOfItsCommandsAndTheirOutcomes", "AndNothingElseIsChanged"},
-	"HealthFix002":    {"GivenTheHealthCheckReportsStayingAwakeOnPowerAsMissing", "WhenTheDeveloperLooksAtItsFix", "ThenTheFixIsShownAsACommandToRunThemselves", "AndThereIsNoWayToRunItFromTheCheck"},
+	"HealthFix002":    {"GivenTheHealthCheckReportsASessionsRemoteControlAsMissing", "WhenTheDeveloperLooksAtItsFix", "ThenTheFixIsShownAsWhatToTypeInsideTheSession", "AndThereIsNoWayToRunItFromTheCheck"},
 	"HealthPage001":   {"GivenTheAppIsRunning", "WhenTheDeveloperOpensTheHealthPage", "ThenTheEngineIsCheckedAndEveryItemIsShownWithItsFix", "AndItIsCheckedAgainOnlyWhenTheDeveloperAsks"},
 	"HealthRead001":   {"GivenEveryItemIsPresent", "WhenTheDeveloperRunsTheHealthCheck", "ThenItEndsWithSuccess", "AndWhenOneItemIsMissingItEndsWithAFailure", "AndAsJSONEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix"},
 	"HealthRemote001": {"GivenASessionStartedWithRemoteControl", "AndASessionStartedWithoutItWhereRemoteControlWasThenTurnedOnInsideIt", "AndASessionWithoutRemoteControl", "WhenTheDeveloperRunsTheHealthCheck", "ThenTheFirstTwoAreShownWithRemoteControlOn", "AndTheThirdIsShownWithRemoteControlOff"},
@@ -3160,71 +3158,6 @@ func (s HealthApp005) Scenario() Scenario {
 	}
 }
 
-// HealthAwake001 is HEALTH-AWAKE-001: An engine that sleeps on power is reported
-//
-// Intent: docs/setup.md "Does not sleep on power" - an asleep engine does not answer
-// Source: acceptance/health/health-acceptance.md
-type HealthAwake001 struct {
-	// Given the engine is set to sleep after a time on power
-	GivenTheEngineIsSetToSleepAfterATimeOnPower func()
-	// When the developer runs the health check
-	WhenTheDeveloperRunsTheHealthCheck func()
-	// Then staying awake on power is marked missing, with the setting that was read and its fix
-	ThenStayingAwakeOnPowerIsMarkedMissingWithTheSettingThatWasReadAndItsFix func()
-}
-
-// Scenario describes HEALTH-AWAKE-001 with the clause functions this journey supplied.
-func (s HealthAwake001) Scenario() Scenario {
-	return Scenario{
-		ID:      "HEALTH-AWAKE-001",
-		Title:   "An engine that sleeps on power is reported",
-		Feature: "Staying awake",
-		Status:  "proposed",
-		Persona: "Developer",
-		Intent:  "docs/setup.md \"Does not sleep on power\" - an asleep engine does not answer",
-		Source:  "acceptance/health/health-acceptance.md",
-		Steps: []Step{
-			{Text: "Given the {engine.lower} is set to sleep after a time on power", Display: "Given the engine is set to sleep after a time on power", Fn: s.GivenTheEngineIsSetToSleepAfterATimeOnPower},
-			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
-			{Text: "Then staying awake on power is marked missing, with the setting that was read and its fix", Display: "Then staying awake on power is marked missing, with the setting that was read and its fix", Fn: s.ThenStayingAwakeOnPowerIsMarkedMissingWithTheSettingThatWasReadAndItsFix},
-		},
-	}
-}
-
-// HealthAwake002 is HEALTH-AWAKE-002: An engine that would sleep with its lid closed is reported
-//
-// Intent: a laptop set never to sleep on power still sleeps when its lid is closed, unless something keeps it awake; the check reads whether closing the lid would sleep it now
-// Source: acceptance/health/health-acceptance.md
-type HealthAwake002 struct {
-	// Given the engine is a laptop that would sleep if its lid were closed now
-	GivenTheEngineIsALaptopThatWouldSleepIfItsLidWereClosedNow func()
-	// When the developer runs the health check
-	WhenTheDeveloperRunsTheHealthCheck func()
-	// Then staying awake with the lid closed is marked missing, with its fix
-	ThenStayingAwakeWithTheLidClosedIsMarkedMissingWithItsFix func()
-	// And on an engine with no lid it is marked present, as having no lid
-	AndOnAnEngineWithNoLidItIsMarkedPresentAsHavingNoLid func()
-}
-
-// Scenario describes HEALTH-AWAKE-002 with the clause functions this journey supplied.
-func (s HealthAwake002) Scenario() Scenario {
-	return Scenario{
-		ID:      "HEALTH-AWAKE-002",
-		Title:   "An engine that would sleep with its lid closed is reported",
-		Feature: "Staying awake",
-		Status:  "proposed",
-		Persona: "Developer",
-		Intent:  "a laptop set never to sleep on power still sleeps when its lid is closed, unless something keeps it awake; the check reads whether closing the lid would sleep it now",
-		Source:  "acceptance/health/health-acceptance.md",
-		Steps: []Step{
-			{Text: "Given the {engine.lower} is a laptop that would sleep if its lid were closed now", Display: "Given the engine is a laptop that would sleep if its lid were closed now", Fn: s.GivenTheEngineIsALaptopThatWouldSleepIfItsLidWereClosedNow},
-			{Text: "When the developer runs the health check", Display: "When the developer runs the health check", Fn: s.WhenTheDeveloperRunsTheHealthCheck},
-			{Text: "Then staying awake with the lid closed is marked missing, with its fix", Display: "Then staying awake with the lid closed is marked missing, with its fix", Fn: s.ThenStayingAwakeWithTheLidClosedIsMarkedMissingWithItsFix},
-			{Text: "And on an {engine.lower} with no lid it is marked present, as having no lid", Display: "And on an engine with no lid it is marked present, as having no lid", Fn: s.AndOnAnEngineWithNoLidItIsMarkedPresentAsHavingNoLid},
-		},
-	}
-}
-
 // HealthCheck001 is HEALTH-CHECK-001: Every item is reported as present or missing
 //
 // Intent: one view says whether the engine is ready; "nothing is left out silently" means every item is listed, the present ones as well, as the setup check does (SETUP-CHECK-001)
@@ -3236,8 +3169,6 @@ type HealthCheck001 struct {
 	WhenTheDeveloperRunsTheHealthCheckOnTheEngine func()
 	// Then every item the setup check reports for the engine is listed
 	ThenEveryItemTheSetupCheckReportsForTheEngineIsListed func()
-	// And staying awake on power and staying awake with the lid closed are listed
-	AndStayingAwakeOnPowerAndStayingAwakeWithTheLidClosedAreListed func()
 	// And each running session is listed with its Remote Control and its app
 	AndEachRunningSessionIsListedWithItsRemoteControlAndItsApp func()
 	// And each item is marked present or missing
@@ -3258,7 +3189,6 @@ func (s HealthCheck001) Scenario() Scenario {
 			{Text: "Given the {engine.lower} has two running {session.lower}s", Display: "Given the engine has two running sessions", Fn: s.GivenTheEngineHasTwoRunningSessionS},
 			{Text: "When the developer runs the health check on the {engine.lower}", Display: "When the developer runs the health check on the engine", Fn: s.WhenTheDeveloperRunsTheHealthCheckOnTheEngine},
 			{Text: "Then every item the setup check reports for the {engine.lower} is listed", Display: "Then every item the setup check reports for the engine is listed", Fn: s.ThenEveryItemTheSetupCheckReportsForTheEngineIsListed},
-			{Text: "And staying awake on power and staying awake with the lid closed are listed", Display: "And staying awake on power and staying awake with the lid closed are listed", Fn: s.AndStayingAwakeOnPowerAndStayingAwakeWithTheLidClosedAreListed},
 			{Text: "And each running {session.lower} is listed with its Remote Control and its app", Display: "And each running session is listed with its Remote Control and its app", Fn: s.AndEachRunningSessionIsListedWithItsRemoteControlAndItsApp},
 			{Text: "And each item is marked present or missing", Display: "And each item is marked present or missing", Fn: s.AndEachItemIsMarkedPresentOrMissing},
 		},
@@ -3270,14 +3200,14 @@ func (s HealthCheck001) Scenario() Scenario {
 // Intent: CLAUDE.md "It may report a problem and show the fix; it applies a fix only on an explicit request" and "The program never hides what it does"
 // Source: acceptance/health/health-acceptance.md
 type HealthCheck002 struct {
-	// Given the engine sleeps on power
-	GivenTheEngineSleepsOnPower func()
+	// Given a running session whose app is not running
+	GivenARunningSessionWhoseAppIsNotRunning func()
 	// When the developer runs the health check on the engine
 	WhenTheDeveloperRunsTheHealthCheckOnTheEngine func()
 	// Then each item shows the command it was checked with, or the file it was read from
 	ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom func()
-	// And staying awake on power is marked missing, with its fix
-	AndStayingAwakeOnPowerIsMarkedMissingWithItsFix func()
+	// And the Session's app is marked missing, with its fix
+	AndTheSessionsAppIsMarkedMissingWithItsFix func()
 	// And nothing on the engine has changed
 	AndNothingOnTheEngineHasChanged func()
 }
@@ -3293,10 +3223,10 @@ func (s HealthCheck002) Scenario() Scenario {
 		Intent:  "CLAUDE.md \"It may report a problem and show the fix; it applies a fix only on an explicit request\" and \"The program never hides what it does\"",
 		Source:  "acceptance/health/health-acceptance.md",
 		Steps: []Step{
-			{Text: "Given the {engine.lower} sleeps on power", Display: "Given the engine sleeps on power", Fn: s.GivenTheEngineSleepsOnPower},
+			{Text: "Given a running {session.lower} whose app is not running", Display: "Given a running session whose app is not running", Fn: s.GivenARunningSessionWhoseAppIsNotRunning},
 			{Text: "When the developer runs the health check on the {engine.lower}", Display: "When the developer runs the health check on the engine", Fn: s.WhenTheDeveloperRunsTheHealthCheckOnTheEngine},
 			{Text: "Then each item shows the command it was checked with, or the file it was read from", Display: "Then each item shows the command it was checked with, or the file it was read from", Fn: s.ThenEachItemShowsTheCommandItWasCheckedWithOrTheFileItWasReadFrom},
-			{Text: "And staying awake on power is marked missing, with its fix", Display: "And staying awake on power is marked missing, with its fix", Fn: s.AndStayingAwakeOnPowerIsMarkedMissingWithItsFix},
+			{Text: "And the {session.possessive} app is marked missing, with its fix", Display: "And the Session's app is marked missing, with its fix", Fn: s.AndTheSessionsAppIsMarkedMissingWithItsFix},
 			{Text: "And nothing on the {engine.lower} has changed", Display: "And nothing on the engine has changed", Fn: s.AndNothingOnTheEngineHasChanged},
 		},
 	}
@@ -3375,15 +3305,15 @@ func (s HealthFix001) Scenario() Scenario {
 
 // HealthFix002 is HEALTH-FIX-002: A fix the program cannot run is shown, never run
 //
-// Intent: a fix that needs an administrator, or has to be typed inside a session, is shown for the developer to run; the program never runs it for them
+// Intent: a fix that needs an administrator, or has to be typed inside a session, is shown for the developer to apply; the program never applies it for them
 // Source: acceptance/health/health-acceptance.md
 type HealthFix002 struct {
-	// Given the health check reports staying awake on power as missing
-	GivenTheHealthCheckReportsStayingAwakeOnPowerAsMissing func()
+	// Given the health check reports a Session's Remote Control as missing
+	GivenTheHealthCheckReportsASessionsRemoteControlAsMissing func()
 	// When the developer looks at its fix
 	WhenTheDeveloperLooksAtItsFix func()
-	// Then the fix is shown as a command to run themselves
-	ThenTheFixIsShownAsACommandToRunThemselves func()
+	// Then the fix is shown as what to type inside the session
+	ThenTheFixIsShownAsWhatToTypeInsideTheSession func()
 	// And there is no way to run it from the check
 	AndThereIsNoWayToRunItFromTheCheck func()
 }
@@ -3396,12 +3326,12 @@ func (s HealthFix002) Scenario() Scenario {
 		Feature: "Fixing",
 		Status:  "proposed",
 		Persona: "Developer",
-		Intent:  "a fix that needs an administrator, or has to be typed inside a session, is shown for the developer to run; the program never runs it for them",
+		Intent:  "a fix that needs an administrator, or has to be typed inside a session, is shown for the developer to apply; the program never applies it for them",
 		Source:  "acceptance/health/health-acceptance.md",
 		Steps: []Step{
-			{Text: "Given the health check reports staying awake on power as missing", Display: "Given the health check reports staying awake on power as missing", Fn: s.GivenTheHealthCheckReportsStayingAwakeOnPowerAsMissing},
+			{Text: "Given the health check reports a {session.possessive} Remote Control as missing", Display: "Given the health check reports a Session's Remote Control as missing", Fn: s.GivenTheHealthCheckReportsASessionsRemoteControlAsMissing},
 			{Text: "When the developer looks at its fix", Display: "When the developer looks at its fix", Fn: s.WhenTheDeveloperLooksAtItsFix},
-			{Text: "Then the fix is shown as a command to run themselves", Display: "Then the fix is shown as a command to run themselves", Fn: s.ThenTheFixIsShownAsACommandToRunThemselves},
+			{Text: "Then the fix is shown as what to type inside the {session.lower}", Display: "Then the fix is shown as what to type inside the session", Fn: s.ThenTheFixIsShownAsWhatToTypeInsideTheSession},
 			{Text: "And there is no way to run it from the check", Display: "And there is no way to run it from the check", Fn: s.AndThereIsNoWayToRunItFromTheCheck},
 		},
 	}
