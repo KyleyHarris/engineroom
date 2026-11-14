@@ -28,6 +28,7 @@ never overwritten.
    one connects to. Releases are for Apple Silicon only. Then, on a yes, either
 
    ```sh
+   brew trust kyleyharris/engineroom                       # once per Mac: Homebrew loads no untrusted tap
    brew install --cask kyleyharris/engineroom/engineroom   # a release: the app, the program and Zellij
    ```
 

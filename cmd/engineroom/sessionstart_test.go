@@ -38,13 +38,17 @@ func zellijMachine(t *testing.T) (*journey.Machine, string) {
 
 // servers is the process id of every Zellij server for this machine's session called name (any
 // session, when name is empty), read from the process table by the socket path the server was
-// started with, so a server that lost its socket is found too.
+// started with, so a server that lost its socket is found too. Zellij before 0.46 names a socket
+// after its session; from 0.46 it names it by a session id and keeps each name's id in its session
+// index (a SQLite file in its cache folder, under this machine's home), so an id is read back to
+// its name there, and a socket the index does not know is named after its session, as before ids.
 func servers(t *testing.T, m *journey.Machine, name string) []int {
 	t.Helper()
 	out, err := exec.Command("ps", "-axo", "pid=,command=").Output()
 	if err != nil {
 		t.Fatal(err)
 	}
+	names := m.SessionIDs(t)
 	prefix := "--server " + filepath.Join(m.Sockets, "contract_version_1") + "/"
 	var pids []int
 	for _, line := range strings.Split(string(out), "\n") {
@@ -52,8 +56,18 @@ func servers(t *testing.T, m *journey.Machine, name string) []int {
 		if i < 0 {
 			continue
 		}
-		if session := strings.Fields(line[i+len(prefix):]); name != "" && (len(session) == 0 || session[0] != name) {
-			continue
+		if name != "" {
+			socket := strings.Fields(line[i+len(prefix):])
+			if len(socket) == 0 {
+				continue
+			}
+			session := socket[0]
+			if n, ok := names[session]; ok {
+				session = n
+			}
+			if session != name {
+				continue
+			}
 		}
 		if pid, err := strconv.Atoi(strings.Fields(line)[0]); err == nil {
 			pids = append(pids, pid)

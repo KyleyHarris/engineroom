@@ -6,6 +6,16 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Installing a release starts with `brew trust kyleyharris/engineroom`**, once per Mac: Homebrew
+  loads nothing from a tap outside its own until it is trusted. The README, the setup guide and the
+  setup skill say so.
+- **Works with Zellij 0.46**, which Homebrew installs with the release. Zellij 0.46 names a session's
+  socket and saved layout by an id rather than the session's name; engineroom only ever reaches a
+  session through Zellij's own commands, so nothing changes for it, and its tests now read the id.
+  The setup guide says how to dismiss the setup screen Zellij 0.46 opens over the first session.
+
 ## [0.2.1] - 2026-11-14
 
 ### Removed
