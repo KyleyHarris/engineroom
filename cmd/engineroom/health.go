@@ -63,7 +63,6 @@ func writeHealth(w io.Writer, r health.Report, title string) {
 	fmt.Fprintf(w, "Health of %s, checked on %s.\n", title, r.Machine)
 	headings := map[health.Group]string{
 		health.Setup:   "Setup",
-		health.Awake:   "Staying awake",
 		health.Session: "Running sessions",
 	}
 	var last health.Group

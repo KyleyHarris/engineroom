@@ -1,7 +1,7 @@
 // Package health says whether the engine is ready to be worked on from away (acceptance/health,
-// docs/decisions.md D-037): its setup items (internal/setup), staying awake on power and with the
-// lid closed, and for each running session whether Remote Control is on and whether its app is
-// running. Like the setup check it reports and never fixes: every check reads a file or runs a
+// docs/decisions.md D-037): its setup items (internal/setup), and for each running session whether
+// Remote Control is on and whether its app is running. Whether the engine sleeps is never checked:
+// that is the decision of the person running it (D-042). Like the setup check it reports and never fixes: every check reads a file or runs a
 // command that changes nothing, each item says which, and a missing one carries its fix. A fix the
 // program can run is named as an action the developer may ask for; nothing here runs it.
 package health
@@ -15,7 +15,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -37,8 +36,6 @@ type Group string
 const (
 	// Setup is one of the engine's setup items, as `engineroom setup check` reports it.
 	Setup Group = "setup"
-	// Awake is the engine staying awake: on power, and with the lid closed.
-	Awake Group = "awake"
 	// Session is a running session's Remote Control or its app.
 	Session Group = "session"
 )
@@ -75,11 +72,7 @@ func (r Report) Ready() bool { return r.Missing == 0 && r.Unreached == "" }
 // rest of the report still comes back (HEALTH-APP-005). A variable so a test need not wait as long.
 var StatusTimeout = 10 * time.Second
 
-// commandTimeout bounds each other command a check runs, as the setup check bounds its own.
-const commandTimeout = 15 * time.Second
-
-// Check checks this machine as the engine: its setup items, staying awake, and each running
-// session. The checks run at once, since each only reads; the report keeps their order.
+// Check checks this machine as the engine: its setup items, then each running session.
 func Check(ctx context.Context) Report {
 	r := Report{Machine: "this machine"}
 	s := setup.Check(ctx)
@@ -94,16 +87,7 @@ func Check(ctx context.Context) Report {
 		cfg = nil
 	}
 
-	var awake [2]Item
-	var sessions []Item
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go func() { defer wg.Done(); awake[0] = onPowerItem(ctx) }()
-	go func() { defer wg.Done(); awake[1] = lidItem(ctx) }()
-	go func() { defer wg.Done(); sessions = sessionItems(ctx, cfg) }()
-	wg.Wait()
-	r.Items = append(r.Items, awake[:]...)
-	r.Items = append(r.Items, sessions...)
+	r.Items = append(r.Items, sessionItems(ctx, cfg)...)
 	for _, it := range r.Items {
 		if !it.Present {
 			r.Missing++
@@ -150,96 +134,6 @@ func OfEngine(ctx context.Context, cfg *config.Config) Report {
 func isReport(out []byte) bool {
 	var r Report
 	return json.Unmarshal(out, &r) == nil && r.Items != nil
-}
-
-// run runs a command that changes nothing and returns its standard output and standard error,
-// bounded by commandTimeout.
-func run(ctx context.Context, argv ...string) (string, string, error) {
-	ctx, cancel := context.WithTimeout(ctx, commandTimeout)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	err := cmd.Run()
-	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), err
-}
-
-func failed(err error, said string) string {
-	if errors.Is(err, exec.ErrNotFound) {
-		return "not found on the PATH"
-	}
-	if said != "" {
-		return said
-	}
-	return err.Error()
-}
-
-// heading is a section heading in `pmset -g custom`: a line that starts at the margin and ends in a
-// colon, such as "Battery Power:".
-var heading = regexp.MustCompile(`(?m)^\S.*:\s*$`)
-
-// acSleep finds the sleep setting in the AC Power section of `pmset -g custom`.
-var acSleep = regexp.MustCompile(`(?m)^\s*sleep\s+(\d+)`)
-
-// onPowerItem is the engine not sleeping on power (docs/setup.md, "Does not sleep on power"): an
-// asleep engine does not answer. Read from the AC Power section of `pmset -g custom`; a Mac that
-// lists no sections (one that only ever runs on power) is read whole.
-func onPowerItem(ctx context.Context) Item {
-	it := Item{Group: Awake, Item: setup.Item{Name: "stays awake on power", For: setup.Engine, Checked: "pmset -g custom (sleep under AC Power)"}}
-	fix := "System Settings, Battery (or Energy), Options: prevent automatic sleeping on power adapter when the display is off; or sudo pmset -c sleep 0"
-	out, errOut, err := run(ctx, "pmset", "-g", "custom")
-	if err != nil {
-		it.Found, it.Fix = "could not be read: "+failed(err, errOut), fix
-		return it
-	}
-	section := out
-	if _, after, ok := strings.Cut(out, "AC Power:"); ok {
-		// The AC section runs to the next section's heading, a line ending in a colon.
-		section = after
-		if i := heading.FindStringIndex(after); i != nil {
-			section = after[:i[0]]
-		}
-	}
-	m := acSleep.FindStringSubmatch(section)
-	switch {
-	case m == nil:
-		it.Found, it.Fix = "no sleep setting under AC Power", fix
-	case m[1] == "0":
-		it.Present, it.Found = true, "sleep 0 on power: never sleeps"
-	default:
-		it.Found, it.Fix = "sleep "+m[1]+" on power: sleeps after "+m[1]+" minutes idle", fix
-	}
-	return it
-}
-
-// clamshell finds whether closing the lid would sleep the machine, in ioreg's description.
-var clamshell = regexp.MustCompile(`"AppleClamshellCausesSleep"\s*=\s*(Yes|No)`)
-
-// lidFix is the fix for a laptop that sleeps with its lid closed. It is not confirmed on an engine
-// yet, and says so rather than pass for a tested command.
-const lidFix = "unconfirmed: keep a display connected to the engine while its lid is closed, or run sudo pmset -a disablesleep 1 (it also stops sleep on battery; sudo pmset -a disablesleep 0 undoes it). Check again with the lid closed."
-
-// lidItem is the engine staying awake with its lid closed: AppleClamshellCausesSleep, which macOS
-// keeps as whether closing the lid now would sleep the machine (it is No while something keeps a
-// closed laptop awake). A Mac with no lid lists no such entry and has nothing to close.
-func lidItem(ctx context.Context) Item {
-	it := Item{Group: Awake, Item: setup.Item{Name: "stays awake with the lid closed", For: setup.Engine,
-		Checked: "ioreg -r -k AppleClamshellState -d 1 (AppleClamshellCausesSleep)"}}
-	out, errOut, err := run(ctx, "ioreg", "-r", "-k", "AppleClamshellState", "-d", "1")
-	if err != nil {
-		it.Found, it.Fix = "could not be read: "+failed(err, errOut), lidFix
-		return it
-	}
-	m := clamshell.FindStringSubmatch(out)
-	switch {
-	case m == nil:
-		it.Present, it.Found = true, "no lid: this Mac has none to close"
-	case m[1] == "No":
-		it.Present, it.Found = true, "closing the lid now would not sleep it"
-	default:
-		it.Found, it.Fix = "closing the lid now would sleep it", lidFix
-	}
-	return it
 }
 
 // sessionItems is each running session's Remote Control and app, in name order. The processes, the

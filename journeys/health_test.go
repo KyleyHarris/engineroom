@@ -23,16 +23,13 @@ import (
 
 // The health check's journeys run the built program on an isolated machine with real Zellij
 // sessions, real status scripts in a project's settings and real processes in those sessions.
-// Three things are stood in, each answering exactly what the check reads of the real one:
-//
-//   - Claude Code, as claude on the PATH: it answers the setup check's questions (its version, its
-//     plugins) and, started as the agent in a session, keeps sessions/<pid>.json in its folder as
-//     Claude Code does, with bridgeSessionId while Remote Control is on (D-037), then becomes a
-//     long-running built program (listen idle) under the same pid. A built program because macOS
-//     hides the environment of its own tools (sh, sleep), and the check finds a session's agents by
-//     their environment.
-//   - pmset and ioreg, which read the power settings and the lid: the machine running the journeys
-//     has its own, which a journey must neither depend on nor change.
+// Claude Code is stood in, answering exactly what the check reads of the real one: as claude on
+// the PATH, it answers the setup check's questions (its version, its
+// plugins) and, started as the agent in a session, keeps sessions/<pid>.json in its folder as
+// Claude Code does, with bridgeSessionId while Remote Control is on (D-037), then becomes a
+// long-running built program (listen idle) under the same pid. A built program because macOS hides
+// the environment of its own tools (sh, sleep), and the check finds a session's agents by their
+// environment.
 
 // claudeStandIn is Claude Code for the health journeys. The setup answers are the ones
 // standInClaude gives; any other start is the agent in a session.
@@ -51,42 +48,9 @@ plugin) echo '[{"id":"engineroom@engineroom","version":"0.1.0","scope":"user","e
 esac
 `
 
-// standInPower is pmset reporting the given sleep setting under AC Power, laid out as
-// `pmset -g custom` lays it out. Battery Power sleeps after a minute, so a check that read the
-// wrong section would say so.
-func standInPower(t *testing.T, m *journey.Machine, acSleep string) {
-	t.Helper()
-	tool(t, m, "pmset", `cat <<'EOF'
-Battery Power:
- displaysleep         30
- sleep                1
- disksleep            10
-AC Power:
- displaysleep         30
- sleep                `+acSleep+`
- disksleep            10
-EOF
-`)
-}
-
-// standInLid is ioreg describing the lid: causesSleep is AppleClamshellCausesSleep ("Yes" or "No"),
-// and "" is a Mac with no lid, for which ioreg lists nothing.
-func standInLid(t *testing.T, m *journey.Machine, causesSleep string) {
-	t.Helper()
-	if causesSleep == "" {
-		tool(t, m, "ioreg", "exit 0\n")
-		return
-	}
-	tool(t, m, "ioreg", `cat <<'EOF'
-      "AppleClamshellCausesSleep" = `+causesSleep+`
-      "AppleClamshellState" = No
-EOF
-`)
-}
-
 // healthEngine is a machine set up as the engine with the given projects (each a repository under
-// its home, registered), Claude Code as the agent, and an engine that stays awake on power and with
-// its lid closed. It returns the machine and each project's folder.
+// its home, registered) and Claude Code as the agent. It returns the machine and each project's
+// folder.
 func healthEngine(t *testing.T, projects ...string) (*journey.Machine, map[string]string) {
 	t.Helper()
 	m := journey.NewMachine(t)
@@ -99,8 +63,6 @@ func healthEngine(t *testing.T, projects ...string) (*journey.Machine, map[strin
 	}
 	m.WriteConfig(b.String())
 	tool(t, m, "claude", claudeStandIn)
-	standInPower(t, m, "0")
-	standInLid(t, m, "No")
 	return m, paths
 }
 
@@ -235,7 +197,7 @@ func marked(out string) int {
 }
 
 // HEALTH-CHECK-001: the engine with two running sessions lists every setup item the setup check
-// reports, both ways of staying awake, and each session's Remote Control and app, each marked.
+// reports and each session's Remote Control and app, each marked, and nothing about sleep (D-042).
 // Fails if any item is left out, a session lacks either of its items, or an item is not marked.
 func TestHealthCheck001(t *testing.T) {
 	m, paths := healthEngine(t, "project-a", "project-b")
@@ -269,13 +231,6 @@ func TestHealthCheck001(t *testing.T) {
 				itemLines(t, run.out, want.Name)
 			}
 		},
-		AndStayingAwakeOnPowerAndStayingAwakeWithTheLidClosedAreListed: func() {
-			for _, name := range []string{"stays awake on power", "stays awake with the lid closed"} {
-				if !strings.HasPrefix(itemLines(t, run.out, name), "present") {
-					t.Fatalf("%q is not present on an engine set to stay awake:\n%s", name, run.out)
-				}
-			}
-		},
 		AndEachRunningSessionIsListedWithItsRemoteControlAndItsApp: func() {
 			for _, s := range []string{"project-a", "project-b"} {
 				for _, name := range []string{"Remote Control in " + s, "the app of " + s} {
@@ -289,6 +244,10 @@ func TestHealthCheck001(t *testing.T) {
 		AndEachItemIsMarkedPresentOrMissing: func() {
 			if n := marked(run.out); n != len(report.Items) {
 				t.Fatalf("%d lines are marked, the report has %d items:\n%s", n, len(report.Items), run.out)
+			}
+			// Whether the engine sleeps is its person's decision, and is never checked (D-042).
+			if strings.Contains(strings.ToLower(run.out), "awake") || strings.Contains(run.out, "pmset") {
+				t.Fatalf("the report checks whether the engine sleeps:\n%s", run.out)
 			}
 		},
 	}, term0(&term))
@@ -315,19 +274,19 @@ func healthTree(t *testing.T, dir string) string {
 	return strings.Join(lines, "\n")
 }
 
-// HEALTH-CHECK-002: on an engine that sleeps on power, every item names the command or file it was
-// checked with, staying awake on power is missing with its fix, and the machine's whole home is the
-// same before and after (Zellij's own cache aside). Fails if an item hides how it was checked, the
-// setting is not reported, or the check writes anything, a history entry included.
+// HEALTH-CHECK-002: with a session whose app is not running, every item names the command or file
+// it was checked with, the app is missing with its fix, and the machine's whole home is the same
+// before and after (Zellij's own cache aside). Fails if an item hides how it was checked, the app
+// is not reported, or the check writes anything, a history entry included, or starts the app.
 func TestHealthCheck002(t *testing.T) {
 	m, paths := healthEngine(t, "project-a")
 	var term *termtest.Terminal
 	var run checkRun
 	var before string
 	scenarios.Run(t, scenarios.HealthCheck002{
-		GivenTheEngineSleepsOnPower: func() {
-			standInPower(t, m, "10")
-			projectScript(t, m, "project-a", "status", "echo web answering\n")
+		GivenARunningSessionWhoseAppIsNotRunning: func() {
+			projectScript(t, m, "project-a", "up", "exit 0\n")
+			projectScript(t, m, "project-a", "status", "echo web not answering\nexit 1\n")
 			startAgent(t, m, "project-a", paths["project-a"], "zellij")
 			before = healthTree(t, m.Home)
 		},
@@ -342,20 +301,15 @@ func TestHealthCheck002(t *testing.T) {
 					t.Fatalf("%q does not show how it was checked:\n%s", it.Name, block)
 				}
 			}
-			// The awake items name commands that exist here, and the app item names the script.
-			for name, first := range map[string]string{"stays awake on power": "pmset", "stays awake with the lid closed": "ioreg"} {
-				if !strings.HasPrefix(itemOf(t, r, name).Checked, first+" ") {
-					t.Fatalf("%q was not checked with %s: %s", name, first, itemOf(t, r, name).Checked)
-				}
-			}
+			// The app item names the script that checked it.
 			if app := itemOf(t, r, "the app of project-a"); !strings.Contains(app.Checked, "status") {
 				t.Fatalf("the app is not said as checked by its status script: %s", app.Checked)
 			}
 		},
-		AndStayingAwakeOnPowerIsMarkedMissingWithItsFix: func() {
-			p := itemLines(t, run.out, "stays awake on power")
-			if !strings.HasPrefix(p, "missing") || !strings.Contains(p, "fix: ") || !strings.Contains(p, "sudo pmset -c sleep 0") || run.exit != 1 {
-				t.Fatalf("an engine that sleeps on power is reported (exit %d) as:\n%s", run.exit, p)
+		AndTheSessionsAppIsMarkedMissingWithItsFix: func() {
+			a := itemLines(t, run.out, "the app of project-a")
+			if !strings.HasPrefix(a, "missing  the app of project-a: not running") || !strings.Contains(a, "fix: start the app: engineroom up project-a") || run.exit != 1 {
+				t.Fatalf("an app that is not running is reported (exit %d) as:\n%s", run.exit, a)
 			}
 		},
 		AndNothingOnTheEngineHasChanged: func() {
@@ -368,8 +322,7 @@ func TestHealthCheck002(t *testing.T) {
 
 // readyEngine is the throwaway engine with every item present: Claude Code with the plugin, the
 // program found by an SSH command's shell, a project with a running session whose status script
-// says its app runs, and pmset and ioreg saying it stays awake. The container is Linux, so the two
-// are stand-ins there as they are on a journey machine.
+// says its app runs.
 func readyEngine(t *testing.T, client *journey.Machine) *journey.Engine {
 	t.Helper()
 	engine := journey.NewEngine(t, client)
@@ -384,11 +337,9 @@ case "$1" in
 plugin) echo '[{"id":"engineroom@engineroom","version":"0.1.0","scope":"user","enabled":true}]' ;;
 esac
 EOF
-printf '#!/bin/sh\nprintf "AC Power:\\n sleep                0\\n"\n' > bin/pmset
-printf '#!/bin/sh\nexit 0\n' > bin/ioreg
 mkdir -p .config/engineroom/settings/projects/project-a
 printf '#!/bin/sh\necho web answering\n' > .config/engineroom/settings/projects/project-a/status
-chmod +x bin/claude bin/pmset bin/ioreg .config/engineroom/settings/projects/project-a/status`)
+chmod +x bin/claude .config/engineroom/settings/projects/project-a/status`)
 	engine.StartSession("project-a", "/home/dev/src/project-a")
 	return engine
 }
@@ -436,53 +387,6 @@ func TestHealthCheck003(t *testing.T) {
 			}
 			if r := healthJSON(t, client); r.Unreached == "" || len(r.Items) != 0 || r.Missing != 0 && r.Ready() {
 				t.Fatalf("as JSON, an unreached engine is %+v", r)
-			}
-		},
-	}, term0(&term))
-}
-
-// HEALTH-AWAKE-001: an engine that sleeps after ten minutes on power (and after one on battery,
-// which is not what is asked) is missing, with the setting read and its fix. Fails if the battery
-// setting is read in its place, or the setting or fix is not said.
-func TestHealthAwake001(t *testing.T) {
-	m, _ := healthEngine(t, "project-a")
-	var term *termtest.Terminal
-	var run checkRun
-	scenarios.Run(t, scenarios.HealthAwake001{
-		GivenTheEngineIsSetToSleepAfterATimeOnPower: func() { standInPower(t, m, "10") },
-		WhenTheDeveloperRunsTheHealthCheck:          func() { run = runHealth(t, m, &term) },
-		ThenStayingAwakeOnPowerIsMarkedMissingWithTheSettingThatWasReadAndItsFix: func() {
-			p := itemLines(t, run.out, "stays awake on power")
-			if !strings.HasPrefix(p, "missing  stays awake on power: sleep 10 on power: sleeps after 10 minutes idle") ||
-				!strings.Contains(p, "checked with: pmset -g custom (sleep under AC Power)") || !strings.Contains(p, "fix: System Settings, Battery") {
-				t.Fatalf("an engine that sleeps on power is reported as:\n%s", p)
-			}
-		},
-	}, term0(&term))
-}
-
-// HEALTH-AWAKE-002: a laptop that would sleep if its lid were closed now is missing, with its fix;
-// a Mac with no lid is present, said as having none. Fails if either is read the other way, or the
-// laptop's fix is not given.
-func TestHealthAwake002(t *testing.T) {
-	m, _ := healthEngine(t, "project-a")
-	var term *termtest.Terminal
-	var run checkRun
-	scenarios.Run(t, scenarios.HealthAwake002{
-		GivenTheEngineIsALaptopThatWouldSleepIfItsLidWereClosedNow: func() { standInLid(t, m, "Yes") },
-		WhenTheDeveloperRunsTheHealthCheck:                         func() { run = runHealth(t, m, &term) },
-		ThenStayingAwakeWithTheLidClosedIsMarkedMissingWithItsFix: func() {
-			l := itemLines(t, run.out, "stays awake with the lid closed")
-			if !strings.HasPrefix(l, "missing  stays awake with the lid closed: closing the lid now would sleep it") || !strings.Contains(l, "fix: ") ||
-				!strings.Contains(l, "sudo pmset -a disablesleep 1") {
-				t.Fatalf("a laptop that sleeps with its lid closed is reported as:\n%s", l)
-			}
-		},
-		AndOnAnEngineWithNoLidItIsMarkedPresentAsHavingNoLid: func() {
-			standInLid(t, m, "")
-			again := runHealth(t, m, &term)
-			if l := itemLines(t, again.out, "stays awake with the lid closed"); !strings.HasPrefix(l, "present  stays awake with the lid closed: no lid") {
-				t.Fatalf("a Mac with no lid is reported as:\n%s", l)
 			}
 		},
 	}, term0(&term))
@@ -695,7 +599,7 @@ func TestHealthApp005(t *testing.T) {
 			if a := itemLines(t, run.out, "the app of project-b"); !strings.HasPrefix(a, "present  the app of project-b: running: web answering") {
 				t.Fatalf("the other session's app is reported as:\n%s", a)
 			}
-			for _, name := range []string{"git", "stays awake on power", "stays awake with the lid closed", "Remote Control in project-a", "Remote Control in project-b"} {
+			for _, name := range []string{"git", "Remote Control in project-a", "Remote Control in project-b"} {
 				itemLines(t, run.out, name)
 			}
 		},
@@ -786,41 +690,43 @@ func TestHealthFix001(t *testing.T) {
 	}, term0(&term))
 }
 
-// HEALTH-FIX-002: a fix only the developer can run (an administrator's setting) is shown as a
-// command to type, with no action for the program to run, and the check takes no request to run
-// one. Fails if such a fix carries an action, or the check accepts a way to apply it.
+// HEALTH-FIX-002: a fix only the developer can apply (Remote Control, typed inside the session) is
+// shown as what to type, with no action for the program to run, and the check takes no request to
+// run one. Fails if such a fix carries an action, the check accepts a way to apply it, or the
+// session's Remote Control changes.
 func TestHealthFix002(t *testing.T) {
-	m, _ := healthEngine(t, "project-a")
+	m, paths := healthEngine(t, "project-a")
 	var term *termtest.Terminal
-	var power health.Item
+	var rc health.Item
 	scenarios.Run(t, scenarios.HealthFix002{
-		GivenTheHealthCheckReportsStayingAwakeOnPowerAsMissing: func() {
-			standInPower(t, m, "10")
-			if power = itemOf(t, healthJSON(t, m), "stays awake on power"); power.Present {
-				t.Fatalf("staying awake on power is present: %+v", power)
+		GivenTheHealthCheckReportsASessionsRemoteControlAsMissing: func() {
+			m.RememberRemoteControl()
+			startAgent(t, m, "project-a", paths["project-a"], "zellij")
+			if rc = itemOf(t, healthJSON(t, m), "Remote Control in project-a"); rc.Present {
+				t.Fatalf("Remote Control is present: %+v", rc)
 			}
 		},
 		WhenTheDeveloperLooksAtItsFix: func() {
 			term = m.Start(t, "health")
-			term.WaitFor("sudo pmset -c sleep 0")
+			term.WaitFor("type /remote-control")
 			term.WaitExit()
 		},
-		ThenTheFixIsShownAsACommandToRunThemselves: func() {
-			if !strings.Contains(power.Fix, "sudo pmset -c sleep 0") {
-				t.Fatalf("the fix is not a command to run: %q", power.Fix)
+		ThenTheFixIsShownAsWhatToTypeInsideTheSession: func() {
+			if !strings.Contains(rc.Fix, "in the session, type /remote-control to Claude") {
+				t.Fatalf("the fix is not what to type inside the session: %q", rc.Fix)
 			}
 		},
 		AndThereIsNoWayToRunItFromTheCheck: func() {
-			if len(power.Action) != 0 {
-				t.Fatalf("the fix carries an action the program would run: %q", power.Action)
+			if len(rc.Action) != 0 {
+				t.Fatalf("the fix carries an action the program would run: %q", rc.Action)
 			}
-			for _, args := range [][]string{{"fix"}, {"--fix"}, {"fix", "stays awake on power"}} {
+			for _, args := range [][]string{{"fix"}, {"--fix"}, {"fix", "Remote Control in project-a"}} {
 				if out, code := plainHealth(t, m, args...); code != 2 {
 					t.Fatalf("engineroom health %q was taken (exit %d):\n%s", args, code, out)
 				}
 			}
-			if p := itemOf(t, healthJSON(t, m), "stays awake on power"); p.Present {
-				t.Fatal("staying awake on power changed")
+			if r := itemOf(t, healthJSON(t, m), "Remote Control in project-a"); r.Present {
+				t.Fatal("Remote Control in project-a changed")
 			}
 		},
 	}, term0(&term))
@@ -844,9 +750,9 @@ func TestHealthRead001(t *testing.T) {
 			}
 		},
 		AndWhenOneItemIsMissingItEndsWithAFailure: func() {
-			engine.MustExec(`printf '#!/bin/sh\nprintf "AC Power:\\n sleep                10\\n"\n' > bin/pmset`)
+			engine.MustExec(`printf '#!/bin/sh\necho web not answering\nexit 1\n' > .config/engineroom/settings/projects/project-a/status`)
 			again := runHealth(t, client, &term)
-			if again.exit != 1 || !strings.Contains(again.out, "Not ready: 1 of ") || !strings.HasPrefix(itemLines(t, again.out, "stays awake on power"), "missing") {
+			if again.exit != 1 || !strings.Contains(again.out, "Not ready: 1 of ") || !strings.HasPrefix(itemLines(t, again.out, "the app of project-a"), "missing") {
 				t.Fatalf("one item missing: exit %d\n%s", again.exit, again.out)
 			}
 		},
@@ -885,7 +791,8 @@ func TestHealthPage001(t *testing.T) {
 	scenarios.Run(t, scenarios.HealthPage001{
 		GivenTheAppIsRunning: func() {
 			projectScript(t, m, "project-a", "status", `echo checked >> "`+log+`"`+"\necho web answering\n")
-			standInPower(t, m, "10")
+			// Remote Control chosen, and the session started without it: one item missing.
+			m.RememberRemoteControl()
 			startAgent(t, m, "project-a", paths["project-a"], "zellij")
 		},
 		WhenTheDeveloperOpensTheHealthPage: func() { r = healthJSON(t, m) },

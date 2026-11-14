@@ -713,12 +713,12 @@ final class EngineRoomKitTests: XCTestCase {
 
     // MARK: health (HEALTH-PAGE-001, HEALTH-FIX-001, HEALTH-FIX-002)
 
-    /// A health report as `engineroom health --json` writes it with items missing: setup, staying
-    /// awake, and two sessions, one with an app the program can start.
+    /// A health report as `engineroom health --json` writes it with items missing: setup, with one
+    /// item fixed in System Settings, and two sessions, one with an app the program can start.
     private let healthMissing = """
     {"machine":"engine.example","missing":2,"items":[
      {"name":"zellij","for":"both","present":true,"checked":"zellij --version","found":"zellij 0.43.1","group":"setup"},
-     {"name":"stays awake on power","for":"engine","present":false,"checked":"pmset -g custom (sleep under AC Power)","found":"sleep 1 on power","fix":"sudo pmset -c sleep 0","group":"awake"},
+     {"name":"the SSH server on (Remote Login)","for":"engine","present":false,"checked":"connect to 127.0.0.1 port 22 and read the server's greeting: nc 127.0.0.1 22","found":"nothing answers: connection refused","fix":"System Settings, General, Sharing: turn on Remote Login","group":"setup"},
      {"name":"Remote Control in project-a","for":"engine","present":true,"checked":"sessions/<pid>.json","found":"on","group":"session","session":"project-a"},
      {"name":"the app of project-a","for":"engine","present":false,"checked":".engineroom/status","found":"not running: api down","fix":"start the app: engineroom up project-a","group":"session","session":"project-a","action":["up","project-a"]},
      {"name":"the app of project-b","for":"engine","present":true,"checked":"the project's scripts","found":"no app to run","group":"session","session":"project-b"}
@@ -735,7 +735,7 @@ final class EngineRoomKitTests: XCTestCase {
         XCTAssertEqual(r.missing, 2)
         XCTAssertFalse(r.ready)
         XCTAssertEqual(r.items.count, 5)
-        XCTAssertEqual(r.items[1].fix, "sudo pmset -c sleep 0")
+        XCTAssertEqual(r.items[1].fix, "System Settings, General, Sharing: turn on Remote Login")
         XCTAssertNil(r.items[1].action)
         XCTAssertEqual(r.items[3].action, ["up", "project-a"])
     }
@@ -767,9 +767,10 @@ final class EngineRoomKitTests: XCTestCase {
     func testHealthSectionsFollowTheReport() throws {
         let r = try EngineRoomClient.decode(HealthReport.self, data: Data(healthMissing.utf8), code: 1)
         let s = r.sections
-        XCTAssertEqual(s.map(\.title), ["Setup", "Staying awake", "project-a", "project-b"])
-        XCTAssertEqual(s.map(\.isSession), [false, false, true, true])
-        XCTAssertEqual(s[2].items.map(\.name), ["Remote Control in project-a", "the app of project-a"])
+        XCTAssertEqual(s.map(\.title), ["Setup", "project-a", "project-b"])
+        XCTAssertEqual(s.map(\.isSession), [false, true, true])
+        XCTAssertEqual(s[0].items.count, 2)
+        XCTAssertEqual(s[1].items.map(\.name), ["Remote Control in project-a", "the app of project-a"])
     }
 
     // Only a missing item whose fix the program can run is offered as an action (HEALTH-FIX-001);

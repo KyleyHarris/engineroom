@@ -237,9 +237,9 @@ repository, starting from your own recipes.
 ### Before you leave the engine
 
 `engineroom health` says whether the engine is ready to be worked on from away, and changes
-nothing. It lists the engine's setup items (as `engineroom setup check` does), whether it stays
-awake on power and with its lid closed, and for each running session whether Remote Control is on
-and whether its app runs, as the project's `status` script says. Each item says how it was
+nothing. It lists the engine's setup items (as `engineroom setup check` does), and for each
+running session whether Remote Control is on and whether its app runs, as the project's `status`
+script says. Whether the engine sleeps is yours to decide, and is never checked. Each item says how it was
 checked, and a missing one shows its fix; `engineroom up <session>` starts an app that is not
 running. On a client it asks the engine. It ends with a failure when anything is missing, and
 `--json` gives the same report to a program.

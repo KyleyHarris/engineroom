@@ -50,7 +50,7 @@ never overwritten.
    `engineroom setup check --json`: it is the program's own list of what this role needs, each item
    present or missing with how it was checked and its fix, and it changes nothing. Its items are
    decided there, not here: report them as it gives them. Then check the guide's items the program
-   does not check (keys, the settings repository, logged in at the screen, sleep, the menu bar
+   does not check (keys, the settings repository, logged in at the screen, the menu bar
    app, Homebrew, Go, git-crypt) with the guide's Check column exactly. Report everything as one
    list: in place, missing, or could not be checked (and why). A check that needs the network and
    fails because there is no network is "could not be checked", not "missing".

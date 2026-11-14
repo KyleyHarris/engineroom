@@ -2,14 +2,14 @@
 
 **Scope**: `engineroom health`, and the Health page of the app, which say whether the
 {engine.lower} is ready to be worked on from away: it is set up (the {engine.lower}'s items from
-`engineroom setup check`), it stays awake on power with the lid closed, and for each running
-{session.lower}, whether Remote Control is on and whether its {project.possessive} app is running.
+`engineroom setup check`), and for each running {session.lower}, whether Remote Control is on and whether its {project.possessive} app is running.
 Every item says how it was checked, and a missing one shows the command or settings change that
 would fix it. Nothing is changed unless the developer asks for that one fix. Whether an app is
 running is said by the {project.possessive} own `status` script, as starting and stopping it is
 said by its `up` and `down` scripts (D-006); the program never guesses how to check an app. Out of
 scope: which {session.lower}s should be running (the running ones are the ones checked), and
-starting the {engine.lower} or waking it.
+whether the {engine.lower} sleeps, which is the decision of the person running it, never checked
+or changed (D-042).
 
 **Sourcing**: every scenario's intent is stated in its own comment, or in the decisions it cites.
 Nothing here is inferred from software.
@@ -34,7 +34,6 @@ software should do.
 > **As a** developer about to leave the {engine.lower}, **I want** one view that says whether it is
 > ready to be worked on from away, **so that** I find out what is wrong while I can still fix it.
 
-- The {engine.lower} staying awake on power, with the lid closed, is checked.
 - Each running {session.lower} says whether Remote Control is on, however it was turned on.
 - Each running {session.lower} says whether its app is running, as its {project.lower} checks it.
 - Every missing item shows its fix, and nothing is changed until the developer asks.
@@ -57,7 +56,6 @@ Scenario: Every item is reported as present or missing
   Given the {engine.lower} has two running {session.lower}s
   When the developer runs the health check on the {engine.lower}
   Then every item the setup check reports for the {engine.lower} is listed
-  And staying awake on power and staying awake with the lid closed are listed
   And each running {session.lower} is listed with its Remote Control and its app
   And each item is marked present or missing
 ```
@@ -68,10 +66,10 @@ Scenario: Every item is reported as present or missing
 ```gherkin
 @HEALTH-CHECK-002 @status:proposed @persona:Developer
 Scenario: Each item says how it was checked, and the check changes nothing
-  Given the {engine.lower} sleeps on power
+  Given a running {session.lower} whose app is not running
   When the developer runs the health check on the {engine.lower}
   Then each item shows the command it was checked with, or the file it was read from
-  And staying awake on power is marked missing, with its fix
+  And the {session.possessive} app is marked missing, with its fix
   And nothing on the {engine.lower} has changed
 ```
 
@@ -86,30 +84,6 @@ Scenario: On a {client.lower}, the health check is the {engine.possessive}
   When the developer runs the health check
   Then the items are the {engine.possessive}, checked on the {engine.lower}
   And when the {engine.lower} is not reached, that is said with its cause and no item is marked present
-```
-
-### Feature: Staying awake
-
-<!-- intent: docs/setup.md "Does not sleep on power" - an asleep engine does not answer -->
-
-```gherkin
-@HEALTH-AWAKE-001 @status:proposed @persona:Developer
-Scenario: An {engine.lower} that sleeps on power is reported
-  Given the {engine.lower} is set to sleep after a time on power
-  When the developer runs the health check
-  Then staying awake on power is marked missing, with the setting that was read and its fix
-```
-
-<!-- intent: a laptop set never to sleep on power still sleeps when its lid is closed, unless
-     something keeps it awake; the check reads whether closing the lid would sleep it now -->
-
-```gherkin
-@HEALTH-AWAKE-002 @status:proposed @persona:Developer
-Scenario: An {engine.lower} that would sleep with its lid closed is reported
-  Given the {engine.lower} is a laptop that would sleep if its lid were closed now
-  When the developer runs the health check
-  Then staying awake with the lid closed is marked missing, with its fix
-  And on an {engine.lower} with no lid it is marked present, as having no lid
 ```
 
 ### Feature: Remote Control
@@ -222,14 +196,14 @@ Scenario: A fix the program can run is run only when asked, as an action
 ```
 
 <!-- intent: a fix that needs an administrator, or has to be typed inside a session, is shown for
-     the developer to run; the program never runs it for them -->
+     the developer to apply; the program never applies it for them -->
 
 ```gherkin
 @HEALTH-FIX-002 @status:proposed @persona:Developer
 Scenario: A fix the program cannot run is shown, never run
-  Given the health check reports staying awake on power as missing
+  Given the health check reports a {session.possessive} Remote Control as missing
   When the developer looks at its fix
-  Then the fix is shown as a command to run themselves
+  Then the fix is shown as what to type inside the {session.lower}
   And there is no way to run it from the check
 ```
 
