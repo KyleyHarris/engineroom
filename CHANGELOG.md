@@ -8,6 +8,12 @@ All notable changes are recorded here. The format follows
 
 ### Added
 
+- **A Mac used on its own has its own role, `local`** (`engineroom role set local`,
+  `scripts/install.sh --local`, or the app's Settings, Role, This Mac only). It works as the engine
+  does, and its setup check and install ask nothing about being reached over SSH. The app's
+  Settings switch between the engine and local; changing the role loses nothing
+  (docs/decisions.md D-039).
+
 - **`engineroom health`, and a Health page in the app's window, say whether the engine is ready to
   be worked on from away**: its setup items, staying awake on power and with the lid closed, and
   for each running session whether Remote Control is on and whether its app is running, as the

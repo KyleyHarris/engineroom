@@ -31,9 +31,22 @@ public struct Status: Decodable, Sendable {
     /// On the engine: when it was last released to GitHub for a client to take (information only).
     public let released: Date?
     public var isClient: Bool { role == "client" }
-    /// Whether this machine's sessions are its own to sweep (D-020): the engine's always, a client's
-    /// only while it works local. The app runs the sweep only while this holds.
-    public var sweepsHere: Bool { role == "engine" || offline }
+    /// Whether this Mac is used on its own (D-039): it works as the engine does, with no clients.
+    public var isLocal: Bool { role == "local" }
+    /// Whether this machine's sessions are its own to sweep (D-020): the engine's and a Mac used on
+    /// its own always, a client's only while it works local. The app runs the sweep only while this
+    /// holds.
+    public var sweepsHere: Bool { role == "engine" || isLocal || offline }
+    /// The role in the header's and Settings' words: "client of <engine>" is said by the caller,
+    /// which knows the engine's name; "engine · this Mac", "this Mac only", or "no role".
+    public var roleLabel: String {
+        switch role {
+        case "engine": return "engine · this Mac"
+        case "local": return "this Mac only"
+        case "client": return "client"
+        default: return "no role"
+        }
+    }
     /// Whether this Mac should be running the forwarder now: a client, working on the engine,
     /// forwarding every session or some.
     public var forwards: Bool { isClient && !offline && (forwarding ?? forward) == true }

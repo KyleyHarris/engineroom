@@ -4,11 +4,12 @@ Installing `engineroom` is one step. Each machine also needs some software and s
 and this guide lists them: what each one is for, how to check it, and how to fix it. It is
 written for macOS, the system the tool is built and tested on.
 
-There are two roles. The **engine** is the always-on machine where sessions run. A **client** is
+There are three roles. The **engine** is the always-on machine where sessions run. A **client** is
 any other machine you work from: it runs every action on the engine, and when the engine does not
 answer it can work on its own copies instead. Working locally is meant to be as capable as
 working on the engine, so a client needs everything an engine needs to run sessions, plus what it needs
-to reach the engine.
+to reach the engine. A Mac used on its own, with no clients, is **local**: it works as the engine
+does and needs nothing about being reached over SSH (docs/decisions.md D-039).
 
 To be walked through it, add engineroom's Claude Code plugin (below, "The Claude Code plugin") and
 ask Claude to set up this machine; a clone of this repository has the same skill. The
@@ -198,6 +199,18 @@ engineroom role set engine
 | Does not sleep on power | an asleep engine does not answer | `pmset -g custom` shows `sleep 0` under AC Power | System Settings, Battery (or Energy), Options: prevent automatic sleeping when the display is off; or `sudo pmset -c sleep 0` |
 | Client keys allowed | each client logs in with its own key file | the client's public key is in `~/.ssh/authorized_keys` | append the client's `.pub` file to it |
 | The menu bar app runs | it runs the sweep, so a session that ends without engineroom (quit from inside Zellij) has its servers stopped and ended sessions are forgotten; there is no job to install | `pgrep -f "engineroom sweep --watch"` shows one while the app runs | open the app, and in its Settings let it open at login |
+
+## A Mac used on its own
+
+```sh
+engineroom role set local      # or: scripts/install.sh --local, or the app's Settings, Role, This Mac only
+```
+
+It runs its own sessions, in Zellij, as the engine does, and needs only what every machine needs:
+none of the engine's items above (Remote Login, logged in at the screen for clients, client keys)
+and none of a client's below. The install does not ask for the program to be found by an SSH
+command. Changing the role later is one command, `engineroom role set engine`, and nothing is
+lost: projects, settings and sessions stay as they are.
 
 ## A client
 

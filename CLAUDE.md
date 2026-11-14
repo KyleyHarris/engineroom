@@ -2,7 +2,7 @@
 
 A Go CLI and terminal UI that runs Claude Code sessions inside Zellij on one machine, the
 engine, and lets any client machine find, join, create and work on them. One binary; each machine is configured
-as the engine or a client. Decisions live in `docs/decisions.md`; acceptance criteria in
+as the engine, a client, or local (a Mac used on its own). Decisions live in `docs/decisions.md`; acceptance criteria in
 `acceptance/<area>/`, to the criteria-review standard.
 
 ## Rules specific to this repo

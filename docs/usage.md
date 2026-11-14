@@ -21,7 +21,9 @@ engineroom role set client --engine engine.example
 
 To reach the engine from any network, put both machines on a Tailscale network and name the engine by
 its Tailscale name (`engineroom role set client --engine engine.your-tailnet.ts.net`); see "Recommended" in
-docs/setup.md. An engine used on its own, with no clients, needs only `engineroom role set engine`.
+docs/setup.md. A Mac used on its own, with no clients, is local: `engineroom role set local`
+(or `scripts/install.sh --local`, or the app's Settings). It works as the engine does, and its
+setup check asks nothing about SSH (D-039).
 
 Register each repository's main clone on the engine:
 

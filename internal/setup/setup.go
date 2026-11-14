@@ -106,6 +106,9 @@ func Check(ctx context.Context) Report {
 	switch r.Role {
 	case string(config.RoleEngine):
 		checks = append(checks, func() Item { return sshCommandItem(ctx) }, sshServerItem)
+	case string(config.RoleLocal):
+		// A Mac used on its own is never reached from another machine (D-039), so it needs only
+		// what every machine needs: neither the engine's SSH items nor a client's.
 	case string(config.RoleClient):
 		checks = append(checks,
 			func() Item { return engineItem(ctx, cfg) },
@@ -162,7 +165,7 @@ func firstLine(s string) string {
 }
 
 // roleFix is how to set each role, as CONN-SETUP-001 shows it.
-const roleFix = "on the engine: engineroom role set engine; on a client: engineroom role set client --engine <the engine's SSH destination>"
+const roleFix = "on the engine: engineroom role set engine; on a client: engineroom role set client --engine <the engine's SSH destination>; on a Mac used on its own: engineroom role set local"
 
 func configItem(file string, err error) Item {
 	it := Item{Name: "a valid configuration", For: Every, Checked: "read " + file}

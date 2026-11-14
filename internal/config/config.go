@@ -28,7 +28,31 @@ const (
 	RoleEngine Role = "engine"
 	// RoleClient is a machine that works on the engine's sessions.
 	RoleClient Role = "client"
+	// RoleLocal is a Mac used on its own (D-039): it works as the engine does, running its own
+	// sessions here, and has no clients, so nothing about it is reached over SSH.
+	RoleLocal Role = "local"
 )
+
+// RunsHere reports whether this machine's sessions run on it as the engine's do: the engine and a
+// Mac used on its own, never a client (whose sessions are the engine's unless it works local).
+func (r Role) RunsHere() bool { return r == RoleEngine || r == RoleLocal }
+
+// Describe is the role in words for a person: "the engine", "a client of <host>" (or "a client"
+// when the host is not known here), "used on its own (local)", or "no role".
+func (c *Config) Describe() string {
+	switch c.Role {
+	case RoleEngine:
+		return "the engine"
+	case RoleClient:
+		if c.Engine.Host == "" {
+			return "a client"
+		}
+		return "a client of " + c.Engine.Host
+	case RoleLocal:
+		return "used on its own (local)"
+	}
+	return "no role"
+}
 
 // Config is the whole configuration file.
 type Config struct {
@@ -290,13 +314,13 @@ func ValidCategory(c string) error {
 // machine that has not been set up yet, which the program reports rather than refuses.
 func (c *Config) Validate() error {
 	switch c.Role {
-	case "", RoleEngine:
+	case "", RoleEngine, RoleLocal:
 	case RoleClient:
 		if strings.TrimSpace(c.Engine.Host) == "" {
 			return errors.New(`role is "client" but engine.host is empty: set the SSH destination of the engine`)
 		}
 	default:
-		return fmt.Errorf(`role %q is not one of "engine" or "client"`, c.Role)
+		return fmt.Errorf(`role %q is not one of "engine", "client" or "local"`, c.Role)
 	}
 	seen := map[string]bool{}
 	for i, p := range c.Projects {

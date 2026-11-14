@@ -312,9 +312,9 @@ func TestSetupCheck004(t *testing.T) {
 	}, term0(&term))
 }
 
-// SETUP-CHECK-005: a machine with no role is told the command for each role, and what every
-// machine needs is still checked. Fails if the role is not reported missing with both commands, or
-// a role's absence stops the other checks.
+// SETUP-CHECK-005: a machine with no role is told the command for each role (the engine, a client
+// and a Mac used on its own, D-039), and what every machine needs is still checked. Fails if the
+// role is not reported missing with all three commands, or a role's absence stops the other checks.
 func TestSetupCheck005(t *testing.T) {
 	m := journey.NewMachine(t)
 	var term *termtest.Terminal
@@ -326,7 +326,7 @@ func TestSetupCheck005(t *testing.T) {
 		WhenTheDeveloperRunsTheSetupCheck: func() { run = runCheck(t, m, &term) },
 		ThenTheRoleIsMarkedMissingWithTheCommandThatSetsEachRole: func() {
 			r := itemLines(t, run.out, "a role")
-			if !strings.HasPrefix(r, "missing") || !strings.Contains(r, "engineroom role set engine") || !strings.Contains(r, "engineroom role set client --engine") {
+			if !strings.HasPrefix(r, "missing") || !strings.Contains(r, "engineroom role set engine") || !strings.Contains(r, "engineroom role set client --engine") || !strings.Contains(r, "engineroom role set local") {
 				t.Fatalf("no role is reported as:\n%s", r)
 			}
 			if !strings.Contains(run.out, "This machine has no role") || run.exit != 1 {

@@ -38,7 +38,7 @@ func Context(f Facts) string {
 	var b strings.Builder
 	b.WriteString(brief)
 	b.WriteString("\n## This machine\n\n")
-	fmt.Fprintf(&b, "- Machine: %s, the %s\n", orUnknown(f.Machine), orUnknown(f.Role))
+	fmt.Fprintf(&b, "- Machine: %s, role %s\n", orUnknown(f.Machine), orUnknown(f.Role))
 	fmt.Fprintf(&b, "- Running build: engineroom %s\n", orUnknown(f.Version))
 	if f.Clone != "" {
 		fmt.Fprintf(&b, "- Clone it was built from: %s\n", f.Clone)

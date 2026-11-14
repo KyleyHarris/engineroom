@@ -58,8 +58,9 @@ laptop, take it home, open it again: the work kept going. Before you go where th
 reached (a plane, or the engine off), Work local hands everything over to the laptop, committed work
 through GitHub and work in progress straight over SSH, and hands it back again later.
 
-Both are the same program; a machine is set as the engine or a client with one command, and an engine
-on its own is simply an engine with no clients yet.
+Both are the same program; a machine is set as the engine or a client with one command. A Mac used on
+its own, with no clients, is set as local (`engineroom role set local`): it works as the engine does,
+with nothing about SSH to set up.
 
 ### Reaching the engine from anywhere: Tailscale
 
@@ -128,8 +129,9 @@ flowchart LR
     client <--> github
 ```
 
-- **One program, two roles.** The same `engineroom` binary runs on every machine; each is configured as
-  the engine or a client. On a client, every action is the engine's action, run over SSH.
+- **One program, three roles.** The same `engineroom` binary runs on every machine; each is configured as
+  the engine, a client, or local (a Mac used on its own). On a client, every action is the engine's
+  action, run over SSH.
 - **Every action is a list of real commands.** Starting a session, adding a worktree, forwarding
   a port: each is a plan of ordinary shell commands (`git worktree add`, `zellij attach`,
   `ssh -O forward`) that you can read before it runs, watch while it runs, copy and paste, and
@@ -184,6 +186,8 @@ On each client, naming the engine as an SSH destination:
 ```sh
 engineroom role set client --engine engine.example
 ```
+
+Or, on a Mac used on its own: `scripts/install.sh --app --local` installs and sets it as local.
 
 Then open **engineroom** from the menu bar, or run `engineroom` in a terminal for the same list.
 

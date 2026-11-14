@@ -16,7 +16,7 @@ the developer's word. Never reach around it with `zellij`, `ssh` or `kill`.
 engineroom api status
 ```
 
-It prints JSON: `role` (engine or client), `where` (the machine actions are done on), `offline`
+It prints JSON: `role` (engine, client or local), `where` (the machine actions are done on), `offline`
 (a client working local), `start` (how this machine starts sessions) and `terminal`. On a client
 that is not working local, every command below acts on the engine over SSH; you run the same
 command either way.

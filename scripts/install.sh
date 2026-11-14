@@ -6,9 +6,12 @@
 #
 #   scripts/install.sh            install into ~/.local/bin
 #   scripts/install.sh --app      also build the menu bar app into ~/Applications/engineroom.app
+#   scripts/install.sh --local    set this Mac's role to local: used on its own, never reached over
+#                                 SSH (docs/decisions.md D-039); combines with --app
 #   ENGINEROOM_BIN=/some/dir ENGINEROOM_APPS=/some/dir scripts/install.sh --app
 #
-# It changes nothing but the installed binary. Every command it runs is printed first. It
+# It changes nothing but the installed binary (and, with --local, the role in the configuration).
+# Every command it runs is printed first. It
 # never edits a shell's startup files: when the folder is not on the PATH an SSH command sees,
 # it says which line to add and where, and stops with an error.
 
@@ -19,10 +22,12 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 bin="${ENGINEROOM_BIN:-$HOME/.local/bin}"
 apps="${ENGINEROOM_APPS:-$HOME/Applications}"
 with_app=0
+local_role=0
 for arg in "$@"; do
   case "${arg}" in
     --app) with_app=1 ;;
-    *) echo "usage: scripts/install.sh [--app]" >&2; exit 2 ;;
+    --local) local_role=1 ;;
+    *) echo "usage: scripts/install.sh [--app] [--local]" >&2; exit 2 ;;
   esac
 done
 run() { printf '+ %s\n' "$*"; "$@"; }
@@ -42,10 +47,17 @@ run mkdir -p "${bin}" || exit 1
 run env GOBIN="${bin}" go install -ldflags "-X main.version=${version} -X main.built=$(pwd)" ./cmd/engineroom || exit 1
 run "${bin}/engineroom" version || exit 1
 
+if [ "${local_role}" -eq 1 ]; then
+  run "${bin}/engineroom" role set local || exit 1
+fi
+
 # An SSH command runs zsh with neither a login nor an interactive shell, so only ~/.zshenv
-# sets its PATH. Checked with exactly that, from a bare environment.
+# sets its PATH. Checked with exactly that, from a bare environment. A Mac used on its own is never
+# reached by an SSH command (D-039), so it is not checked there: by --local, or by its role already
+# being local.
+role="$("${bin}/engineroom" role show 2>/dev/null)"
 found="$(env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/zsh -c 'command -v engineroom' 2>/dev/null)"
-if [ "${found}" != "${bin}/engineroom" ]; then
+if [ "${role}" != "local" ] && [ "${found}" != "${bin}/engineroom" ]; then
   echo
   echo "install: an SSH command on this machine would not find ${bin}/engineroom (it finds: ${found:-nothing})." >&2
   echo "Add this line to ~/.zshenv, then run this script again:" >&2
@@ -72,6 +84,10 @@ if [ "${with_app}" -eq 1 ]; then
 fi
 
 echo
-echo "Installed engineroom ${version} at ${bin}/engineroom; an SSH command finds it too."
+if [ "${role}" = "local" ]; then
+  echo "Installed engineroom ${version} at ${bin}/engineroom, for this Mac used on its own (role local)."
+else
+  echo "Installed engineroom ${version} at ${bin}/engineroom; an SSH command finds it too."
+fi
 echo "engineroom's Claude Code plugin (its skills and hooks) installs from inside Claude Code:"
 echo "  /plugin install engineroom --marketplace KyleyHarris/engineroom"

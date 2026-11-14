@@ -93,6 +93,20 @@ final class EngineRoomKitTests: XCTestCase {
         XCTAssertFalse(try decode(#"{"role":"client","offline":false,"where":"engine","terminals":[],"start":"zellij"}"#).sweepsHere)
     }
 
+    // D-039: a Mac used on its own runs its own sessions as the engine does, so the app sweeps them
+    // there, and it is named in the app's words, never as the engine. Fails if a local Mac would not
+    // sweep (its stopped sessions' processes would outlive them) or is labelled as the engine.
+    func testALocalMacSweepsItsOwnSessionsAndIsNamedAsItself() throws {
+        let decode = { (json: String) throws -> Status in try JSONDecoder().decode(Status.self, from: Data(json.utf8)) }
+        let local = try decode(#"{"role":"local","offline":false,"where":"this machine","terminals":[],"start":"zellij"}"#)
+        XCTAssertTrue(local.sweepsHere)
+        XCTAssertTrue(local.isLocal)
+        XCTAssertFalse(local.isClient)
+        XCTAssertEqual(local.roleLabel, "this Mac only")
+        XCTAssertEqual(try decode(#"{"role":"engine","offline":false,"where":"this machine","terminals":[],"start":"zellij"}"#).roleLabel, "engine · this Mac")
+        XCTAssertEqual(try decode(#"{"role":"","offline":false,"where":"this machine","terminals":[],"start":"zellij"}"#).roleLabel, "no role")
+    }
+
     // CONN-HANDOFF-006: a session on this Mac listed with the engine's keeps its own identity when
     // the engine has one of the same name, and its actions carry --here so they are done on this
     // Mac. Fails if the two share an id or the flag is missing.

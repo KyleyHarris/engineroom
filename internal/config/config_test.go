@@ -33,12 +33,31 @@ func TestMissingFileIsNoConfig(t *testing.T) {
 // Connection obligation O7: each invalid configuration is refused with the file and the field
 // named, before anything runs. A test that only checked "an error happened" would pass if
 // the wrong rule fired, so each case asserts the words that identify its rule.
+// D-039: a local Mac's configuration loads with no engine to reach, and keeps an engine's
+// address written before, so setting the client role again needs none. Fails if local is refused,
+// needs an engine, or loses the address.
+func TestALocalRoleLoadsWithOrWithoutAnEngine(t *testing.T) {
+	writeConfig(t, "role = \"local\"\n")
+	c, err := Load()
+	if err != nil || c.Role != RoleLocal || !c.Role.RunsHere() || c.Describe() != "used on its own (local)" {
+		t.Fatalf("local alone: %v %+v", err, c)
+	}
+	writeConfig(t, "role = \"local\"\n[engine]\nhost = \"engine.example\"\n")
+	c, err = Load()
+	if err != nil || c.Engine.Host != "engine.example" {
+		t.Fatalf("local with an engine kept: %v %+v", err, c)
+	}
+	if RoleClient.RunsHere() || !RoleEngine.RunsHere() {
+		t.Fatal("RunsHere is wrong for the engine or a client")
+	}
+}
+
 func TestInvalidConfigurationsAreRefusedNamingTheProblem(t *testing.T) {
 	cases := []struct {
 		name, content, want string
 	}{
 		{"client without an engine", `role = "client"`, "engine.host is empty"},
-		{"unknown role", `role = "server"`, `role "server" is not one of`},
+		{"unknown role", `role = "server"`, `role "server" is not one of "engine", "client" or "local"`},
 		{"malformed toml", `role = "engine`, "config.toml"},
 		{"unknown setting", "role = \"engine\"\ncolour = \"red\"", "unknown setting(s): colour"},
 		{"bad timeout", "role = \"client\"\n[engine]\nhost = \"engine\"\nconnect_timeout = \"soon\"", "connect_timeout"},
