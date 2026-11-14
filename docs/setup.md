@@ -79,8 +79,18 @@ env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/zsh -c 'command -v e
 
 For the menu bar app as well, on any Mac you work from: `scripts/install.sh --app`. It needs
 Xcode (or its command line tools) for Swift, builds `~/Applications/engineroom.app`, and signs it with
-your Apple Development identity when the keychain is open (run it from a terminal on the Mac
-itself, not over SSH), otherwise ad hoc, which runs on that Mac. The app finds `engineroom` in
+your Apple Development identity. macOS keeps the permissions you grant the app only while its
+signer stays the same, so where the Mac has an identity the install signs with it or installs
+nothing; a Mac with no identity gets an app signed ad hoc, and macOS asks for its permissions
+again after each install (docs/decisions.md D-038). To let the install sign from any session,
+including one started over SSH or by the app, run this once in Terminal on the Mac itself, with
+your login password:
+
+```sh
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k '<login password>' ~/Library/Keychains/login.keychain-db
+```
+
+The app finds `engineroom` in
 `~/.local/bin`, `/opt/homebrew/bin` or `/usr/local/bin`, or wherever `ENGINEROOM_PATH` says.
 
 To update later, pull the clone and run `scripts/install.sh` again, on every machine. A client
