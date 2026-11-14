@@ -6,7 +6,8 @@
 #   scripts/release-tap.sh <vX.Y.Z> <out folder> <tap checkout>
 #
 # The formula installs the program and brings Zellij, which every session runs in; the cask
-# installs the app and brings the formula. Each names its download on the GitHub release and its
+# installs the app and brings the formula. Both are for Apple Silicon only (D-041), and say so, so
+# Homebrew refuses them on an Intel Mac rather than installing a program that cannot run. Each names its download on the GitHub release and its
 # SHA-256, so Homebrew refuses a download that is not the one built. It writes the two files and
 # nothing else; committing and pushing them is the caller's.
 
@@ -48,6 +49,7 @@ class Engineroom < Formula
   sha256 "${cli_sha}"
   license "MIT"
 
+  depends_on arch: :arm64
   depends_on :macos
   depends_on "zellij"
 
@@ -72,6 +74,7 @@ cask "engineroom" do
   desc "Menu bar app for engineroom's Claude Code sessions"
   homepage "https://github.com/KyleyHarris/engineroom"
 
+  depends_on arch: :arm64
   depends_on formula: "kyleyharris/engineroom/engineroom"
   depends_on macos: :ventura
 

@@ -1224,7 +1224,7 @@ any Mac accepts, and a way to keep it up to date.
 - A release is named `vX.Y.Z`. The program says `engineroom vX.Y.Z` and the app `X.Y.Z`. A build
   from a clone keeps its commit name.
 - Pushing a `vX.Y.Z` tag runs the `release` workflow: the program and the app built for Apple
-  Silicon and Intel in one file each, signed with the Developer ID with the hardened runtime and a
+  Silicon and Intel in one file each (Apple Silicon only since D-041), signed with the Developer ID with the hardened runtime and a
   secure timestamp, notarized with Apple, the app's ticket stapled, and both published on the
   tag's GitHub release, with the tag's section of `CHANGELOG.md` as the notes.
 - The app carries one entitlement, Apple Events, and says why in its `Info.plist`: it drives the
@@ -1249,4 +1249,22 @@ any Mac accepts, and a way to keep it up to date.
   for a program whose releases are its developer's to make.
 - A fine-grained token to push to the tap: it reaches more than the one repository and expires; a
   deploy key reaches only the tap.
+
+## D-041 Releases are for Apple Silicon only
+
+**Problem.** D-040 built each release for Apple Silicon and Intel. The developer works only on
+Apple Silicon Macs, and the Swift toolchain already warns that building for Intel is deprecated
+for the current SDK, so the Intel half is a cost with no user.
+
+**Decision.**
+
+- A release's program and app are built for Apple Silicon (arm64) only.
+- The formula and the cask declare `depends_on arch: :arm64`, so Homebrew refuses them on an Intel
+  Mac rather than installing a program that cannot run there.
+- A build from a clone is unchanged: it is built for the Mac it is built on.
+
+**Considered.**
+
+- Keeping Intel: doubles every download and build, for no Mac in use, on an architecture the
+  toolchain is retiring.
 

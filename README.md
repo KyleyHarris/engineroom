@@ -163,21 +163,41 @@ Its `setup-machine` skill installs engineroom when it is missing and walks
 skill then reads a repository of yours and recommends how it runs in worktrees: its ports, its up
 and down scripts, its secret files, written to your own settings only when you agree.
 
-By hand: you need macOS, Go, Zellij 0.45 or later, git, OpenSSH and Claude Code on every machine.
-[docs/setup.md](docs/setup.md) lists everything an engine or a client needs, why, and how to check
-each item.
+By hand: engineroom runs on Apple Silicon Macs, with git, OpenSSH and Claude Code on every
+machine. [docs/setup.md](docs/setup.md) lists everything an engine, a client or a local Mac needs,
+why, and how to check each item.
 
-On every machine, from a release with Homebrew (no Go or Xcode needed):
+### Install a release, or build from the code
+
+Choose one way for each Mac, and use the same on every Mac you connect:
+
+| | Install a release | Build from the code |
+|---|---|---|
+| For | using engineroom | changing engineroom, or running unreleased work |
+| Needs | Homebrew | Go, and Xcode for the app |
+| Version | a release, `v0.2.0` | a commit of your clone, `v0.1.0-41-g59d0429` |
+| Updates | `brew upgrade`, or the app's Upgrade | `git pull` and the install again, or the app's Upgrade |
+| Signed | with the developer's Developer ID, notarized | with your own Apple Development identity, or ad hoc |
+
+Install a release (the app, the program and Zellij):
 
 ```sh
-brew install --cask kyleyharris/engineroom/engineroom   # the app, the program and Zellij
+brew install --cask kyleyharris/engineroom/engineroom
 ```
 
-Or from a clone, on every machine from the same commit:
+Or build from the code:
 
 ```sh
+git clone https://github.com/KyleyHarris/engineroom && cd engineroom
 scripts/install.sh --app     # builds engineroom into ~/.local/bin and the app into ~/Applications
 ```
+
+Not both on one Mac: the two apps share one identity, and the setup check reports two copies.
+To switch, remove the one you are leaving first (`brew uninstall --cask kyleyharris/engineroom/engineroom
+&& brew uninstall kyleyharris/engineroom/engineroom`, or `rm -rf ~/Applications/engineroom.app
+~/.local/bin/engineroom`).
+
+### Then set its role
 
 On the engine:
 
@@ -193,7 +213,8 @@ On each client, naming the engine as an SSH destination:
 engineroom role set client --engine engine.example
 ```
 
-Or, on a Mac used on its own: `scripts/install.sh --app --local` installs and sets it as local.
+Or, on a Mac used on its own: `engineroom role set local` (built from the code,
+`scripts/install.sh --app --local` does both).
 
 Then open **engineroom** from the menu bar, or run `engineroom` in a terminal for the same list.
 

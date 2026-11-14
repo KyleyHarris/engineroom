@@ -52,6 +52,12 @@ settings, sleep, the login at the screen, the menu bar app) is checked by hand, 
 
 ### `engineroom` itself
 
+First choose how: **install a release** with Homebrew, for using engineroom, or **build from the
+code**, for changing it or running unreleased work. A release needs only Homebrew and is signed and
+notarized by the developer; a build needs Go (and Xcode for the app) and is named by its commit. Use
+the same way on every Mac you connect, and only one way on each Mac: the two apps share one
+identity, and the setup check reports two copies. Releases are for Apple Silicon only.
+
 Install it into a folder that every shell finds, including the shell an SSH command runs in.
 A client runs `engineroom` on the engine as `ssh engine.example engineroom ...`, and that shell is neither
 interactive nor a login shell: zsh reads `~/.zshenv` for it, but not `~/.zprofile` or

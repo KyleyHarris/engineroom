@@ -1,5 +1,5 @@
 # A release (docs/decisions.md D-040): pushing a vX.Y.Z tag builds the program and the menu bar app
-# for Apple Silicon and Intel, signs both with the Developer ID, notarizes them with Apple, publishes
+# for Apple Silicon (D-041), signs both with the Developer ID, notarizes them with Apple, publishes
 # them on the tag's GitHub release, and writes the Homebrew formula and cask for them into the tap,
 # KyleyHarris/homebrew-engineroom. Run by hand (workflow_dispatch), or on a pull request that changes
 # how a release is built, it is a dry run: the same build signed ad hoc, kept as the run's artifact,

@@ -20,17 +20,27 @@ never overwritten.
 ## Steps
 
 1. **Find the guide.** When `engineroom version` answers, the guide is in the clone it was built
-   from: `engineroom version --clone` prints that folder. When
-   engineroom is not installed yet, offer to install it first: ask where its clone should go
-   (suggest `~/src/engineroom`), then, on a yes,
+   from: `engineroom version --clone` prints that folder (empty for a release Homebrew installed).
+   When engineroom is not installed yet, ask how to install it, and say the difference:
+   **install a release** with Homebrew (for using engineroom: needs only Homebrew, signed and
+   notarized, updated by `brew upgrade`), or **build from the code** (for changing it or running
+   unreleased work: needs Go, and Xcode for the app). Recommend the same way as the other Macs this
+   one connects to. Releases are for Apple Silicon only. Then, on a yes, either
+
+   ```sh
+   brew install --cask kyleyharris/engineroom/engineroom   # a release: the app, the program and Zellij
+   ```
+
+   or ask where the clone should go (suggest `~/src/engineroom`) and
 
    ```sh
    git clone https://github.com/KyleyHarris/engineroom <folder>
    <folder>/scripts/install.sh            # with --app on a Mac that wants the menu bar app, --local on a Mac used on its own
    ```
 
-   and continue with `<folder>/docs/setup.md`. Without a clone, read the guide from GitHub
-   (`https://github.com/KyleyHarris/engineroom/blob/main/docs/setup.md`).
+   Never both on one Mac. Without a clone, read the guide from GitHub
+   (`https://github.com/KyleyHarris/engineroom/blob/main/docs/setup.md`); with one, from
+   `<folder>/docs/setup.md`.
 2. **Read the guide in full**, then ask which role this machine has, unless
    `engineroom role show` already answers it: the engine, a client, or local (a Mac used on its
    own, with no clients; `engineroom role set local`). For a client, ask for the engine's SSH
