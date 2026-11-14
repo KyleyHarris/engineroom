@@ -6,6 +6,8 @@ All notable changes are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-14
+
 ### Added
 
 - **Releases, installed with Homebrew**: `brew install --cask kyleyharris/engineroom/engineroom`
