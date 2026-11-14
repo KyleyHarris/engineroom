@@ -74,7 +74,7 @@ A release is a version number, `vX.Y.Z`, never a commit (docs/decisions.md D-040
 1. Move the `## [Unreleased]` entries of `CHANGELOG.md` under `## [X.Y.Z] - <date>`, and merge that
    to `main`. The release's notes are that section; a tag without one stops the release.
 2. Tag `main` and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-3. The `release` workflow builds the program and the app for Apple Silicon and Intel
+3. The `release` workflow builds the program and the app for Apple Silicon
    (`scripts/release-build.sh`), signs them with the Developer ID, notarizes them
    (`scripts/release-notarize.sh`), publishes them on the GitHub release, and writes the formula and
    cask into the tap, `KyleyHarris/homebrew-engineroom` (`scripts/release-tap.sh`).

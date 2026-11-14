@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Builds a release of engineroom: the command line program and the menu bar app, each for Apple
-# Silicon and Intel in one file, signed, and packed as the two downloads a release carries
-# (docs/decisions.md D-040). The release workflow runs it; it runs the same on a Mac by hand.
+# Builds a release of engineroom: the command line program and the menu bar app, for Apple Silicon
+# only (docs/decisions.md D-041), signed, and packed as the two downloads a release carries
+# (D-040). The release workflow runs it; it runs the same on a Mac by hand.
 #
 #   scripts/release-build.sh <vX.Y.Z> <out folder>
 #
@@ -34,21 +34,17 @@ version="${BASH_REMATCH[1]}"
 run() { printf '+ %s\n' "$*"; "$@"; }
 
 run rm -rf "${out}" || exit 1
-run mkdir -p "${out}/arm64" "${out}/amd64" || exit 1
+run mkdir -p "${out}" || exit 1
 
-# The program, built for each architecture and joined into one file. main.built stays empty: a
-# release is not built from a clone, so the program never takes one for its own (D-040).
-for arch in arm64 amd64; do
-  run env GOOS=darwin GOARCH="${arch}" CGO_ENABLED=0 go build -trimpath \
-    -ldflags "-X main.version=${tag}" -o "${out}/${arch}/engineroom" ./cmd/engineroom || exit 1
-done
-run lipo -create -output "${out}/engineroom" "${out}/arm64/engineroom" "${out}/amd64/engineroom" || exit 1
-run rm -rf "${out}/arm64" "${out}/amd64" || exit 1
+# The program, for Apple Silicon. main.built stays empty: a release is not built from a clone, so
+# the program never takes one for its own (D-040).
+run env GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath \
+  -ldflags "-X main.version=${tag}" -o "${out}/engineroom" ./cmd/engineroom || exit 1
 
-# The app, built for both architectures by SwiftPM, in a bundle whose version is the release's.
-swift_args=(-c release --arch arm64 --arch x86_64 --package-path macos)
+# The app, for Apple Silicon, in a bundle whose version is the release's.
+swift_args=(-c release --arch arm64 --package-path macos)
 run swift build "${swift_args[@]}" || exit 1
-# Where SwiftPM puts a build for several architectures differs between its versions; it says.
+# Where SwiftPM puts a build for a named architecture differs between its versions; it says.
 products="$(swift build "${swift_args[@]}" --show-bin-path)" || exit 1
 app="${out}/engineroom.app"
 run mkdir -p "${app}/Contents/MacOS" || exit 1
