@@ -178,6 +178,7 @@ var Fields = map[string][]string{
 	"SetupCheck007":   {"GivenThisMachineIsTheEngine", "AndTheProgramsFolderIsOnThePATHOnlyForInteractiveShells", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheProgramIsMarkedMissingForSSHCommandsWithTheLineToAddToTheFileEveryShellReads"},
 	"SetupCheck008":   {"GivenThisMachineIsAClient", "AndTheEngineSHostKeyHasChanged", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineIsMarkedMissingSaidAsAChangedHostKeyWithWhatToDo"},
 	"SetupCheck009":   {"GivenThisMachineIsAClient", "AndTheSSHConfigurationEditorUsesHasNoEntryForTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineSNameIsMarkedMissingForEditorNamingTheFileEditorReads"},
+	"SetupCheck010":   {"GivenTheMenuBarAppIsInstalledBothFromACloneAndByHomebrew", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheAppIsMarkedMissingAsTwoCopiesNamingBoth", "AndTheFixSaysHowToRemoveEitherOne"},
 	"SetupLocal001":   {"GivenThisMachinesRoleIsLocal", "WhenTheDeveloperRunsTheSetupCheck", "ThenEveryItemEveryMachineNeedsIsListedEachMarkedPresentOrMissing", "AndNoItemOnlyTheEngineNeedsIsListed", "AndNoItemAClientNeedsIsListed"},
 	"SetupLocal002":   {"GivenThisMachineIsTheEngineWithAProjectRegistered", "WhenTheDeveloperSetsThisMachinesRoleToLocal", "ThenTheRoleShownIsLocal", "AndTheProjectIsStillRegistered", "AndWhenTheDeveloperSetsTheRoleToTheEngineAgainTheRoleShownIsTheEngine"},
 	"SetupLocal003":   {"GivenThisMachinesRoleIsLocal", "WhenTheDeveloperChoosesTheEngineAsThisMacsRoleInTheAppsSettings", "ThenTheRoleSavedIsTheEngine", "AndWhenTheDeveloperChoosesThisMacOnlyTheRoleSavedIsLocal", "AndChoosingAClientThereIsRefusedNamingTheCommandThatSetsIt"},
@@ -6193,6 +6194,40 @@ func (s SetupCheck009) Scenario() Scenario {
 			{Text: "And the SSH configuration {editor} uses has no entry for the {engine.lower}", Display: "And the SSH configuration VS Code uses has no entry for the engine", Fn: s.AndTheSSHConfigurationEditorUsesHasNoEntryForTheEngine},
 			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
 			{Text: "Then the {engine.lower}'s name is marked missing for {editor}, naming the file {editor} reads", Display: "Then the engine's name is marked missing for VS Code, naming the file VS Code reads", Fn: s.ThenTheEngineSNameIsMarkedMissingForEditorNamingTheFileEditorReads},
+		},
+	}
+}
+
+// SetupCheck010 is SETUP-CHECK-010: Two copies of the menu bar app are reported, with how to keep one
+//
+// Intent: D-040 - the app built from a clone (~/Applications) and Homebrew's (/Applications) share one bundle identifier, so with both installed macOS opens either for the other and they fight over the login item and the permissions granted; the check says so and how to keep one
+// Source: acceptance/setup/setup-acceptance.md
+type SetupCheck010 struct {
+	// Given the menu bar app is installed both from a clone and by Homebrew
+	GivenTheMenuBarAppIsInstalledBothFromACloneAndByHomebrew func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then the app is marked missing as two copies, naming both
+	ThenTheAppIsMarkedMissingAsTwoCopiesNamingBoth func()
+	// And the fix says how to remove either one
+	AndTheFixSaysHowToRemoveEitherOne func()
+}
+
+// Scenario describes SETUP-CHECK-010 with the clause functions this journey supplied.
+func (s SetupCheck010) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-CHECK-010",
+		Title:   "Two copies of the menu bar app are reported, with how to keep one",
+		Feature: "The app installed once",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "D-040 - the app built from a clone (~/Applications) and Homebrew's (/Applications) share one bundle identifier, so with both installed macOS opens either for the other and they fight over the login item and the permissions granted; the check says so and how to keep one",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given the menu bar app is installed both from a clone and by Homebrew", Display: "Given the menu bar app is installed both from a clone and by Homebrew", Fn: s.GivenTheMenuBarAppIsInstalledBothFromACloneAndByHomebrew},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then the app is marked missing as two copies, naming both", Display: "Then the app is marked missing as two copies, naming both", Fn: s.ThenTheAppIsMarkedMissingAsTwoCopiesNamingBoth},
+			{Text: "And the fix says how to remove either one", Display: "And the fix says how to remove either one", Fn: s.AndTheFixSaysHowToRemoveEitherOne},
 		},
 	}
 }

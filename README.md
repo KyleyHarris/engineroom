@@ -167,7 +167,13 @@ By hand: you need macOS, Go, Zellij 0.45 or later, git, OpenSSH and Claude Code 
 [docs/setup.md](docs/setup.md) lists everything an engine or a client needs, why, and how to check
 each item.
 
-On every machine, from the same commit:
+On every machine, from a release with Homebrew (no Go or Xcode needed):
+
+```sh
+brew install --cask kyleyharris/engineroom/engineroom   # the app, the program and Zellij
+```
+
+Or from a clone, on every machine from the same commit:
 
 ```sh
 scripts/install.sh --app     # builds engineroom into ~/.local/bin and the app into ~/Applications

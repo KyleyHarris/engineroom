@@ -24,13 +24,16 @@ var brief string
 
 // Facts is what the brief is told about this machine.
 type Facts struct {
-	// Machine is the machine's own name and Role its role ("engine" or "client").
+	// Machine is the machine's own name and Role its role ("engine", "client" or "local").
 	Machine, Role string
 	// Version is the running build, and Clone the folder it was built from (empty when the build
 	// recorded none, as one not made by scripts/install.sh).
 	Version, Clone string
 	// App is the menu bar app's bundle when it is installed here, else empty.
 	App string
+	// Homebrew is whether the running program was installed by Homebrew from a release (D-040):
+	// it is then upgraded with brew, never built from a clone.
+	Homebrew bool
 }
 
 // Context is the session's brief: how to upgrade, then this machine's facts.
@@ -40,7 +43,9 @@ func Context(f Facts) string {
 	b.WriteString("\n## This machine\n\n")
 	fmt.Fprintf(&b, "- Machine: %s, role %s\n", orUnknown(f.Machine), orUnknown(f.Role))
 	fmt.Fprintf(&b, "- Running build: engineroom %s\n", orUnknown(f.Version))
-	if f.Clone != "" {
+	if f.Homebrew {
+		b.WriteString("- Installed by: Homebrew, from a release. Follow \"Installed by Homebrew\" above, not the clone's steps.\n")
+	} else if f.Clone != "" {
 		fmt.Fprintf(&b, "- Clone it was built from: %s\n", f.Clone)
 	} else {
 		b.WriteString("- Clone it was built from: not recorded (the build was not made by scripts/install.sh). Find the engineroom clone on this machine, or ask the developer where it is, before step 1.\n")

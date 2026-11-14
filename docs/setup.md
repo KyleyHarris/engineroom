@@ -57,6 +57,21 @@ A client runs `engineroom` on the engine as `ssh engine.example engineroom ...`,
 interactive nor a login shell: zsh reads `~/.zshenv` for it, but not `~/.zprofile` or
 `~/.zshrc`. A `PATH` set only in those two files is the most common first-install failure.
 
+From a release, with Homebrew, which needs neither Go nor Xcode:
+
+```sh
+brew install --cask kyleyharris/engineroom/engineroom   # the menu bar app, the program and Zellij
+brew install kyleyharris/engineroom/engineroom          # or the program and Zellij alone
+```
+
+The program goes to Homebrew's `bin` (`/opt/homebrew/bin` on Apple Silicon) and the app to
+`/Applications`; both are signed with the developer's Developer ID and notarized, and `brew upgrade`
+moves them to the next release (docs/decisions.md D-040). On the engine, an SSH command must find
+Homebrew's `bin` too: add `export PATH="/opt/homebrew/bin:$PATH"` to `~/.zshenv`. Install either
+from a release or from a clone, not both: the setup check reports two copies of the app.
+
+From a clone, which needs Go (and Xcode for the app):
+
 ```sh
 git clone <this repository> && cd engineroom
 scripts/install.sh

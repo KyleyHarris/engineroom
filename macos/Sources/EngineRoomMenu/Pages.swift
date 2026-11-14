@@ -367,7 +367,7 @@ struct SettingsView: View {
             // fails is diagnosed and corrected (internal/upgrade); the button shows the
             // commands that start it first, as every action does.
             SettingRow(title: "engineroom \(s.version ?? "")",
-                       caption: "Upgrade pulls the latest main, installs it and restarts the app, through a Claude session that fixes what gets in the way and asks before anything that could lose work.") {
+                       caption: "Upgrade brings engineroom up to date (the latest main for a build from a clone, the latest release for one Homebrew installed) and restarts the app, through a Claude session that fixes what gets in the way and asks before anything that could lose work.") {
                 Button("Upgrade this Mac…") { Task { await store.preview(["upgrade"]) } }.pointer()
                 if s.isClient && !s.offline {
                     Button("Upgrade the engine…") { Task { await store.preview(["upgrade", "--engine"]) } }.pointer()

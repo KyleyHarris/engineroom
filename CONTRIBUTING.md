@@ -66,3 +66,20 @@ the tests prove the previous requirement.
   see before, during and after it runs. A new action adds its commands to that view.
 - **Comments state intent.** Say why the code does what it does, so behaviour can be checked
   against what was meant.
+
+## Releasing
+
+A release is a version number, `vX.Y.Z`, never a commit (docs/decisions.md D-040).
+
+1. Move the `## [Unreleased]` entries of `CHANGELOG.md` under `## [X.Y.Z] - <date>`, and merge that
+   to `main`. The release's notes are that section; a tag without one stops the release.
+2. Tag `main` and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. The `release` workflow builds the program and the app for Apple Silicon and Intel
+   (`scripts/release-build.sh`), signs them with the Developer ID, notarizes them
+   (`scripts/release-notarize.sh`), publishes them on the GitHub release, and writes the formula and
+   cask into the tap, `KyleyHarris/homebrew-engineroom` (`scripts/release-tap.sh`).
+
+A pull request that changes how a release is built runs the same workflow as a dry run, signed ad
+hoc and never published. Its secrets are the Developer ID certificate
+(`DEVELOPER_ID_P12_BASE64`, `DEVELOPER_ID_P12_PASSWORD`), an App Store Connect API key
+(`NOTARY_KEY_P8`, `NOTARY_KEY_ID`, `NOTARY_ISSUER_ID`) and the tap's deploy key (`TAP_DEPLOY_KEY`).

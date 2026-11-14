@@ -1,0 +1,130 @@
+# A release (docs/decisions.md D-040): pushing a vX.Y.Z tag builds the program and the menu bar app
+# for Apple Silicon and Intel, signs both with the Developer ID, notarizes them with Apple, publishes
+# them on the tag's GitHub release, and writes the Homebrew formula and cask for them into the tap,
+# KyleyHarris/homebrew-engineroom. Run by hand (workflow_dispatch), or on a pull request that changes
+# how a release is built, it is a dry run: the same build signed ad hoc, kept as the run's artifact,
+# never published.
+#
+# Secrets: DEVELOPER_ID_P12_BASE64 and DEVELOPER_ID_P12_PASSWORD (the Developer ID Application
+# certificate), NOTARY_KEY_P8, NOTARY_KEY_ID and NOTARY_ISSUER_ID (an App Store Connect API key),
+# and TAP_DEPLOY_KEY (a key that may push to the tap and nothing else).
+name: release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  pull_request:
+    paths:
+      - "scripts/release-*.sh"
+      - ".github/workflows/release.yml"
+      - "macos/bundle/**"
+      - "macos/Package.swift"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build as a dry run (vX.Y.Z); nothing is signed with the Developer ID or published"
+        required: true
+        default: "v0.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.version || 'v0.0.0' }}
+      PUBLISH: ${{ github.event_name == 'push' }}
+      OUT: ${{ github.workspace }}/release-out
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # The certificate goes into a keychain made for this run, which codesign may use without a
+      # dialog; the runner and its keychain are thrown away when the job ends.
+      - name: The Developer ID, in a keychain of its own
+        if: env.PUBLISH == 'true'
+        env:
+          P12: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/release.keychain-db"
+          password="$(uuidgen)"
+          printf '%s' "$P12" | base64 --decode > "$RUNNER_TEMP/developer-id.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/developer-id.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain" >/dev/null
+          # Added in front of the runner's own keychains, so codesign finds the identity.
+          existing=()
+          while IFS= read -r k; do existing+=("$(echo "$k" | tr -d '" ')"); done < <(security list-keychains -d user)
+          security list-keychains -d user -s "$keychain" "${existing[@]}"
+          rm -f "$RUNNER_TEMP/developer-id.p12"
+          identity="$(security find-identity -v -p codesigning "$keychain" | awk '/Developer ID Application/ {print $2; exit}')"
+          if [ -z "$identity" ]; then
+            echo "the certificate holds no Developer ID Application identity" >&2
+            exit 1
+          fi
+          echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: scripts/release-build.sh "$TAG" "$OUT"
+
+      - name: Notarize
+        if: env.PUBLISH == 'true'
+        env:
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          export NOTARY_KEY_FILE="$RUNNER_TEMP/notary.p8"
+          printf '%s\n' "$NOTARY_KEY_P8" > "$NOTARY_KEY_FILE"
+          scripts/release-notarize.sh "$TAG" "$OUT"
+          rm -f "$NOTARY_KEY_FILE"
+
+      - name: Keep the dry run's build
+        if: env.PUBLISH != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineroom-dry-run
+          path: |
+            release-out/*.tar.gz
+            release-out/*.zip
+
+      # The release's notes are its section of CHANGELOG.md ("## [X.Y.Z]"), so what changed is
+      # written once.
+      - name: Publish the GitHub release
+        if: env.PUBLISH == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${TAG#v}"
+          awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          if [ ! -s "$RUNNER_TEMP/notes.md" ]; then
+            echo "CHANGELOG.md has no section for [$version]; add it before tagging" >&2
+            exit 1
+          fi
+          gh release create "$TAG" --title "engineroom $TAG" --notes-file "$RUNNER_TEMP/notes.md" \
+            "$OUT/engineroom-$version-macos.tar.gz" "$OUT/engineroom-app-$version.zip"
+
+      - name: Update the Homebrew tap
+        if: env.PUBLISH == 'true'
+        env:
+          TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
+        run: |
+          key="$RUNNER_TEMP/tap_key"
+          printf '%s\n' "$TAP_DEPLOY_KEY" > "$key"
+          chmod 600 "$key"
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          git clone git@github.com:KyleyHarris/homebrew-engineroom.git "$RUNNER_TEMP/tap"
+          scripts/release-tap.sh "$TAG" "$OUT" "$RUNNER_TEMP/tap"
+          cd "$RUNNER_TEMP/tap"
+          git config user.name "engineroom release"
+          git config user.email "release@engineroom.invalid"
+          git add Formula/engineroom.rb Casks/engineroom.rb
+          git commit -m "engineroom $TAG"
+          git push origin HEAD
+          rm -f "$key"
