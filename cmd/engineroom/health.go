@@ -39,7 +39,12 @@ func runHealth(args []string, stdout, stderr io.Writer) int {
 			return code
 		}
 	} else {
-		writeHealth(stdout, r)
+		// A Mac used on its own is checked as itself, not as an engine worked on from away (D-039).
+		title := "the engine"
+		if err == nil && cfg.Role == config.RoleLocal {
+			title = "this Mac"
+		}
+		writeHealth(stdout, r, title)
 	}
 	if !r.Ready() {
 		return 1
@@ -48,13 +53,14 @@ func runHealth(args []string, stdout, stderr io.Writer) int {
 }
 
 // writeHealth is the report for a person: under each heading, each item with what was found, how
-// it was checked and, when missing, its fix, and whether the program can run that fix.
-func writeHealth(w io.Writer, r health.Report) {
+// it was checked and, when missing, its fix, and whether the program can run that fix. title is
+// whose health it is: "the engine", or "this Mac" on a Mac used on its own.
+func writeHealth(w io.Writer, r health.Report, title string) {
 	if r.Unreached != "" {
 		fmt.Fprintf(w, "The engine was not reached, so nothing was checked: %s\n", r.Unreached)
 		return
 	}
-	fmt.Fprintf(w, "Health of the engine, checked on %s.\n", r.Machine)
+	fmt.Fprintf(w, "Health of %s, checked on %s.\n", title, r.Machine)
 	headings := map[health.Group]string{
 		health.Setup:   "Setup",
 		health.Awake:   "Staying awake",

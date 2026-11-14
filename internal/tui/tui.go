@@ -206,7 +206,12 @@ func New(cfg *config.Config, intent Intent) Model {
 		m.src = remoteSource(cfg)
 		m.screen = screenConnecting
 	default:
-		m.src = source.Local{Cfg: cfg, Label: "engine"}
+		// The engine, or a Mac used on its own (D-039): its sessions run here.
+		label := "engine"
+		if cfg.Role == config.RoleLocal {
+			label = "this machine"
+		}
+		m.src = source.Local{Cfg: cfg, Label: label}
 		m.screen = screenList
 	}
 	if cfg != nil && cfg.Role == config.RoleClient && (intent.Handoff != "" || intent.JoinHere) {

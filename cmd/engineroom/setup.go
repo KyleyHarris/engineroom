@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/KyleyHarris/engineroom/internal/config"
 	"github.com/KyleyHarris/engineroom/internal/setup"
 )
 
@@ -43,7 +44,7 @@ func writeSetup(w io.Writer, r setup.Report) {
 	case r.Role == "":
 		fmt.Fprintf(w, "This machine has no role (configuration: %s).\n\n", r.Config)
 	default:
-		fmt.Fprintf(w, "This machine is the %s (configuration: %s).\n\n", r.Role, r.Config)
+		fmt.Fprintf(w, "This machine is %s (configuration: %s).\n\n", (&config.Config{Role: config.Role(r.Role)}).Describe(), r.Config)
 	}
 	for _, it := range r.Items {
 		state := "present"

@@ -130,7 +130,7 @@ struct Header: View {
         HStack(spacing: 8) {
             Text("engineroom").font(.app(.heading, weight: .bold))
             if let s = store.status {
-                Text(s.isClient ? "client of \(store.engineLabel(s))" : "engine · this Mac")
+                Text(s.isClient ? "client of \(store.engineLabel(s))" : s.roleLabel)
                     .font(.app(.detail))
                     .padding(.horizontal, 7).padding(.vertical, 2)
                     .background(Capsule().fill(Color.secondary.opacity(0.12)))

@@ -10,7 +10,9 @@ engineroom's hooks, at least one project registered, a role, a valid configurati
 {engine.lower} needs to be reached from other machines (the program found by an SSH command, the
 SSH server on); only a {client.lower} needs to reach the {engine.lower} and open it in {editor}
 (the {engine.lower} answering without a prompt, the `code` command, the Remote - SSH extension,
-the {engine.lower}'s name in {editor}'s SSH configuration). Out of scope: applying a fix (the `setup-machine` skill does that, one
+the {engine.lower}'s name in {editor}'s SSH configuration). A Mac used on its own has the role
+`local`: it works as the {engine.lower} does, needs only what every machine needs, and is set as
+local from the command line, the app's Settings, or the install (docs/decisions.md D-039). Out of scope: applying a fix (the `setup-machine` skill does that, one
 fix at a time, after showing it), installing the program itself, and items the guide marks as
 recommended rather than required.
 
@@ -28,7 +30,7 @@ software should do.
 
 | Role | What they do here |
 |------|-------------------|
-| **Developer** | Sets up a machine as the {engine.lower} or a {client.lower}, and checks it again after a change |
+| **Developer** | Sets up a machine as the {engine.lower}, a {client.lower} or a Mac used on its own, and checks it again after a change |
 
 ---
 
@@ -160,6 +162,71 @@ Scenario: On a {client.lower}, an {engine.lower} unknown to {editor}'s SSH confi
   And the SSH configuration {editor} uses has no entry for the {engine.lower}
   When the developer runs the setup check
   Then the {engine.lower}'s name is marked missing for {editor}, naming the file {editor} reads
+```
+
+### Feature: A Mac used on its own
+
+<!-- intent: D-039 - a Mac with no client and no SSH is a first-class setup, not an engine that
+     always reads as not ready; it needs what every machine needs to run sessions, and nothing
+     about being reached -->
+
+```gherkin
+@SETUP-LOCAL-001 @status:proposed @persona:Developer
+Scenario: A Mac used on its own is checked for what every machine needs and nothing else
+  Given this machine's role is local
+  When the developer runs the setup check
+  Then every item every machine needs is listed, each marked present or missing
+  And no item only the {engine.lower} needs is listed
+  And no item a {client.lower} needs is listed
+```
+
+<!-- intent: D-039 - the role is a choice that can be made and unmade at any time, and changing it
+     loses nothing the developer has set up -->
+
+```gherkin
+@SETUP-LOCAL-002 @status:proposed @persona:Developer
+Scenario: The role is set to local from the command line, and back again
+  Given this machine is the {engine.lower} with a {project.lower} registered
+  When the developer sets this machine's role to local
+  Then the role shown is local
+  And the {project.lower} is still registered
+  And when the developer sets the role to the {engine.lower} again, the role shown is the {engine.lower}
+```
+
+<!-- intent: D-039 - a Mac set up from the app is configured from the app; a {client.lower} is not
+     offered there, since it needs the {engine.lower}'s SSH destination, which the command takes -->
+
+```gherkin
+@SETUP-LOCAL-003 @status:proposed @persona:Developer
+Scenario: This Mac's role is chosen in the app's Settings
+  Given this machine's role is local
+  When the developer chooses the {engine.lower} as this Mac's role in the app's Settings
+  Then the role saved is the {engine.lower}
+  And when the developer chooses this Mac only, the role saved is local
+  And choosing a {client.lower} there is refused, naming the command that sets it
+```
+
+<!-- intent: D-039 - a Mac used on its own is never reached by an SSH command, so the install does
+     not stop on the PATH such a command sees -->
+
+```gherkin
+@SETUP-LOCAL-004 @status:proposed @persona:Developer
+Scenario: Installing as local sets the role, without asking for SSH
+  Given an SSH command on this machine would not find the program
+  When the developer installs with the local option
+  Then the install ends with success
+  And this machine's role is local
+```
+
+<!-- intent: D-039 - local is the {engine.lower}'s way of working on one Mac: sessions start here,
+     in Zellij, with no SSH -->
+
+```gherkin
+@SETUP-LOCAL-005 @status:proposed @persona:Developer
+Scenario: On a Mac used on its own, a {project.lower}'s {session.lower} starts on this Mac
+  Given this machine's role is local with a {project.lower} registered
+  When the developer opens the {project.lower}
+  Then a {session.lower} is created in its {checkout.lower} on this machine
 ```
 
 ### Feature: Reading the report

@@ -47,6 +47,58 @@ func TestRoleSetAndShow(t *testing.T) {
 	if _, out, _ := engineroom(t, "role", "show"); strings.TrimSpace(out) != "engine" {
 		t.Fatalf("show after set engine: %q", out)
 	}
+	// D-039: local is set and shown, keeps the engine's address, and a client can be set again
+	// from it without --engine.
+	if code, out, errOut := engineroom(t, "role", "set", "local"); code != 0 || !strings.Contains(out, "used on its own (local)") {
+		t.Fatalf("set local: %d %q %q", code, out, errOut)
+	}
+	if _, out, _ := engineroom(t, "role", "show"); strings.TrimSpace(out) != "local" {
+		t.Fatalf("show after set local: %q", out)
+	}
+	if code, _, errOut := engineroom(t, "role", "set", "client"); code != 0 {
+		t.Fatalf("client again from local, with the engine kept: %d %q", code, errOut)
+	}
+	if _, out, _ := engineroom(t, "role", "show"); strings.TrimSpace(out) != "client of engine.example" {
+		t.Fatalf("show after client again: %q", out)
+	}
+}
+
+// SETUP-LOCAL-003 at the api the app calls: the app's Settings choose between the engine and
+// local, a client is refused with the command that sets it, and a client cannot leave its role by
+// a click. Fails if a choice is not saved, a client is set without an engine, an unknown role is
+// accepted, or a client's role changes.
+func TestTheAppChoosesBetweenEngineAndLocal(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	t.Setenv("ENGINEROOM_CONFIG", path)
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	roleNow := func() string { _, out, _ := engineroom(t, "role", "show"); return strings.TrimSpace(out) }
+	set := func(v string) (int, map[string]any) {
+		code, out, _ := engineroom(t, "api", "set", "role", v)
+		var reply map[string]any
+		_ = json.Unmarshal([]byte(out), &reply)
+		return code, reply
+	}
+	if code, _, errOut := engineroom(t, "role", "set", "local"); code != 0 {
+		t.Fatal(errOut)
+	}
+	if code, reply := set("engine"); code != 0 || reply["role"] != "engine" || roleNow() != "engine" {
+		t.Fatalf("choosing the engine: %d %v, role %q", code, reply, roleNow())
+	}
+	if code, reply := set("local"); code != 0 || reply["role"] != "local" || roleNow() != "local" {
+		t.Fatalf("choosing local: %d %v, role %q", code, reply, roleNow())
+	}
+	if code, reply := set("client"); code != 3 || !strings.Contains(reply["error"].(string), "engineroom role set client --engine") || roleNow() != "local" {
+		t.Fatalf("choosing a client: %d %v, role %q", code, reply, roleNow())
+	}
+	if code, _ := set("server"); code != 3 || roleNow() != "local" {
+		t.Fatalf("an unknown role: %d, role %q", code, roleNow())
+	}
+	if code, _, errOut := engineroom(t, "role", "set", "client", "--engine", "engine.example"); code != 0 {
+		t.Fatal(errOut)
+	}
+	if code, reply := set("local"); code != 3 || !strings.Contains(reply["error"].(string), "this Mac is a client") || roleNow() != "client of engine.example" {
+		t.Fatalf("a client clicking local: %d %v, role %q", code, reply, roleNow())
+	}
 }
 
 func TestUnknownCommandIsRefused(t *testing.T) {

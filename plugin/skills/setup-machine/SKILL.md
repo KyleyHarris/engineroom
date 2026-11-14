@@ -1,6 +1,6 @@
 ---
 name: setup-machine
-description: Set up this machine to run engineroom as the engine or as a client, following engineroom's setup guide (docs/setup.md) - install engineroom when it is missing, check every item for the machine's role, explain each gap, and apply a fix only after showing the exact change and getting a yes. Use when someone says "set up this machine", "install engineroom here", "configure this as the engine", "make this a client", "is this machine set up", or is installing the tool on a new machine.
+description: Set up this machine to run engineroom as the engine, as a client, or as a Mac used on its own (local), following engineroom's setup guide (docs/setup.md) - install engineroom when it is missing, check every item for the machine's role, explain each gap, and apply a fix only after showing the exact change and getting a yes. Use when someone says "set up this machine", "install engineroom here", "configure this as the engine", "make this a client", "use it on its own", "is this machine set up", or is installing the tool on a new machine.
 ---
 
 # Set up this machine
@@ -26,14 +26,16 @@ never overwritten.
 
    ```sh
    git clone https://github.com/KyleyHarris/engineroom <folder>
-   <folder>/scripts/install.sh            # with --app on a Mac that wants the menu bar app
+   <folder>/scripts/install.sh            # with --app on a Mac that wants the menu bar app, --local on a Mac used on its own
    ```
 
    and continue with `<folder>/docs/setup.md`. Without a clone, read the guide from GitHub
    (`https://github.com/KyleyHarris/engineroom/blob/main/docs/setup.md`).
 2. **Read the guide in full**, then ask which role this machine has, unless
-   `engineroom role show` already answers it. For a client, ask for the engine's SSH destination (an
-   alias from `~/.ssh/config`, or user@host).
+   `engineroom role show` already answers it: the engine, a client, or local (a Mac used on its
+   own, with no clients; `engineroom role set local`). For a client, ask for the engine's SSH
+   destination (an alias from `~/.ssh/config`, or user@host). For a local Mac, install with
+   `scripts/install.sh --local`, which sets the role and does not ask for SSH.
 3. **Check every item for that role.** Once engineroom is installed and the role is set, run
    `engineroom setup check --json`: it is the program's own list of what this role needs, each item
    present or missing with how it was checked and its fix, and it changes nothing. Its items are

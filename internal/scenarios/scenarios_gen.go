@@ -178,6 +178,11 @@ var Fields = map[string][]string{
 	"SetupCheck007":   {"GivenThisMachineIsTheEngine", "AndTheProgramsFolderIsOnThePATHOnlyForInteractiveShells", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheProgramIsMarkedMissingForSSHCommandsWithTheLineToAddToTheFileEveryShellReads"},
 	"SetupCheck008":   {"GivenThisMachineIsAClient", "AndTheEngineSHostKeyHasChanged", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineIsMarkedMissingSaidAsAChangedHostKeyWithWhatToDo"},
 	"SetupCheck009":   {"GivenThisMachineIsAClient", "AndTheSSHConfigurationEditorUsesHasNoEntryForTheEngine", "WhenTheDeveloperRunsTheSetupCheck", "ThenTheEngineSNameIsMarkedMissingForEditorNamingTheFileEditorReads"},
+	"SetupLocal001":   {"GivenThisMachinesRoleIsLocal", "WhenTheDeveloperRunsTheSetupCheck", "ThenEveryItemEveryMachineNeedsIsListedEachMarkedPresentOrMissing", "AndNoItemOnlyTheEngineNeedsIsListed", "AndNoItemAClientNeedsIsListed"},
+	"SetupLocal002":   {"GivenThisMachineIsTheEngineWithAProjectRegistered", "WhenTheDeveloperSetsThisMachinesRoleToLocal", "ThenTheRoleShownIsLocal", "AndTheProjectIsStillRegistered", "AndWhenTheDeveloperSetsTheRoleToTheEngineAgainTheRoleShownIsTheEngine"},
+	"SetupLocal003":   {"GivenThisMachinesRoleIsLocal", "WhenTheDeveloperChoosesTheEngineAsThisMacsRoleInTheAppsSettings", "ThenTheRoleSavedIsTheEngine", "AndWhenTheDeveloperChoosesThisMacOnlyTheRoleSavedIsLocal", "AndChoosingAClientThereIsRefusedNamingTheCommandThatSetsIt"},
+	"SetupLocal004":   {"GivenAnSSHCommandOnThisMachineWouldNotFindTheProgram", "WhenTheDeveloperInstallsWithTheLocalOption", "ThenTheInstallEndsWithSuccess", "AndThisMachinesRoleIsLocal"},
+	"SetupLocal005":   {"GivenThisMachinesRoleIsLocalWithAProjectRegistered", "WhenTheDeveloperOpensTheProject", "ThenASessionIsCreatedInItsCheckoutOnThisMachine"},
 	"SetupRead001":    {"GivenEveryItemForThisMachinesRoleIsPresent", "WhenTheDeveloperRunsTheSetupCheck", "ThenItEndsWithSuccess", "AndWhenOneItemIsMissingItEndsWithAFailure"},
 	"SetupRead002":    {"GivenThisMachineIsTheEngine", "WhenTheDeveloperRunsTheSetupCheckAsJSON", "ThenEachItemHasItsNameWhetherItIsPresentHowItWasCheckedAndItsFix", "AndTheItemsAreTheSameAsTheReportOnScreen"},
 	"WorkClean001":    {"GivenNewWorkWhoseChangesAreAllCommittedAndPushedHasARunningSession", "WhenTheDeveloperCleansItUpAndConfirms", "ThenItsSessionIsStopped", "AndItsCheckoutIsRemoved"},
@@ -6188,6 +6193,182 @@ func (s SetupCheck009) Scenario() Scenario {
 			{Text: "And the SSH configuration {editor} uses has no entry for the {engine.lower}", Display: "And the SSH configuration VS Code uses has no entry for the engine", Fn: s.AndTheSSHConfigurationEditorUsesHasNoEntryForTheEngine},
 			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
 			{Text: "Then the {engine.lower}'s name is marked missing for {editor}, naming the file {editor} reads", Display: "Then the engine's name is marked missing for VS Code, naming the file VS Code reads", Fn: s.ThenTheEngineSNameIsMarkedMissingForEditorNamingTheFileEditorReads},
+		},
+	}
+}
+
+// SetupLocal001 is SETUP-LOCAL-001: A Mac used on its own is checked for what every machine needs and nothing else
+//
+// Intent: D-039 - a Mac with no client and no SSH is a first-class setup, not an engine that always reads as not ready; it needs what every machine needs to run sessions, and nothing about being reached
+// Source: acceptance/setup/setup-acceptance.md
+type SetupLocal001 struct {
+	// Given this machine's role is local
+	GivenThisMachinesRoleIsLocal func()
+	// When the developer runs the setup check
+	WhenTheDeveloperRunsTheSetupCheck func()
+	// Then every item every machine needs is listed, each marked present or missing
+	ThenEveryItemEveryMachineNeedsIsListedEachMarkedPresentOrMissing func()
+	// And no item only the engine needs is listed
+	AndNoItemOnlyTheEngineNeedsIsListed func()
+	// And no item a client needs is listed
+	AndNoItemAClientNeedsIsListed func()
+}
+
+// Scenario describes SETUP-LOCAL-001 with the clause functions this journey supplied.
+func (s SetupLocal001) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-LOCAL-001",
+		Title:   "A Mac used on its own is checked for what every machine needs and nothing else",
+		Feature: "A Mac used on its own",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "D-039 - a Mac with no client and no SSH is a first-class setup, not an engine that always reads as not ready; it needs what every machine needs to run sessions, and nothing about being reached",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine's role is local", Display: "Given this machine's role is local", Fn: s.GivenThisMachinesRoleIsLocal},
+			{Text: "When the developer runs the setup check", Display: "When the developer runs the setup check", Fn: s.WhenTheDeveloperRunsTheSetupCheck},
+			{Text: "Then every item every machine needs is listed, each marked present or missing", Display: "Then every item every machine needs is listed, each marked present or missing", Fn: s.ThenEveryItemEveryMachineNeedsIsListedEachMarkedPresentOrMissing},
+			{Text: "And no item only the {engine.lower} needs is listed", Display: "And no item only the engine needs is listed", Fn: s.AndNoItemOnlyTheEngineNeedsIsListed},
+			{Text: "And no item a {client.lower} needs is listed", Display: "And no item a client needs is listed", Fn: s.AndNoItemAClientNeedsIsListed},
+		},
+	}
+}
+
+// SetupLocal002 is SETUP-LOCAL-002: The role is set to local from the command line, and back again
+//
+// Intent: D-039 - the role is a choice that can be made and unmade at any time, and changing it loses nothing the developer has set up
+// Source: acceptance/setup/setup-acceptance.md
+type SetupLocal002 struct {
+	// Given this machine is the engine with a project registered
+	GivenThisMachineIsTheEngineWithAProjectRegistered func()
+	// When the developer sets this machine's role to local
+	WhenTheDeveloperSetsThisMachinesRoleToLocal func()
+	// Then the role shown is local
+	ThenTheRoleShownIsLocal func()
+	// And the project is still registered
+	AndTheProjectIsStillRegistered func()
+	// And when the developer sets the role to the engine again, the role shown is the engine
+	AndWhenTheDeveloperSetsTheRoleToTheEngineAgainTheRoleShownIsTheEngine func()
+}
+
+// Scenario describes SETUP-LOCAL-002 with the clause functions this journey supplied.
+func (s SetupLocal002) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-LOCAL-002",
+		Title:   "The role is set to local from the command line, and back again",
+		Feature: "A Mac used on its own",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "D-039 - the role is a choice that can be made and unmade at any time, and changing it loses nothing the developer has set up",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine is the {engine.lower} with a {project.lower} registered", Display: "Given this machine is the engine with a project registered", Fn: s.GivenThisMachineIsTheEngineWithAProjectRegistered},
+			{Text: "When the developer sets this machine's role to local", Display: "When the developer sets this machine's role to local", Fn: s.WhenTheDeveloperSetsThisMachinesRoleToLocal},
+			{Text: "Then the role shown is local", Display: "Then the role shown is local", Fn: s.ThenTheRoleShownIsLocal},
+			{Text: "And the {project.lower} is still registered", Display: "And the project is still registered", Fn: s.AndTheProjectIsStillRegistered},
+			{Text: "And when the developer sets the role to the {engine.lower} again, the role shown is the {engine.lower}", Display: "And when the developer sets the role to the engine again, the role shown is the engine", Fn: s.AndWhenTheDeveloperSetsTheRoleToTheEngineAgainTheRoleShownIsTheEngine},
+		},
+	}
+}
+
+// SetupLocal003 is SETUP-LOCAL-003: This Mac's role is chosen in the app's Settings
+//
+// Intent: D-039 - a Mac set up from the app is configured from the app; a {client.lower} is not offered there, since it needs the {engine.lower}'s SSH destination, which the command takes
+// Source: acceptance/setup/setup-acceptance.md
+type SetupLocal003 struct {
+	// Given this machine's role is local
+	GivenThisMachinesRoleIsLocal func()
+	// When the developer chooses the engine as this Mac's role in the app's Settings
+	WhenTheDeveloperChoosesTheEngineAsThisMacsRoleInTheAppsSettings func()
+	// Then the role saved is the engine
+	ThenTheRoleSavedIsTheEngine func()
+	// And when the developer chooses this Mac only, the role saved is local
+	AndWhenTheDeveloperChoosesThisMacOnlyTheRoleSavedIsLocal func()
+	// And choosing a client there is refused, naming the command that sets it
+	AndChoosingAClientThereIsRefusedNamingTheCommandThatSetsIt func()
+}
+
+// Scenario describes SETUP-LOCAL-003 with the clause functions this journey supplied.
+func (s SetupLocal003) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-LOCAL-003",
+		Title:   "This Mac's role is chosen in the app's Settings",
+		Feature: "A Mac used on its own",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "D-039 - a Mac set up from the app is configured from the app; a {client.lower} is not offered there, since it needs the {engine.lower}'s SSH destination, which the command takes",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine's role is local", Display: "Given this machine's role is local", Fn: s.GivenThisMachinesRoleIsLocal},
+			{Text: "When the developer chooses the {engine.lower} as this Mac's role in the app's Settings", Display: "When the developer chooses the engine as this Mac's role in the app's Settings", Fn: s.WhenTheDeveloperChoosesTheEngineAsThisMacsRoleInTheAppsSettings},
+			{Text: "Then the role saved is the {engine.lower}", Display: "Then the role saved is the engine", Fn: s.ThenTheRoleSavedIsTheEngine},
+			{Text: "And when the developer chooses this Mac only, the role saved is local", Display: "And when the developer chooses this Mac only, the role saved is local", Fn: s.AndWhenTheDeveloperChoosesThisMacOnlyTheRoleSavedIsLocal},
+			{Text: "And choosing a {client.lower} there is refused, naming the command that sets it", Display: "And choosing a client there is refused, naming the command that sets it", Fn: s.AndChoosingAClientThereIsRefusedNamingTheCommandThatSetsIt},
+		},
+	}
+}
+
+// SetupLocal004 is SETUP-LOCAL-004: Installing as local sets the role, without asking for SSH
+//
+// Intent: D-039 - a Mac used on its own is never reached by an SSH command, so the install does not stop on the PATH such a command sees
+// Source: acceptance/setup/setup-acceptance.md
+type SetupLocal004 struct {
+	// Given an SSH command on this machine would not find the program
+	GivenAnSSHCommandOnThisMachineWouldNotFindTheProgram func()
+	// When the developer installs with the local option
+	WhenTheDeveloperInstallsWithTheLocalOption func()
+	// Then the install ends with success
+	ThenTheInstallEndsWithSuccess func()
+	// And this machine's role is local
+	AndThisMachinesRoleIsLocal func()
+}
+
+// Scenario describes SETUP-LOCAL-004 with the clause functions this journey supplied.
+func (s SetupLocal004) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-LOCAL-004",
+		Title:   "Installing as local sets the role, without asking for SSH",
+		Feature: "A Mac used on its own",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "D-039 - a Mac used on its own is never reached by an SSH command, so the install does not stop on the PATH such a command sees",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given an SSH command on this machine would not find the program", Display: "Given an SSH command on this machine would not find the program", Fn: s.GivenAnSSHCommandOnThisMachineWouldNotFindTheProgram},
+			{Text: "When the developer installs with the local option", Display: "When the developer installs with the local option", Fn: s.WhenTheDeveloperInstallsWithTheLocalOption},
+			{Text: "Then the install ends with success", Display: "Then the install ends with success", Fn: s.ThenTheInstallEndsWithSuccess},
+			{Text: "And this machine's role is local", Display: "And this machine's role is local", Fn: s.AndThisMachinesRoleIsLocal},
+		},
+	}
+}
+
+// SetupLocal005 is SETUP-LOCAL-005: On a Mac used on its own, a project's session starts on this Mac
+//
+// Intent: D-039 - local is the {engine.lower}'s way of working on one Mac: sessions start here, in Zellij, with no SSH
+// Source: acceptance/setup/setup-acceptance.md
+type SetupLocal005 struct {
+	// Given this machine's role is local with a project registered
+	GivenThisMachinesRoleIsLocalWithAProjectRegistered func()
+	// When the developer opens the project
+	WhenTheDeveloperOpensTheProject func()
+	// Then a session is created in its worktree on this machine
+	ThenASessionIsCreatedInItsCheckoutOnThisMachine func()
+}
+
+// Scenario describes SETUP-LOCAL-005 with the clause functions this journey supplied.
+func (s SetupLocal005) Scenario() Scenario {
+	return Scenario{
+		ID:      "SETUP-LOCAL-005",
+		Title:   "On a Mac used on its own, a project's session starts on this Mac",
+		Feature: "A Mac used on its own",
+		Status:  "proposed",
+		Persona: "Developer",
+		Intent:  "D-039 - local is the {engine.lower}'s way of working on one Mac: sessions start here, in Zellij, with no SSH",
+		Source:  "acceptance/setup/setup-acceptance.md",
+		Steps: []Step{
+			{Text: "Given this machine's role is local with a {project.lower} registered", Display: "Given this machine's role is local with a project registered", Fn: s.GivenThisMachinesRoleIsLocalWithAProjectRegistered},
+			{Text: "When the developer opens the {project.lower}", Display: "When the developer opens the project", Fn: s.WhenTheDeveloperOpensTheProject},
+			{Text: "Then a {session.lower} is created in its {checkout.lower} on this machine", Display: "Then a session is created in its worktree on this machine", Fn: s.ThenASessionIsCreatedInItsCheckoutOnThisMachine},
 		},
 	}
 }

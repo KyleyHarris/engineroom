@@ -740,7 +740,7 @@ func writeJSON(w io.Writer, v any) int {
 // the registered projects.
 func runRole(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		fmt.Fprintln(stderr, "usage: engineroom role set engine | engineroom role set client --engine <dest> | engineroom role show")
+		fmt.Fprintln(stderr, "usage: engineroom role set engine | engineroom role set client --engine <dest> | engineroom role set local | engineroom role show")
 		return 2
 	}
 	cfg, err := loadConfig()
@@ -765,7 +765,7 @@ func runRole(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	if len(args) < 2 {
-		fmt.Fprintln(stderr, "usage: engineroom role set engine | engineroom role set client --engine <dest>")
+		fmt.Fprintln(stderr, "usage: engineroom role set engine | engineroom role set client --engine <dest> | engineroom role set local")
 		return 2
 	}
 	fs := flag.NewFlagSet("role set", flag.ContinueOnError)
@@ -778,6 +778,10 @@ func runRole(args []string, stdout, stderr io.Writer) int {
 	switch config.Role(args[1]) {
 	case config.RoleEngine:
 		cfg.Role = config.RoleEngine
+	case config.RoleLocal:
+		// A Mac used on its own (D-039). The engine's address is kept, so setting the client role
+		// again later needs no --engine; nothing else in the configuration changes.
+		cfg.Role = config.RoleLocal
 	case config.RoleClient:
 		if *engine == "" && cfg.Engine.Host == "" {
 			fmt.Fprintln(stderr, "engineroom role set client: --engine <ssh destination> is required")
@@ -791,14 +795,14 @@ func runRole(args []string, stdout, stderr io.Writer) int {
 			cfg.Engine.SSHConfig = *sshConfig
 		}
 	default:
-		fmt.Fprintf(stderr, "engineroom role set: %q is not engine or client\n", args[1])
+		fmt.Fprintf(stderr, "engineroom role set: %q is not engine, client or local\n", args[1])
 		return 2
 	}
 	if err := cfg.Save(); err != nil {
 		fmt.Fprintf(stderr, "engineroom: saving %s: %v\n", paths.ConfigFile(), err)
 		return 1
 	}
-	fmt.Fprintf(stdout, "This machine is now the %s. Saved to %s\n", cfg.Role, paths.ConfigFile())
+	fmt.Fprintf(stdout, "This machine is now %s. Saved to %s\n", cfg.Describe(), paths.ConfigFile())
 	return 0
 }
 

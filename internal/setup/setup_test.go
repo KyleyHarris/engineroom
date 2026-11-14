@@ -155,6 +155,18 @@ func TestEachRoleIsCheckedForItsOwnItems(t *testing.T) {
 		t.Fatalf("a client with no project of its own is counted as having one:\n%s", dump(client))
 	}
 
+	// A Mac used on its own (D-039, SETUP-LOCAL-001): what every machine needs, and nothing of the
+	// engine's or a client's.
+	m.write("config.toml", "role = \"local\"\n[[project]]\nname = \"project-a\"\npath = \"/src/project-a\"\n")
+	local := check(t)
+	got = names(local)
+	if strings.Join(got[Every], "|") != strings.Join(everyItem, "|") || len(got[Engine])+len(got[Client]) != 0 {
+		t.Fatalf("a local Mac's items: %v", got)
+	}
+	if local.Role != "local" || !item(t, local, "a role").Present || item(t, local, "a role").Found != "local" {
+		t.Fatalf("a local Mac's role is not read as set:\n%s", dump(local))
+	}
+
 	if err := os.Remove(filepath.Join(m.home, "config.toml")); err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +176,7 @@ func TestEachRoleIsCheckedForItsOwnItems(t *testing.T) {
 		t.Fatalf("a machine with no role: %v", got)
 	}
 	role := item(t, none, "a role")
-	if role.Present || !strings.Contains(role.Fix, "engineroom role set engine") || !strings.Contains(role.Fix, "engineroom role set client --engine") {
+	if role.Present || !strings.Contains(role.Fix, "engineroom role set engine") || !strings.Contains(role.Fix, "engineroom role set client --engine") || !strings.Contains(role.Fix, "engineroom role set local") {
 		t.Fatalf("no role is not reported missing with how to set each: %+v", role)
 	}
 	if !item(t, none, "a valid configuration").Present || !item(t, none, "git").Present {

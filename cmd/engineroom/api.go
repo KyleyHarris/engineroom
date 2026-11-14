@@ -43,7 +43,7 @@ const apiUsage = `usage:
   engineroom api machine                         this machine's version and its own name
   engineroom api plan <action>                   the commands an action would run, run nothing
   engineroom api run <action>                    run it, printing one JSON event per line
-  engineroom api set terminal <name>|start <zellij|remote|both>|offline <on|off>|forward <on|off>
+  engineroom api set terminal <name>|start <zellij|remote|both>|role <engine|local>|offline <on|off>|forward <on|off>
 actions:
   start <project> [--mode zellij|remote|both]    new <project> <work> [--mode ...]
   join <session>   stop <session>   restart <session> [--mode ...]   up <session>   down <session>   clean-session <session>
@@ -856,6 +856,22 @@ func apiSet(cfg *config.Config, args []string, stdout, stderr io.Writer) int {
 		cfg.App.Terminal = t.Name
 	case "start":
 		cfg.App.Start = args[1]
+	case "role":
+		// The app's Settings choose between the engine and a Mac used on its own (D-039,
+		// SETUP-LOCAL-003). A client needs the engine's SSH destination, which the command takes,
+		// so it is refused here with that command; a client changing its role is refused too, so
+		// a Mac working local never stops being a client by a click.
+		switch config.Role(args[1]) {
+		case config.RoleEngine, config.RoleLocal:
+		case config.RoleClient:
+			return apiError(stdout, errors.New("a client needs the engine's SSH destination: set it with engineroom role set client --engine <the engine's SSH destination>"))
+		default:
+			return apiError(stdout, fmt.Errorf("%q is not a role: choose engine or local", args[1]))
+		}
+		if cfg.Role == config.RoleClient {
+			return apiError(stdout, errors.New("this Mac is a client: change its role with engineroom role set engine or engineroom role set local"))
+		}
+		cfg.Role = config.Role(args[1])
 	case "offline":
 		if cfg.Role != config.RoleClient {
 			return apiError(stdout, errors.New("only a client can go offline; this machine is the engine"))

@@ -319,8 +319,23 @@ struct SettingsView: View {
     @ViewBuilder private func thisMac(_ s: Status) -> some View {
         GroupTitle("This Mac")
         VStack(alignment: .leading, spacing: 10) {
-            SettingRow(title: "Role") {
-                Text(s.isClient ? "client of \(store.engineLabel(s))" : s.role).foregroundColor(.secondary)
+            if s.isClient {
+                // A client's role is shown, not chosen: it needs the engine's SSH destination,
+                // which the command takes (D-039, SETUP-LOCAL-003).
+                SettingRow(title: "Role", caption: "Change it with engineroom role set engine, or engineroom role set local.") {
+                    Text("client of \(store.engineLabel(s))").foregroundColor(.secondary)
+                }
+            } else {
+                // The engine, or a Mac used on its own (D-039): either is one click from the
+                // other, and changing it loses nothing.
+                SettingRow(title: "Role",
+                           caption: s.isLocal ? "Used on its own: no other Mac works on its sessions." : "The engine: other Macs can work on its sessions over SSH.") {
+                    Picker("Role", selection: Binding(get: { s.isLocal ? "local" : "engine" }, set: { v in Task { await store.set("role", v) } })) {
+                        Text("Engine").tag("engine")
+                        Text("This Mac only").tag("local")
+                    }
+                    .labelsHidden().pickerStyle(.segmented).fixedSize()
+                }
             }
             if s.isClient {
                 Divider()

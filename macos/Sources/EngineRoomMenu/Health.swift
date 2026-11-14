@@ -15,11 +15,11 @@ struct HealthView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            PageHeader(title: "Health of the engine", detail: checkedLine) {
+            PageHeader(title: "Health of \(whose)", detail: checkedLine) {
                 if store.healthChecking { ProgressView().controlSize(.small) }
                 Button("Check again") { Task { await store.checkHealth() } }.pointer()
                     .disabled(store.healthChecking)
-                    .help("Check the engine now; it is never checked on a timer")
+                    .help("Check \(whose) now; it is never checked on a timer")
             }
             .padding(.bottom, 10)
             ScrollView {
@@ -30,6 +30,10 @@ struct HealthView: View {
             }
         }
     }
+
+    /// Whose health the page shows: this Mac's when it is used on its own (D-039), otherwise the
+    /// engine's, which on a client is asked of the engine.
+    private var whose: String { store.status?.isLocal == true ? "this Mac" : "the engine" }
 
     /// Where and when the items shown were checked, beside the title.
     private var checkedLine: String? {
@@ -51,7 +55,7 @@ struct HealthView: View {
         } else if let r = store.health {
             report(r)
         } else {
-            EmptyState(title: "Checking the engine…",
+            EmptyState(title: "Checking \(whose)…",
                        detail: "Each item is read, and each running session's status script is run; nothing is changed.")
         }
     }

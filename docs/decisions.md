@@ -1180,3 +1180,36 @@ half replaced.
 - Falling back to ad hoc with a louder warning: the warning scrolls past and the prompts return.
 - Unlocking the keychain during the install: it needs the password on every install, typed into
   whatever ran it.
+
+## D-039 A Mac used on its own has the role local
+
+**Problem.** A Mac with no clients had to be set as the engine, and the engine is checked for
+being reached over SSH (D-036): the program found by an SSH command, the SSH server on. On a Mac
+used on its own those are never needed, so its setup check and health always read as not ready,
+and the install stopped until the SSH PATH was set.
+
+**Decision.**
+
+- A third role, `local`: `engineroom role set local`, `scripts/install.sh --local`, or the app's
+  Settings, Role, This Mac only.
+- A local Mac works as the engine does: its sessions run here, in Zellij, its app sweeps them, and
+  every action is done here. Its setup check lists what every machine needs and nothing of the
+  engine's or a client's. Its health is titled "Health of this Mac".
+- The install does not check the PATH an SSH command sees when it sets the role to local, or when
+  the role is already local.
+- The app's Settings choose between the engine and local (`engineroom api set role`). A client is
+  shown and not chosen there: it needs the engine's SSH destination, which the command takes, and
+  a client is never turned into another role by a click.
+- Changing the role loses nothing: projects, settings and the engine's address stay in the
+  configuration, so a local Mac can become a client again without naming the engine.
+- Zellij stays required on every machine, local included: it is what a session is, joinable from
+  any terminal and lasting past the app.
+
+**Considered.**
+
+- An engine with its SSH items made optional: an engine reads as ready while a client cannot reach
+  it, which is the check's whole purpose.
+- A local role without Zellij, Claude in a plain terminal tab: a second session model beside the
+  first, with no joining, handover or lasting session, and every session feature needing an answer
+  for it.
+
